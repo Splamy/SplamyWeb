@@ -41,7 +41,7 @@ nav {
 	display: flex;
 	background-color: @color-main-sub;
 
-	> a, > a:link, > a:visited, > a:active {
+	.navl, .navl:link, .navl:visited, .navl:active {
 		float: left;
 		display: flex;
 		padding: 14px 16px;
@@ -50,7 +50,7 @@ nav {
 		font-weight: bold;
 	}
 
-	> a:hover {
+	.navl:hover {
 		.link-hover();
 	}
 }
@@ -81,4 +81,32 @@ nav {
 		border-width: 3px;
 		border-style: none none double none;
 	}
+}
+
+.navdrop {
+	.unselectable();
+	position: relative;
+	display: inline-block;
+}
+
+.navdrop-list {
+	display: none;
+	position: absolute;
+	background-color: @color-main-sub;
+	min-width: 180px;
+	z-index: 1;
+	top: 47px; // ??
+}
+
+.navdrop:hover .navdrop-list {
+	display: block;
+}
+
+.unselectable() {
+	cursor: pointer;
+	user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
 }

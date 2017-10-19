@@ -1,0 +1,27 @@
+@page
+@using SplamyWeb.Pages
+@model NightlyModel
+@{
+	ViewData["Title"] = "Nightly";
+	Layout = "_Layout";
+}
+<h2>Nightly Builds</h2>
+
+<h3 id="ts3ab">TS3AudioBot:</h3>
+<table class="dltable">
+	<tr>
+		<th>Branch</th>
+		<th>Version</th>
+		<th>Commit</th>
+		<th>Link</th>
+	</tr>
+	@foreach (var entry in SplamyWeb.LocalDb.NightlyTable.Find(x => x.Project == "ts3ab"))
+	{
+		<tr>
+			<td>@entry.Branch</td>
+			<td>@entry?.Version</td>
+			<td>@entry?.Commit</td>
+			<td><a href="api/nightly/ts3ab/@entry.Branch" download="@entry.FileName" class="dllink">Download</a></td>
+		</tr>
+	}
+</table>

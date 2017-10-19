@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace SplamyWeb.Pages
 {
-    public class DownloadModel : PageModel
-    {
-        public void OnGet()
-        {
-        }
-    }
+	public class NightlyModel : PageModel
+	{
+		public void OnGet()
+		{
+		}
+	}
 }

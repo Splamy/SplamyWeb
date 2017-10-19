@@ -6,6 +6,9 @@
 *.min.js
 *.js.map
 
+#data
+data/
+
 # User-specific files
 *.suo
 *.user
