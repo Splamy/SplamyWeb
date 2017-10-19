@@ -39,10 +39,10 @@ h2 {
 
 nav {
 	display: flex;
+	flex-wrap: wrap;
 	background-color: @color-main-sub;
 
 	.navl, .navl:link, .navl:visited, .navl:active {
-		float: left;
 		display: flex;
 		padding: 14px 16px;
 		color: black;
@@ -93,9 +93,9 @@ nav {
 	display: none;
 	position: absolute;
 	background-color: @color-main-sub;
-	min-width: 180px;
 	z-index: 1;
 	top: 47px; // ??
+	white-space: nowrap;
 }
 
 .navdrop:hover .navdrop-list {

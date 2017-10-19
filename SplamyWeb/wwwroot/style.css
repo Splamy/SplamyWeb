@@ -18,13 +18,13 @@ h2 {
 }
 nav {
   display: flex;
+  flex-wrap: wrap;
   background-color: #009900;
 }
 nav .navl,
 nav .navl:link,
 nav .navl:visited,
 nav .navl:active {
-  float: left;
   display: flex;
   padding: 14px 16px;
   color: black;
@@ -78,9 +78,9 @@ nav .navl:hover {
   display: none;
   position: absolute;
   background-color: #009900;
-  min-width: 180px;
   z-index: 1;
   top: 47px;
+  white-space: nowrap;
 }
 .navdrop:hover .navdrop-list {
   display: block;

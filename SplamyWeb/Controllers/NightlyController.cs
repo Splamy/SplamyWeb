@@ -9,7 +9,7 @@ namespace SplamyWeb.Controllers
 	{
 		private readonly string nightlyPath = Path.Combine(LocalDb.DataPath, "nightly");
 
-		[HttpGet("{project}/{branch}")]
+		[HttpGet("{project}/{branch}/download")]
 		[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]
 		public IActionResult GetDownload(string project, string branch) // ts3ab/master
 		{
@@ -31,6 +31,28 @@ namespace SplamyWeb.Controllers
 			var path = Path.Combine(nightlyPath, project, branch, entry.FileName);
 			var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
 			return File(stream, MediaTypeNames.Application.Octet, entry.FileName);
+		}
+
+		[HttpGet("{project}/{branch}")]
+		public IActionResult GetInfo(string project, string branch) // ts3ab/master
+		{
+			project = project.ToLower();
+			branch = branch.ToLower();
+
+			var entry = LocalDb.NightlyTable.FindOne(x => x.Project == project && x.Branch == branch);
+			if (entry == null)
+				return NotFound();
+
+			return Ok(entry);
+		}
+
+		[HttpGet("{project}")]
+		public IActionResult FindBranches(string project)
+		{
+			project = project.ToLower();
+
+			var entry = LocalDb.NightlyTable.Find(x => x.Project == project);
+			return Ok(entry);
 		}
 
 		[HttpPut("{project}/{branch}")]
