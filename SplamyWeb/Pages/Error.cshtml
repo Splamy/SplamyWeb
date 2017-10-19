@@ -1,0 +1,8 @@
+@page
+@model SplamyWeb.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Error";
+    Layout = "_Layout";
+}
+
+<h2>Error: @Url.ActionContext.HttpContext.Response.StatusCode</h2>
