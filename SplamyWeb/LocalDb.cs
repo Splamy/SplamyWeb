@@ -67,6 +67,7 @@ namespace SplamyWeb
 		public string Commit { get; set; }
 		public bool ZipContent { get; set; }
 		public string FileName { get; set; }
+		public int DownloadCount { get; set; }
 	}
 
 	public class LoginData

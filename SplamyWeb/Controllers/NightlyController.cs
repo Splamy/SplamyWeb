@@ -78,16 +78,19 @@ namespace SplamyWeb.Controllers
 				return BadRequest("Invalid type");
 
 			const string defaultName = "data.dat";
-			var entry = new NightlyEntry
-			{
-				Branch = branch,
-				Project = project,
-				FileName = fileName ?? defaultName,
-				Version = version,
-				Commit = commit,
-				ZipContent = false,
-				Id = $"{project}.{branch}",
-			};
+			var entry = LocalDb.NightlyTable.FindOne(x => x.Project == project && x.Branch == branch);
+			if (entry == null)
+				entry = new NightlyEntry
+				{
+					Branch = branch,
+					Project = project,
+					ZipContent = false,
+					Id = $"{project}.{branch}",
+				};
+			entry.FileName = fileName ?? defaultName;
+			entry.Version = version;
+			entry.Commit = commit;
+			entry.DownloadCount++;
 			LocalDb.NightlyTable.Upsert(entry);
 
 			var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, entry.FileName));
