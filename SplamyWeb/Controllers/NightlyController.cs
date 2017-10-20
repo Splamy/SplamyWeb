@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
+using System.Linq;
 using System.Net.Mime;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace SplamyWeb.Controllers
 {
@@ -16,12 +20,15 @@ namespace SplamyWeb.Controllers
 			project = project.ToLower();
 			branch = branch.ToLower();
 
-			var entry = LocalDb.NightlyTable.FindOne(x => x.Project == project && x.Branch == branch);
+			if (project.Contains(".") || branch.Contains(".")) // Sanity check
+				return NotFound();
+
+			var entry = GetActive(project, branch);
 			if (entry == null)
 				return NotFound();
 
-			if (project.Contains(".") || branch.Contains(".")) // Sanity check
-				return NotFound();
+			entry.DownloadCount++;
+			LocalDb.NightlyTable.Update(entry);
 
 			if (entry.ZipContent)
 			{
@@ -39,10 +46,9 @@ namespace SplamyWeb.Controllers
 			project = project.ToLower();
 			branch = branch.ToLower();
 
-			var entry = LocalDb.NightlyTable.FindOne(x => x.Project == project && x.Branch == branch);
+			var entry = GetActive(project, branch);
 			if (entry == null)
 				return NotFound();
-
 			return Ok(entry);
 		}
 
@@ -51,7 +57,7 @@ namespace SplamyWeb.Controllers
 		{
 			project = project.ToLower();
 
-			var entry = LocalDb.NightlyTable.Find(x => x.Project == project);
+			var entry = LocalDb.NightlyTable.Find(x => x.Project == project).Select(x => x.Branch).Distinct();
 			return Ok(entry);
 		}
 
@@ -64,7 +70,7 @@ namespace SplamyWeb.Controllers
 			)
 		{
 			var user = LocalDb.GetUserByToken(token);
-			if(user == null || user.Rank < UserType.Admin)
+			if (user == null || user.Rank < UserType.Admin)
 				return BadRequest("Not authorized");
 
 			project = project.ToLower();
@@ -78,23 +84,30 @@ namespace SplamyWeb.Controllers
 				return BadRequest("Invalid type");
 
 			const string defaultName = "data.dat";
-			var entry = LocalDb.NightlyTable.FindOne(x => x.Project == project && x.Branch == branch);
+			string id = ToId(project, branch, commit);
+			var entry = LocalDb.NightlyTable.FindById(id);
 			if (entry == null)
 				entry = new NightlyEntry
 				{
 					Branch = branch,
 					Project = project,
 					ZipContent = false,
-					Id = $"{project}.{branch}",
+					Id = id,
 				};
+			entry.UploadTime = DateTime.UtcNow;
 			entry.FileName = fileName ?? defaultName;
 			entry.Version = version;
 			entry.Commit = commit;
-			entry.DownloadCount++;
 			LocalDb.NightlyTable.Upsert(entry);
+			var meta = LocalDb.NightlyMetaTable.FindById(ToActive(project, branch));
+			if (meta == null)
+				meta = new NightlyMeta { Id = ToActive(project, branch), Active = commit, Project = project };
+			else
+				meta.Active = commit;
+			LocalDb.NightlyMetaTable.Upsert(meta);
 
 			var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, entry.FileName));
-			if(Directory.Exists(fullPath.DirectoryName))
+			if (Directory.Exists(fullPath.DirectoryName))
 				Directory.Delete(fullPath.DirectoryName, true);
 			Directory.CreateDirectory(fullPath.DirectoryName);
 			using (var demoDataStream = fullPath.OpenWrite())
@@ -105,10 +118,36 @@ namespace SplamyWeb.Controllers
 			return Ok();
 		}
 
+		private static NightlyEntry GetActive(string project, string branch)
+		{
+			var activeId = ToActive(project, branch);
+			var meta = LocalDb.NightlyMetaTable.FindById(activeId);
+			if (meta == null)
+				return null;
+			return LocalDb.NightlyTable.FindById(meta.ToId());
+		}
+
 		[HttpDelete("{project}/{branch}")]
 		public void Delete(string project, string branch, [FromQuery] string token)
 		{
+			// ...
+		}
+
+		public void Delete(NightlyEntry entry)
+		{
 
 		}
+
+		private static object StripEntry(NightlyEntry entry) => new
+		{
+			Project = entry.Project,
+			Branch = entry.Branch,
+			Version = entry.Version,
+			Commit = entry.Commit,
+		};
+
+		public static string ToActive(string project, string branch) => $"{project}.{branch}";
+		public static string ActiveToId(string active, string commit) => $"{active}.{commit}";
+		public static string ToId(string project, string branch, string commit) => $"{project}.{branch}.{commit}";
 	}
 }

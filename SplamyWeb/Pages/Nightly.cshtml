@@ -6,22 +6,43 @@
 	Layout = "_Layout";
 }
 <h2>Nightly Builds</h2>
-
 <h3 id="ts3ab">TS3AudioBot:</h3>
+@{
+	var isExtended = await Html.ViewData.Model.IsExtented();
+}
 <table class="dltable">
 	<tr>
 		<th>Branch</th>
 		<th>Version</th>
 		<th>Commit</th>
+		<th>Date</th>
 		<th>Link</th>
+		@if (isExtended)
+		{
+			<th>Count</th>
+			<th>Options</th>
+		}
 	</tr>
-	@foreach (var entry in SplamyWeb.LocalDb.NightlyTable.Find(x => x.Project == "ts3ab"))
+	@foreach (var (entry, active) in NightlyModel.GetActives("ts3ab", isExtended))
 	{
 		<tr>
 			<td>@entry.Branch</td>
 			<td>@entry?.Version</td>
-			<td>@entry?.Commit</td>
-			<td><a href="api/nightly/ts3ab/@entry.Branch/download" download="@entry.FileName" class="dllink">Download</a></td>
+			<td>@entry?.Commit.Substring(0,8)</td>
+			<td>@entry?.UploadTime</td>
+			@if (active)
+			{
+				<td><a href="api/nightly/ts3ab/@entry.Branch/download" download="@entry.FileName" class="dllink">Download</a></td>
+			}
+			else
+			{
+				<td>-</td>
+			}
+			@if (isExtended)
+			{
+				<td>@entry.DownloadCount</td>
+				<td>[X]</td>
+			}
 		</tr>
 	}
 </table>

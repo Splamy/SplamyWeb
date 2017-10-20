@@ -1,16 +1,24 @@
 ﻿using LiteDB;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.AspNetCore.Identity;
+using SplamyWeb.Controllers;
 using System;
+using System.Globalization;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SplamyWeb
 {
-	public static class LocalDb
+	public class LocalDb : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 	{
-		private const int TokenLength = 64;
+		private const string NomalizedName = "NameNormal";
 
 		public static LiteDatabase Database { get; }
 		public static LiteCollection<NightlyEntry> NightlyTable { get; }
+		public static LiteCollection<NightlyMeta> NightlyMetaTable { get; }
 		public static LiteCollection<LoginData> LoginTable { get; }
 		public static string DataPath { get; } = Path.Combine(Directory.GetCurrentDirectory(), "data");
 
@@ -19,21 +27,35 @@ namespace SplamyWeb
 			Directory.CreateDirectory(DataPath);
 			Database = new LiteDatabase(Path.Combine(DataPath, "webdata.litedb"));
 			NightlyTable = Database.GetCollection<NightlyEntry>();
+			NightlyTable.EnsureIndex(x => x.Id, true);
+			NightlyTable.EnsureIndex(x => x.Project);
+			NightlyTable.EnsureIndex(x => x.Branch);
+
+			NightlyMetaTable = Database.GetCollection<NightlyMeta>();
+			NightlyTable.EnsureIndex(x => x.Id, true);
+			NightlyTable.EnsureIndex(x => x.Project);
+
 			LoginTable = Database.GetCollection<LoginData>();
+			LoginTable.EnsureIndex(x => x.Id, true);
 			LoginTable.EnsureIndex(x => x.Token, true);
+			LoginTable.EnsureIndex(NomalizedName, "UPPER($.Name)", true);
 
 			if (LoginTable.Count() == 0)
 			{
 				string initToken = RandomToken();
+				string initpass = RandomToken(16);
+				var pw = HashPw(initpass);
+
 				LoginTable.Insert(new LoginData
 				{
-					UserName = "Splamy",
-					Password = null,
+					Name = "Splamy",
+					Password = pw.password,
+					Salt = pw.salt,
 					Token = initToken,
 					Rank = UserType.Admin,
 				});
 				Console.WriteLine("Initial token (written to token.tmp): {0}", initToken);
-				File.WriteAllText(Path.Combine(DataPath, "token.tmp"), initToken);
+				File.WriteAllText(Path.Combine(DataPath, "token.tmp"), initToken + "\n" + pw.password);
 			}
 		}
 
@@ -44,45 +66,242 @@ namespace SplamyWeb
 			return LoginTable.FindOne(x => x.Token == token);
 		}
 
-		private static string RandomToken()
+		private static string RandomToken(int length = 64)
 		{
 			const string tokenChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-			var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-			var buffer = new byte[TokenLength];
-			rng.GetBytes(buffer);
-			var strb = new StringBuilder(buffer.Length);
-			for (int i = 0; i < buffer.Length; i++)
-				strb.Append(tokenChars[(tokenChars.Length * buffer[i]) / 255]);
-			return strb.ToString();
+			using (var rng = RandomNumberGenerator.Create())
+			{
+				var buffer = new byte[length];
+				rng.GetBytes(buffer);
+				var strb = new StringBuilder(buffer.Length);
+				for (int i = 0; i < buffer.Length; i++)
+					strb.Append(tokenChars[((tokenChars.Length - 1) * buffer[i]) / 255]);
+				return strb.ToString();
+			}
 		}
+
+		public static (string password, byte[] salt) HashPw(string password)
+		{
+			// generate a 128-bit salt using a secure PRNG
+			byte[] salt = new byte[128 / 8];
+			using (var rng = RandomNumberGenerator.Create())
+			{
+				rng.GetBytes(salt);
+			}
+			return (HashPw(password, salt), salt);
+		}
+
+		public static string HashPw(string password, byte[] salt)
+		{
+			// derive a 256-bit subkey (use HMACSHA1 with 10,000 iterations)
+			string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+				password: password,
+				salt: salt,
+				prf: KeyDerivationPrf.HMACSHA256,
+				iterationCount: 10000,
+				numBytesRequested: 256 / 8));
+			return hashed;
+		}
+
+		public void Dispose()
+		{
+			//Database.Dispose();
+		}
+
+		#region Never go full enterprise
+
+#pragma warning disable CS1998
+		public async Task<string> GetUserIdAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return user.Id.ToString();
+		}
+
+		public async Task<string> GetUserNameAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return user.Name;
+		}
+
+		public async Task SetUserNameAsync(LoginData user, string userName, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			user.Name = userName;
+			LoginTable.Update(user);
+		}
+
+		public async Task<string> GetNormalizedUserNameAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return user.Name.ToUpper(CultureInfo.InvariantCulture);
+		}
+
+		public async Task SetNormalizedUserNameAsync(LoginData user, string normalizedName, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			user.Name = normalizedName;
+			LoginTable.Update(user);
+		}
+
+		public async Task<IdentityResult> CreateAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			try
+			{
+				LoginTable.Insert(user);
+				return IdentityResult.Success;
+			}
+			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
+		}
+
+		public async Task<IdentityResult> UpdateAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			try
+			{
+				LoginTable.Update(user);
+				return IdentityResult.Success;
+			}
+			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
+		}
+
+		public async Task<IdentityResult> DeleteAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			try
+			{
+				LoginTable.Delete(user.Id);
+				return IdentityResult.Success;
+			}
+			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
+		}
+
+		public async Task<string> GetRoleIdAsync(LoginData role, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return role.Rank.ToString().ToUpper();
+		}
+
+		public async Task<string> GetRoleNameAsync(LoginData role, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return role.Rank.ToString();
+		}
+
+		public async Task SetRoleNameAsync(LoginData role, string roleName, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			role.Rank = Enum.Parse<UserType>(roleName);
+		}
+
+		public async Task<string> GetNormalizedRoleNameAsync(LoginData role, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return role.Rank.ToString().ToUpper(CultureInfo.InvariantCulture);
+		}
+
+		public async Task SetNormalizedRoleNameAsync(LoginData role, string normalizedName, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			role.Rank = Enum.Parse<UserType>(normalizedName, true);
+			LoginTable.Update(role);
+		}
+
+		public async Task<LoginData> FindByIdAsync(string userId, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return LoginTable.FindById(int.Parse(userId));
+		}
+
+		public async Task<LoginData> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			var user = LoginTable.FindOne(Query.EQ(NomalizedName, normalizedUserName));
+			return user;
+		}
+
+		public async Task SetPasswordHashAsync(LoginData user, string passwordHash, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			user.Password = passwordHash;
+			LoginTable.Update(user);
+		}
+
+		public async Task<string> GetPasswordHashAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return user.Password;
+		}
+
+		public async Task<bool> HasPasswordAsync(LoginData user, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			return user.Password != null;
+		}
+
+		public async Task<IdentityResult> ValidateAsync(UserManager<LoginData> manager, LoginData user, string password)
+		{
+			if (HashPw(password, user.Salt) == user.Password)
+				return IdentityResult.Success;
+			else
+				return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" });
+		}
+
+		public string HashPassword(LoginData user, string password)
+		{
+			return HashPw(password, user.Salt);
+		}
+
+		public PasswordVerificationResult VerifyHashedPassword(LoginData user, string hashedPassword, string providedPassword)
+		{
+			if (HashPw(providedPassword, user.Salt) == hashedPassword)
+			{
+				return PasswordVerificationResult.Success;
+			}
+			return PasswordVerificationResult.Failed;
+		}
+#pragma warning restore CS1998
+
+		#endregion
 	}
 
 	public class NightlyEntry
 	{
-		[BsonId]
 		public string Id { get; set; }
 		public string Project { get; set; }
 		public string Branch { get; set; }
 		public string Version { get; set; }
 		public string Commit { get; set; }
+
 		public bool ZipContent { get; set; }
 		public string FileName { get; set; }
+		public DateTime UploadTime { get; set; }
 		public int DownloadCount { get; set; }
+	}
+
+	public class NightlyMeta
+	{
+		public string Id { get; set; }
+		public string Project { get; set; }
+		public string Active { get; set; }
+
+		public string ToId() => NightlyController.ActiveToId(Id, Active);
 	}
 
 	public class LoginData
 	{
-		[BsonId]
-		public string UserName { get; set; }
+		public int Id { get; set; }
+		public string Name { get; set; }
 		public string Password { get; set; }
+		public byte[] Salt { get; set; }
 		public string Token { get; set; }
 		public UserType Rank { get; set; }
 	}
 
 	public enum UserType
 	{
-		Admin,
-		CoAdmin,
 		User,
+		CoAdmin,
+		Admin,
 	}
 }
