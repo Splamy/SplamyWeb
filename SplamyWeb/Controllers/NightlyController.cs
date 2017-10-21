@@ -1,10 +1,10 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
-using Microsoft.EntityFrameworkCore.Internal;
 
 namespace SplamyWeb.Controllers
 {

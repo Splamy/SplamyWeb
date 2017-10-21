@@ -12,16 +12,16 @@ namespace SplamyWeb.Pages
 {
 	public class NightlyModel : PageModel
 	{
-		private readonly UserManager<LoginData> _userManager;
+		private readonly UserManager<LoginData> userManager;
 
 		public NightlyModel(UserManager<LoginData> userManager)
 		{
-			_userManager = userManager;
+			this.userManager = userManager;
 		}
 
 		public async Task<bool> IsExtented()
 		{
-			var user = await _userManager.GetUserAsync(User);
+			var user = await userManager.GetUserAsync(User);
 			return user != null && user.Rank > UserType.CoAdmin;
 		}
 

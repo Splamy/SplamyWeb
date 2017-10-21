@@ -13,14 +13,14 @@
 			<span class="navl">TS3AudioBot</span>
 			<div class="navdrop-list">
 				<a class="navl" href="~/Nightly#ts3ab">Nightly Builds</a>
-				<a class="navl" href="http://splamy.de/TS3AudioBot" target="_blank">=&gt;Blog</a>
+				<a class="navl" href="http://tab.splamy.de" target="_blank">=&gt;Blog</a>
 				<a class="navl" href="https://github.com/Splamy/TS3AudioBot" target="_blank">=&gt;Github</a>
 			</div>
 		</div>
 		@if (User.Identity.Name != null)
 		{
 			<a class="navl" href="~/Admin">Admin</a>
-			<div class="navuser">User: @Html.ViewContext.HttpContext.User.FindFirst(ClaimTypes.Name).Value</div>
+			<a class="navuser" href="~/User">User: @Html.ViewContext.HttpContext.User.FindFirst(ClaimTypes.Name).Value</a>
 			<form action="~/Account/Logout" method="POST">
 				<label class="navl">
 					Logout

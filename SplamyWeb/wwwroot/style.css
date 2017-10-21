@@ -35,7 +35,7 @@ nav .navl:active {
 nav .navl:hover {
   background-color: #33CC33;
   box-shadow: 3px 3px 1px 1px grey;
-  color: #CC0066;
+  color: #CD0074;
 }
 nav .navuser {
   display: flex;
@@ -62,7 +62,7 @@ nav .navuser {
 .dllink:hover {
   background-color: #33CC33;
   box-shadow: 3px 3px 1px 1px grey;
-  color: #CC0066;
+  color: #CD0074;
 }
 .dltable {
   width: 100%;
@@ -73,6 +73,9 @@ nav .navuser {
 .dltable tr > th {
   border-width: 3px;
   border-style: none none double none;
+}
+.dltable tr:not(:first-child):hover {
+  background-color: #002020;
 }
 .navdrop {
   cursor: pointer;
@@ -94,4 +97,9 @@ nav .navuser {
 }
 .navdrop:hover .navdrop-list {
   display: block;
+}
+.msg-error {
+  font-weight: bold;
+  color: red;
+  padding: 10px;
 }

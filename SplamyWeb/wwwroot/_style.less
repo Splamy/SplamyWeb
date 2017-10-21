@@ -1,13 +1,15 @@
 @color-main: #00CC00;
 @color-main-sub: #009900;
 @color-main-hi: #33CC33;
-@color-contrast: #CC0066;
+@color-contrast: #CD0074;
+@color-background: #001212;
+@color-background-hi: #002020;
 
 body {
 	padding: 40px 40px 0;
 	text-align: center;
 	font-family: monaco, monospace;
-	background-color: #001212;
+	background-color: @color-background;
 	color: @color-main;
 }
 
@@ -87,6 +89,10 @@ nav {
 		border-width: 3px;
 		border-style: none none double none;
 	}
+
+	tr:not(:first-child):hover {
+		background-color: @color-background-hi;
+	}
 }
 
 .navdrop {
@@ -106,6 +112,12 @@ nav {
 
 .navdrop:hover .navdrop-list {
 	display: block;
+}
+
+.msg-error {
+	font-weight: bold;
+	color: red;
+	padding: 10px;
 }
 
 .unselectable() {
