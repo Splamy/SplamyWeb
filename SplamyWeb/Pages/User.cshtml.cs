@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -9,8 +7,19 @@ namespace SplamyWeb.Pages
 {
 	public class UserModel : PageModel
 	{
-		public void OnGet()
+		[BindProperty]
+		public LoginData LoginData { get; set; }
+
+		private readonly UserManager<LoginData> userManager;
+
+		public UserModel(UserManager<LoginData> userManager)
 		{
+			this.userManager = userManager;
+		}
+
+		public async void OnGet()
+		{
+			LoginData = await userManager.GetUserAsync(User);
 		}
 
 		public string Error()

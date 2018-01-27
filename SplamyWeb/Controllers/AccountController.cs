@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -31,6 +27,15 @@ namespace SplamyWeb.Controllers
 				return RedirectToPage("/Index");
 			else
 				return RedirectToPage("/User", new { error = 1 });
+		}
+
+		[HttpPost("Update")]
+		[Authorize]
+		public async Task<IActionResult> Update([FromForm] LoginData upuser)
+		{
+			var user = await userManager.GetUserAsync(User);
+			await userManager.UpdateAsync(upuser);
+			return RedirectToPage("/User");
 		}
 
 		[HttpPost("Logout")]
