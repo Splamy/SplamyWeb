@@ -25,6 +25,11 @@ namespace SplamyWeb.Pages
 			return user != null && user.Rank > UserType.CoAdmin;
 		}
 
+		public static IEnumerable<NightlyProject> GetNightlyProjects()
+		{
+			return LocalDb.NightlyProjectTable.FindAll();
+		}
+
 		public static IEnumerable<(NightlyEntry entry, bool active)> GetActives(string project, bool includeInactive)
 		{
 			if (includeInactive)

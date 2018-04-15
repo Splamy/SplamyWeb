@@ -55,8 +55,59 @@ namespace SplamyWeb.Controllers
 		{
 			project = project.ToLower();
 
-			var entry = LocalDb.NightlyTable.Find(x => x.Project == project).Select(x => x.Branch).Distinct();
-			return Ok(entry);
+			var name = LocalDb.NightlyProjectTable.FindById(project);
+			if (name == null)
+				return NotFound();
+			var branches = LocalDb.NightlyTable.Find(x => x.Project == project).Select(x => x.Branch).Distinct();
+
+			return Ok(new { name, branches, });
+		}
+
+		[HttpPut("{project}")]
+		public IActionResult CreateProject(string project, [FromQuery] string token)
+		{
+			project = project.ToLower();
+
+			var user = LocalDb.GetUserByToken(token);
+			if (user == null || user.Rank < UserType.Admin)
+				return BadRequest("Not authorized");
+
+			return Ok(CreateProject(project));
+		}
+
+		public NightlyProject CreateProject(string project)
+		{
+			project = project.ToLower();
+
+			var projData = LocalDb.NightlyProjectTable.FindById(project);
+			if (projData != null)
+				return projData;
+
+			projData = new NightlyProject() { Id = project };
+
+			LocalDb.NightlyProjectTable.Upsert(projData);
+
+			return projData;
+		}
+
+		[HttpPatch("{project}")]
+		public IActionResult SetProjectProperties(string project, [FromQuery] string token, [FromQuery] string name)
+		{
+			project = project.ToLower();
+
+			var user = LocalDb.GetUserByToken(token);
+			if (user == null || user.Rank < UserType.Admin)
+				return BadRequest("Not authorized");
+
+			var projData = LocalDb.NightlyProjectTable.FindById(project);
+			if (projData == null)
+				return NotFound();
+
+			projData.ProjectName = projData.ProjectName ?? name;
+
+			LocalDb.NightlyProjectTable.Upsert(projData);
+
+			return Ok(projData);
 		}
 
 		[HttpPut("{project}/{branch}")]
@@ -80,6 +131,8 @@ namespace SplamyWeb.Controllers
 			if (HttpContext.Request.ContentType != MediaTypeNames.Application.Octet &&
 				HttpContext.Request.ContentType != MediaTypeNames.Application.Zip)
 				return BadRequest("Invalid type");
+
+			CreateProject(project);
 
 			const string defaultName = "data.dat";
 			string id = ToId(project, branch, commit);

@@ -19,6 +19,7 @@ namespace SplamyWeb
 		public static LiteDatabase Database { get; }
 		public static LiteCollection<NightlyEntry> NightlyTable { get; }
 		public static LiteCollection<NightlyMeta> NightlyMetaTable { get; }
+		public static LiteCollection<NightlyProject> NightlyProjectTable { get; }
 		public static LiteCollection<LoginData> LoginTable { get; }
 		public static string DataPath { get; } = Path.Combine(Directory.GetCurrentDirectory(), "data");
 
@@ -32,8 +33,11 @@ namespace SplamyWeb
 			NightlyTable.EnsureIndex(x => x.Branch);
 
 			NightlyMetaTable = Database.GetCollection<NightlyMeta>();
-			NightlyTable.EnsureIndex(x => x.Id, true);
-			NightlyTable.EnsureIndex(x => x.Project);
+			NightlyMetaTable.EnsureIndex(x => x.Id, true);
+			NightlyMetaTable.EnsureIndex(x => x.Project);
+
+			NightlyProjectTable = Database.GetCollection<NightlyProject>();
+			NightlyProjectTable.EnsureIndex(x => x.Id, true);
 
 			LoginTable = Database.GetCollection<LoginData>();
 			LoginTable.EnsureIndex(x => x.Id, true);
@@ -43,8 +47,8 @@ namespace SplamyWeb
 			if (LoginTable.Count() == 0)
 			{
 				string initToken = RandomToken();
-				string initpass = RandomToken(16);
-				var pw = HashPw(initpass);
+				string initPass = RandomToken(16);
+				var pw = HashPw(initPass);
 
 				LoginTable.Insert(new LoginData
 				{
@@ -55,7 +59,7 @@ namespace SplamyWeb
 					Rank = UserType.Admin,
 				});
 				Console.WriteLine("Initial token (written to token.tmp): {0}", initToken);
-				File.WriteAllText(Path.Combine(DataPath, "token.tmp"), initToken + "\n" + pw.password);
+				File.WriteAllText(Path.Combine(DataPath, "token.tmp"), initToken + "\n" + initPass);
 			}
 		}
 
@@ -263,6 +267,12 @@ namespace SplamyWeb
 #pragma warning restore CS1998
 
 		#endregion
+	}
+
+	public class NightlyProject
+	{
+		public string Id { get; set; } // Something like "ts3ab", "ts3hook"
+		public string ProjectName { get; set; }
 	}
 
 	public class NightlyEntry
