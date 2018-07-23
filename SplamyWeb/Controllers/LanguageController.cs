@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace SplamyWeb.Controllers
 	[Route("api/[controller]")]
 	public class LanguageController : Controller
 	{
-		private readonly string languagePath = Path.Combine(LocalDb.DataPath, "language");
+		private static readonly string languageBasePath = Path.Combine(LocalDb.DataPath, "language");
 
 		[HttpGet("project/{project}/languages")]
 		[Produces(MediaTypeNames.Application.Json)]
@@ -27,11 +28,25 @@ namespace SplamyWeb.Controllers
 
 			project = project.ToLower();
 
-			var fullPath = new DirectoryInfo(Path.Combine(languagePath, project));
+			var fullPath = new DirectoryInfo(Path.Combine(languageBasePath, project));
 			if (!fullPath.Exists)
 				return NotFound("The language was not found");
 
-			return Ok(fullPath.GetDirectories().Select(d => d.Name));
+			return Ok(GetLanguageListDir(project));
+		}
+
+		private static IEnumerable<string> GetLanguageListDir(string project)
+		{
+			if (!Save(project))
+				return Enumerable.Empty<string>();
+
+			project = project.ToLower();
+
+			var fullPath = new DirectoryInfo(Path.Combine(languageBasePath, project));
+			if (!fullPath.Exists)
+				return Enumerable.Empty<string>();
+
+			return fullPath.GetDirectories().Select(d => d.Name);
 		}
 
 		[HttpGet("project/{project}/language/{language}/dll")]
@@ -45,7 +60,7 @@ namespace SplamyWeb.Controllers
 			language = language.ToLower();
 
 			var langEntry = GetLanguageEntry(project, language);
-			var fullPath = new FileInfo(Path.Combine(languagePath, project, language, "strings.dll"));
+			var fullPath = new FileInfo(Path.Combine(languageBasePath, project, language, "strings.dll"));
 			if (langEntry == null || !fullPath.Exists)
 				return NotFound("The language was not found");
 
@@ -79,7 +94,7 @@ namespace SplamyWeb.Controllers
 					languages = serializer.Deserialize<TransifexLanguage[]>(jsonTextReader);
 				}
 
-				var projectPath = Path.Combine(languagePath, project);
+				var projectPath = Path.Combine(languageBasePath, project);
 				Directory.CreateDirectory(projectPath);
 
 				await Task.WhenAll(languages.Select(async lang =>
@@ -99,49 +114,69 @@ namespace SplamyWeb.Controllers
 					{
 						await stream.CopyToAsync(demoDataStream);
 					}
-
-					using (var proc = new Process
-					{
-						StartInfo = new ProcessStartInfo
-						{
-							FileName = "resgen",
-							Arguments = "strings.resx",
-							WorkingDirectory = languagePath,
-						}
-					})
-					{
-						proc.Start();
-						proc.WaitForExit(10000);
-					}
-
-					using (var proc = new Process
-					{
-						StartInfo = new ProcessStartInfo
-						{
-							FileName = "al",
-							Arguments = $"-target:lib -embed:strings.resources -culture:{language} -out:strings.dll",
-							WorkingDirectory = languagePath,
-						}
-					})
-					{
-						proc.Start();
-						proc.WaitForExit(10000);
-					}
-
-					var entryId = ToId(project, language);
-					var langEntry = LocalDb.LanguageTable.FindById(entryId);
-					if (langEntry == null)
-						langEntry = new LanguageEntry
-						{
-							Id = entryId,
-							Language = language,
-							Project = project,
-						};
-
-					langEntry.UploadTime = DateTime.UtcNow;
-					LocalDb.LanguageTable.Upsert(langEntry);
-
 				}).ToArray());
+			}
+
+			return RebuildLanguageFiles(project);
+		}
+
+		[HttpPost("project/{project}/rebuild")]
+		public IActionResult RebuildLanguageFiles(string project)
+		{
+			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
+			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
+
+			var projectPath = Path.Combine(languageBasePath, project);
+			Directory.CreateDirectory(projectPath);
+
+			foreach (var language in GetLanguageListDir(project))
+			{
+				var languagePath = Path.Combine(projectPath, language);
+				if (!System.IO.File.Exists(Path.Combine(languagePath, "strings.resx")))
+					continue;
+
+				using (var proc = new Process
+				{
+					StartInfo = new ProcessStartInfo
+					{
+						FileName = "resgen",
+						Arguments = "strings.resx",
+						WorkingDirectory = languagePath,
+					}
+				})
+				{
+					proc.Start();
+					proc.WaitForExit(10000);
+				}
+
+				using (var proc = new Process
+				{
+					StartInfo = new ProcessStartInfo
+					{
+						FileName = "al",
+						Arguments = $"-target:lib -embed:strings.resources,TS3AudioBot.Localization.strings.{language}.resources -culture:{language} -out:TS3AudioBot.resources.dll",
+						WorkingDirectory = languagePath,
+					}
+				})
+				{
+					proc.Start();
+					proc.WaitForExit(10000);
+				}
+				System.IO.File.Copy(Path.Combine(languagePath, "TS3AudioBot.resources.dll"), Path.Combine(languagePath, "strings.dll"), true);
+
+				var entryId = ToId(project, language);
+				var langEntry = LocalDb.LanguageTable.FindById(entryId);
+				if (langEntry == null)
+					langEntry = new LanguageEntry
+					{
+						Id = entryId,
+						Language = language,
+						Project = project,
+					};
+
+				langEntry.UploadTime = DateTime.UtcNow;
+				LocalDb.LanguageTable.Upsert(langEntry);
+
 			}
 
 			return Ok();
