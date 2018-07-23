@@ -20,6 +20,7 @@ namespace SplamyWeb
 		public static LiteCollection<NightlyEntry> NightlyTable { get; }
 		public static LiteCollection<NightlyMeta> NightlyMetaTable { get; }
 		public static LiteCollection<NightlyProject> NightlyProjectTable { get; }
+		public static LiteCollection<LanguageEntry> LanguageTable { get; }
 		public static LiteCollection<LoginData> LoginTable { get; }
 		public static string DataPath { get; } = Path.Combine(Directory.GetCurrentDirectory(), "data");
 
@@ -38,6 +39,9 @@ namespace SplamyWeb
 
 			NightlyProjectTable = Database.GetCollection<NightlyProject>();
 			NightlyProjectTable.EnsureIndex(x => x.Id, true);
+
+			LanguageTable = Database.GetCollection<LanguageEntry>();
+			LanguageTable.EnsureIndex(x => x.Id, true);
 
 			LoginTable = Database.GetCollection<LoginData>();
 			LoginTable.EnsureIndex(x => x.Id, true);
@@ -147,34 +151,34 @@ namespace SplamyWeb
 			LoginTable.Update(user);
 		}
 
-		public async Task<IdentityResult> CreateAsync(LoginData user, CancellationToken cancellationToken)
+		public async Task<IdentityResult> CreateAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			try
 			{
-				LoginTable.Insert(user);
+				LoginTable.Insert(role);
 				return IdentityResult.Success;
 			}
 			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
 		}
 
-		public async Task<IdentityResult> UpdateAsync(LoginData user, CancellationToken cancellationToken)
+		public async Task<IdentityResult> UpdateAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			try
 			{
-				LoginTable.Update(user);
+				LoginTable.Update(role);
 				return IdentityResult.Success;
 			}
 			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
 		}
 
-		public async Task<IdentityResult> DeleteAsync(LoginData user, CancellationToken cancellationToken)
+		public async Task<IdentityResult> DeleteAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			try
 			{
-				LoginTable.Delete(user.Id);
+				LoginTable.Delete(role.Id);
 				return IdentityResult.Success;
 			}
 			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
@@ -211,16 +215,16 @@ namespace SplamyWeb
 			LoginTable.Update(role);
 		}
 
-		public async Task<LoginData> FindByIdAsync(string userId, CancellationToken cancellationToken)
+		public async Task<LoginData> FindByIdAsync(string roleId, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			return LoginTable.FindById(int.Parse(userId));
+			return LoginTable.FindById(int.Parse(roleId));
 		}
 
-		public async Task<LoginData> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
+		public async Task<LoginData> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			var user = LoginTable.FindOne(Query.EQ(NomalizedName, normalizedUserName));
+			var user = LoginTable.FindOne(Query.EQ(NomalizedName, normalizedRoleName));
 			return user;
 		}
 
@@ -287,6 +291,14 @@ namespace SplamyWeb
 		public string FileName { get; set; }
 		public DateTime UploadTime { get; set; }
 		public int DownloadCount { get; set; }
+
+		public object Strip() => new
+		{
+			Project,
+			Branch,
+			Version,
+			Commit,
+		};
 	}
 
 	public class NightlyMeta
@@ -296,6 +308,18 @@ namespace SplamyWeb
 		public string Active { get; set; }
 
 		public string ToId() => NightlyController.ActiveToId(Id, Active);
+	}
+
+	public class LanguageEntry
+	{
+		public string Id { get; set; }
+		public string Project { get; set; }
+		public string Language { get; set; }
+
+		public DateTime UploadTime { get; set; }
+		public int DownloadCount { get; set; }
+
+		public CultureInfo GetCulture() => CultureInfo.GetCultureInfo(Language);
 	}
 
 	public class LoginData

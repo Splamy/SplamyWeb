@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers
 {
@@ -18,8 +19,8 @@ namespace SplamyWeb.Controllers
 			project = project.ToLower();
 			branch = branch.ToLower();
 
-			if (project.Contains(".") || branch.Contains(".")) // Sanity check
-				return NotFound();
+			if (!Save(project) || !Save(branch))
+				return BadRequest("Invalid path");
 
 			var entry = GetActive(project, branch);
 			if (entry == null)
@@ -34,8 +35,7 @@ namespace SplamyWeb.Controllers
 			}
 
 			var path = Path.Combine(nightlyPath, project, branch, entry.FileName);
-			var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-			return File(stream, MediaTypeNames.Application.Octet, entry.FileName);
+			return PhysicalFile(path, MediaTypeNames.Application.Octet, entry.FileName);
 		}
 
 		[HttpGet("{project}/{branch}")]
@@ -47,7 +47,7 @@ namespace SplamyWeb.Controllers
 			var entry = GetActive(project, branch);
 			if (entry == null)
 				return NotFound();
-			return Ok(entry);
+			return Ok(entry.Strip());
 		}
 
 		[HttpGet("{project}")]
@@ -75,7 +75,7 @@ namespace SplamyWeb.Controllers
 			return Ok(CreateProject(project));
 		}
 
-		public NightlyProject CreateProject(string project)
+		private static NightlyProject CreateProject(string project)
 		{
 			project = project.ToLower();
 
@@ -91,7 +91,9 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPatch("{project}")]
-		public IActionResult SetProjectProperties(string project, [FromQuery] string token, [FromQuery] string name)
+		public IActionResult SetProjectProperties(string project,
+			[FromQuery] string token,
+			[FromQuery] string name)
 		{
 			project = project.ToLower();
 
@@ -103,7 +105,8 @@ namespace SplamyWeb.Controllers
 			if (projData == null)
 				return NotFound();
 
-			projData.ProjectName = projData.ProjectName ?? name;
+			if (name != null)
+				projData.ProjectName = name;
 
 			LocalDb.NightlyProjectTable.Upsert(projData);
 
@@ -115,8 +118,7 @@ namespace SplamyWeb.Controllers
 			[FromQuery] string token,
 			[FromQuery] string fileName,
 			[FromQuery] string version,
-			[FromQuery] string commit
-			)
+			[FromQuery] string commit)
 		{
 			var user = LocalDb.GetUserByToken(token);
 			if (user == null || user.Rank < UserType.Admin)
@@ -125,11 +127,11 @@ namespace SplamyWeb.Controllers
 			project = project.ToLower();
 			branch = branch.ToLower();
 
-			if (project.Contains(".") || branch.Contains(".")) // Sanity check
+			if (!Save(project) || !Save(branch))
 				return BadRequest("Invalid path");
 
-			if (HttpContext.Request.ContentType != MediaTypeNames.Application.Octet &&
-				HttpContext.Request.ContentType != MediaTypeNames.Application.Zip)
+			if (HttpContext.Request.ContentType != MediaTypeNames.Application.Octet
+				&& HttpContext.Request.ContentType != MediaTypeNames.Application.Zip)
 				return BadRequest("Invalid type");
 
 			CreateProject(project);
@@ -184,18 +186,10 @@ namespace SplamyWeb.Controllers
 			// ...
 		}
 
-		public void Delete(NightlyEntry entry)
+		private static void Delete(NightlyEntry entry)
 		{
 
 		}
-
-		private static object StripEntry(NightlyEntry entry) => new
-		{
-			Project = entry.Project,
-			Branch = entry.Branch,
-			Version = entry.Version,
-			Commit = entry.Commit,
-		};
 
 		public static string ToActive(string project, string branch) => $"{project}.{branch}";
 		public static string ActiveToId(string active, string commit) => $"{active}.{commit}";

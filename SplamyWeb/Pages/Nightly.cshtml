@@ -3,12 +3,12 @@
 @model NightlyModel
 @{
 	ViewData["Title"] = "Nightly";
+	ViewData["Header"] = "Nightly Builds";
 	Layout = "_Layout";
 }
-<h2>Nightly Builds</h2>
 @foreach (var project in NightlyModel.GetNightlyProjects())
 {
-	<h3 id="@project.Id">@project.ProjectName:</h3>
+	<h3 id="@project.Id">@(project.ProjectName ?? "<unnamed>"):</h3>
 	var isExtended = await Html.ViewData.Model.IsExtented();
 	<table class="dltable">
 		<tr>

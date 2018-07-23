@@ -72,7 +72,7 @@ namespace SplamyWeb
 			}
 
 			app.UseStatusCodePagesWithReExecute("/Error");
-			
+
 			app.UseAuthentication();
 
 			app.UseMvc();

@@ -10,7 +10,7 @@
 		<a class="navl" href="~/Index">Home</a>
 		<a class="navl" href="~/Nightly">Nightly</a>
 		<div class="navdrop">
-			<span class="navl">TS3AudioBot</span>
+			<a class="navl" href="~/TS3AudioBot">TS3AudioBot</a>
 			<div class="navdrop-list">
 				<a class="navl" href="~/Nightly#ts3ab">Nightly Builds</a>
 				<a class="navl" href="http://tab.splamy.de" target="_blank">=&gt;Blog</a>
@@ -34,7 +34,7 @@
 		}
 	</nav>
 
-	<h1>Splamy</h1>
+	<h1>@(ViewData["Header"] ?? ViewData["Title"])</h1>
 
 	<div id="content">
 		@RenderBody()
