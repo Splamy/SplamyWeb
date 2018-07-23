@@ -34,7 +34,7 @@ nav .navl:active {
 }
 nav .navl:hover {
   background-color: #33CC33;
-  box-shadow: 3px 3px 1px 1px grey;
+  box-shadow: 0 0 10px 0 greenyellow;
   color: #CD0074;
 }
 nav .navuser {
@@ -61,7 +61,7 @@ nav .navuser {
 }
 .dllink:hover {
   background-color: #33CC33;
-  box-shadow: 3px 3px 1px 1px grey;
+  box-shadow: 0 0 10px 0 greenyellow;
   color: #CD0074;
 }
 .dltable {
