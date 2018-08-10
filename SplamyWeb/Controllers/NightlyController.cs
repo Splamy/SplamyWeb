@@ -114,6 +114,7 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPut("{project}/{branch}")]
+		[RequestSizeLimit(100_000_000)]
 		public IActionResult Put(string project, string branch,
 			[FromQuery] string token,
 			[FromQuery] string fileName,
