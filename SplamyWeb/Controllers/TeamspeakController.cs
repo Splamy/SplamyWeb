@@ -87,7 +87,7 @@ namespace SplamyWeb.Controllers
 		[Produces("application/json")]
 		public async Task<IActionResult> AddNewVersionSign(string build, string platform, [FromQuery] string sign)
 		{
-			Log.Info("Got version request for {0},{1}", build, platform);
+			Log.Debug("Got version request for {0},{1}", build, platform);
 
 			//var contentType = this.Request.ContentType;
 			var vsign = new VersionSign(build, platform, sign);
@@ -163,7 +163,7 @@ namespace SplamyWeb.Controllers
 			var newContent = CsvHeader + string.Join("\n",
 				versions
 				.Concat(newEntries)
-				.OrderBy(x => x.Build)
+				.OrderBy(x => x.BuildNumber)
 				.ThenBy(x => x.Platform)
 				.Select(x => x.ToString()));
 			var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(newContent));
@@ -321,7 +321,11 @@ namespace SplamyWeb.Controllers
 
 				return false;
 			}
-			catch (Exception ex) { return false; }
+			catch (Exception ex)
+			{
+				Log.Warn(ex, "Error accessing github");
+				return false;
+			}
 		}
 	}
 
@@ -345,12 +349,13 @@ namespace SplamyWeb.Controllers
 	{
 		public string Sign { get; }
 		public string Build { get; }
+		public long BuildNumber { get; }
 		public string Platform { get; }
 		public string Channel { get; set; }
 
-		public const string StateStable = "Stable";
+		private static Regex buildMatch = new Regex(@"\[Build: (\d+)\]");
 
-		public VersionSign() { }
+		public const string StateStable = "Stable";
 
 		public VersionSign(string build, string platform, string sign, string state = StateStable)
 		{
@@ -358,6 +363,12 @@ namespace SplamyWeb.Controllers
 			Sign = sign;
 			Platform = platform;
 			Channel = state;
+
+			var match = buildMatch.Match(Build);
+			if (match.Success && long.TryParse(match.Groups[1].Value, out var buildNum))
+				BuildNumber = buildNum;
+			else
+				BuildNumber = -1;
 		}
 
 		public override bool Equals(object obj) => Equals(obj as VersionSign);
