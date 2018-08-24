@@ -6,9 +6,11 @@
 
   <ItemGroup>
     <PackageReference Include="LiteDB" Version="4.1.4" />
-    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.2" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.3" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.3" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="NLog" Version="4.5.8" />
+    <PackageReference Include="Splamy.Ed25519.Toolkit" Version="1.0.3" />
   </ItemGroup>
 
   <ItemGroup>

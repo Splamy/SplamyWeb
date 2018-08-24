@@ -19,7 +19,7 @@ namespace SplamyWeb.Controllers
 			project = project.ToLower();
 			branch = branch.ToLower();
 
-			if (!Save(project) || !Save(branch))
+			if (!IsSave(project) || !IsSave(branch))
 				return BadRequest("Invalid path");
 
 			var entry = GetActive(project, branch);
@@ -128,7 +128,7 @@ namespace SplamyWeb.Controllers
 			project = project.ToLower();
 			branch = branch.ToLower();
 
-			if (!Save(project) || !Save(branch))
+			if (!IsSave(project) || !IsSave(branch))
 				return BadRequest("Invalid path");
 
 			if (HttpContext.Request.ContentType != MediaTypeNames.Application.Octet

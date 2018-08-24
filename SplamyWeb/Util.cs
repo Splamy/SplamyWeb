@@ -6,6 +6,6 @@ namespace SplamyWeb
 	{
 		private static Regex saveRegex = new Regex(@"^\w+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
 
-		public static bool Save(string param) => saveRegex.IsMatch(param);
+		public static bool IsSave(string param) => saveRegex.IsMatch(param);
 	}
 }

@@ -23,7 +23,7 @@ namespace SplamyWeb.Controllers
 		[Produces(MediaTypeNames.Application.Json)]
 		public IActionResult GetLanguageList(string project)
 		{
-			if (!Save(project))
+			if (!IsSave(project))
 				return BadRequest("Invalid path");
 
 			project = project.ToLower();
@@ -37,7 +37,7 @@ namespace SplamyWeb.Controllers
 
 		private static IEnumerable<string> GetLanguageListDir(string project)
 		{
-			if (!Save(project))
+			if (!IsSave(project))
 				return Enumerable.Empty<string>();
 
 			project = project.ToLower();
@@ -53,7 +53,7 @@ namespace SplamyWeb.Controllers
 		[Produces(MediaTypeNames.Application.Octet)]
 		public IActionResult GetLanguageFile(string project, string language)
 		{
-			if (!Save(project) || !Save(language))
+			if (!IsSave(project) || !IsSave(language))
 				return BadRequest("Invalid path");
 
 			project = project.ToLower();
