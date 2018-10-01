@@ -20,7 +20,7 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPost("Login")]
-		public async Task<IActionResult> Login([FromForm] string name, [FromForm] string pass, [FromForm] bool remember)
+		public async Task<IActionResult> LoginAsync([FromForm] string name, [FromForm] string pass, [FromForm] bool remember)
 		{
 			var result = await signInManager.PasswordSignInAsync(name, pass, remember, false);
 			if (result.Succeeded)
@@ -31,7 +31,7 @@ namespace SplamyWeb.Controllers
 
 		[HttpPost("Update")]
 		[Authorize]
-		public async Task<IActionResult> Update([FromForm] LoginData upuser)
+		public async Task<IActionResult> UpdateAsync([FromForm] LoginData upuser)
 		{
 			var user = await userManager.GetUserAsync(User);
 			await userManager.UpdateAsync(upuser);
@@ -40,7 +40,7 @@ namespace SplamyWeb.Controllers
 
 		[HttpPost("Logout")]
 		[Authorize]
-		public async Task<IActionResult> Logout()
+		public async Task<IActionResult> LogoutAsync()
 		{
 			await signInManager.SignOutAsync();
 			return RedirectToPage("/Index");

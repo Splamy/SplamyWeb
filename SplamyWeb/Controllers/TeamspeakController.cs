@@ -18,8 +18,8 @@ namespace SplamyWeb.Controllers
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
-		private static WebClient wc = new WebClient();
-		private static Regex diffMatch = new Regex(@"^diff --git (.*)$");
+		private static readonly WebClient wc = new WebClient();
+		private static readonly Regex diffMatch = new Regex(@"^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
 		private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
 		private const string CsvHeader = "channel,version,platform,hash\n";
 		private static readonly string AuthData = System.IO.File.ReadAllText(Path.Combine(LocalDb.DataPath, "github_auth"));
@@ -353,7 +353,7 @@ namespace SplamyWeb.Controllers
 		public string Platform { get; }
 		public string Channel { get; set; }
 
-		private static Regex buildMatch = new Regex(@"\[Build: (\d+)\]");
+		private static readonly Regex buildMatch = new Regex(@"\[Build: (\d+)\]", RegexOptions.Compiled | RegexOptions.ECMAScript);
 
 		public const string StateStable = "Stable";
 
@@ -384,6 +384,7 @@ namespace SplamyWeb.Controllers
 		public override string ToString() => $"{Channel},{Build},{Platform},{Sign}";
 	}
 
+#pragma warning disable IDE1006 // Naming Styles
 	public class Json_Github
 	{
 		public string action { get; set; }
@@ -435,4 +436,5 @@ namespace SplamyWeb.Controllers
 		public string sha { get; set; }
 		public string branch { get; set; }
 	}
+#pragma warning restore IDE1006 // Naming Styles
 }

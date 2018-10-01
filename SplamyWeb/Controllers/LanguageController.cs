@@ -71,7 +71,7 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPost("project/{project}/update")]
-		public async Task<IActionResult> UpdateLanguageFiles(string project, [FromQuery] string transifex)
+		public async Task<IActionResult> UpdateLanguageFilesAsync(string project, [FromQuery] string transifex)
 		{
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
@@ -109,7 +109,7 @@ namespace SplamyWeb.Controllers
 					var languagePath = Path.Combine(projectPath, language);
 					Directory.CreateDirectory(languagePath);
 
-					using (var demoDataStream = System.IO.File.OpenWrite(Path.Combine(languagePath, "strings.resx")))
+					using (var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write))
 					using (var stream = await result.Content.ReadAsStreamAsync())
 					{
 						await stream.CopyToAsync(demoDataStream);
@@ -126,6 +126,8 @@ namespace SplamyWeb.Controllers
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
+			var report = new List<BuildReport>();
+
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 
@@ -135,51 +137,73 @@ namespace SplamyWeb.Controllers
 				if (!System.IO.File.Exists(Path.Combine(languagePath, "strings.resx")))
 					continue;
 
-				using (var proc = new Process
-				{
-					StartInfo = new ProcessStartInfo
-					{
-						FileName = "resgen",
-						Arguments = "strings.resx",
-						WorkingDirectory = languagePath,
-					}
-				})
-				{
-					proc.Start();
-					proc.WaitForExit(10000);
-				}
+				var result = ProcessFile(
+					"resgen",
+					"strings.resx",
+					language, languagePath,
+					"Failed to transform resx file");
+				if (result != null) { report.Add(result); continue; }
 
-				using (var proc = new Process
-				{
-					StartInfo = new ProcessStartInfo
-					{
-						FileName = "al",
-						Arguments = $"-target:lib -embed:strings.resources,TS3AudioBot.Localization.strings.{language}.resources -culture:{language} -out:TS3AudioBot.resources.dll",
-						WorkingDirectory = languagePath,
-					}
-				})
-				{
-					proc.Start();
-					proc.WaitForExit(10000);
-				}
+				result = ProcessFile(
+					"al",
+					$"-target:lib -embed:strings.resources,TS3AudioBot.Localization.strings.{language}.resources -culture:{language} -out:TS3AudioBot.resources.dll",
+					language, languagePath,
+					"Failed to compile satellite assembly");
+				if (result != null) { report.Add(result); continue; }
+
 				System.IO.File.Copy(Path.Combine(languagePath, "TS3AudioBot.resources.dll"), Path.Combine(languagePath, "strings.dll"), true);
 
 				var entryId = ToId(project, language);
 				var langEntry = LocalDb.LanguageTable.FindById(entryId);
 				if (langEntry == null)
+				{
 					langEntry = new LanguageEntry
 					{
 						Id = entryId,
 						Language = language,
 						Project = project,
 					};
+				}
 
 				langEntry.UploadTime = DateTime.UtcNow;
 				LocalDb.LanguageTable.Upsert(langEntry);
 
+				report.Add(new BuildReport
+				{
+					language = language,
+					ok = true,
+				});
 			}
 
-			return Ok();
+			return Ok(report);
+		}
+
+		private static BuildReport ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
+		{
+			using (var proc = new Process
+			{
+				StartInfo = new ProcessStartInfo
+				{
+					FileName = bin,
+					Arguments = arg,
+					WorkingDirectory = languagePath,
+				}
+			})
+			{
+				proc.Start();
+				proc.WaitForExit(10000);
+
+				if (proc.ExitCode != 0)
+				{
+					return new BuildReport
+					{
+						language = language,
+						ok = false,
+						message = errMsg
+					};
+				}
+				return null;
+			}
 		}
 
 		private static HttpRequestMessage TransifexRequest(HttpMethod method, string link, string token)
@@ -199,9 +223,18 @@ namespace SplamyWeb.Controllers
 		public static string ToId(string project, string language) => $"{project}.{language}";
 	}
 
-	class TransifexLanguage
+#pragma warning disable IDE1006 // Naming Styles
+	internal class BuildReport
+	{
+		public string language { get; set; }
+		public bool ok { get; set; }
+		public string message { get; set; }
+	}
+
+	internal class TransifexLanguage
 	{
 		//public object coordinators { get; set; }
 		public string language_code { get; set; }
 	}
+#pragma warning restore IDE1006 // Naming Styles
 }
