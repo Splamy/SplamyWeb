@@ -50,7 +50,7 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpGet("project/{project}/language/{language}/dll")]
-		[Produces(MediaTypeNames.Application.Octet)]
+		[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Text.Plain)]
 		public IActionResult GetLanguageFile(string project, string language)
 		{
 			if (!IsSave(project) || !IsSave(language))
@@ -106,7 +106,7 @@ namespace SplamyWeb.Controllers
 					if (!result.IsSuccessStatusCode)
 						return;
 
-					var languagePath = Path.Combine(projectPath, language);
+					var languagePath = Path.Combine(projectPath, language.ToLower().Replace("_", "-"));
 					Directory.CreateDirectory(languagePath);
 
 					using (var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write))

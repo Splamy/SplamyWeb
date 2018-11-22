@@ -108,6 +108,7 @@ namespace SplamyWeb.Controllers
 				await Task.Delay(1000).ConfigureAwait(false);
 			}
 
+			Log.Warn("Failed to push to github after multiple retries");
 			return StatusCode(503, "Github request could not be completed");
 		}
 
@@ -318,6 +319,7 @@ namespace SplamyWeb.Controllers
 				var mem = new MemoryStream();
 				ex.Response.GetResponseStream().CopyTo(mem);
 				var str = Encoding.UTF8.GetString(mem.ToArray());
+				Log.Warn(ex, "Error uploading to github: " + str);
 
 				return false;
 			}
