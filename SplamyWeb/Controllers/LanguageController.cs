@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -57,10 +58,12 @@ namespace SplamyWeb.Controllers
 				return BadRequest("Invalid path");
 
 			project = project.ToLower();
-			language = language.ToLower();
+			CultureInfo culture;
+			try { culture = CultureInfo.GetCultureInfo(language); }
+			catch { return NotFound("Culture not found"); }
 
-			var langEntry = GetLanguageEntry(project, language);
-			var fullPath = new FileInfo(Path.Combine(languageBasePath, project, language, "strings.dll"));
+			var langEntry = GetLanguageEntry(project, culture);
+			var fullPath = new FileInfo(Path.Combine(languageBasePath, project, culture.Name, "strings.dll"));
 			if (langEntry == null || !fullPath.Exists)
 				return NotFound("The language was not found");
 
@@ -106,7 +109,10 @@ namespace SplamyWeb.Controllers
 					if (!result.IsSuccessStatusCode)
 						return;
 
-					var languagePath = Path.Combine(projectPath, language.ToLower().Replace("_", "-"));
+					try { language = CultureInfo.GetCultureInfo(language.Replace("_", "-")).Name; }
+					catch { return; }
+
+					var languagePath = Path.Combine(projectPath, language);
 					Directory.CreateDirectory(languagePath);
 
 					using (var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write))
@@ -131,8 +137,14 @@ namespace SplamyWeb.Controllers
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 
-			foreach (var language in GetLanguageListDir(project))
+			LocalDb.LanguageTable.Delete(LiteDB.Query.All());
+
+			foreach (var langFile in GetLanguageListDir(project))
 			{
+				string language;
+				try { language = CultureInfo.GetCultureInfo(langFile).Name; }
+				catch { continue; }
+
 				var languagePath = Path.Combine(projectPath, language);
 				if (!System.IO.File.Exists(Path.Combine(languagePath, "strings.resx")))
 					continue;
@@ -214,9 +226,9 @@ namespace SplamyWeb.Controllers
 			return request;
 		}
 
-		private static LanguageEntry GetLanguageEntry(string project, string language)
+		private static LanguageEntry GetLanguageEntry(string project, CultureInfo culture)
 		{
-			var id = ToId(project, language);
+			var id = ToId(project, culture.Name);
 			return LocalDb.LanguageTable.FindById(id);
 		}
 
