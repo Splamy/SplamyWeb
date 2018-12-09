@@ -22,9 +22,12 @@ namespace SplamyWeb.Controllers
                 using (var stream = await site.Content.ReadAsStreamAsync())
                 using (var zip = new ZipArchive(stream))
                 {
+                    var basePath = Path.Combine(LocalDb.DataPath, "hengo");
+                    Directory.Delete(basePath, true);
+
                     foreach (ZipArchiveEntry entry in zip.Entries)
                     {
-                        var target = Path.GetFullPath(Path.Combine(LocalDb.DataPath, "hengo", entry.FullName));
+                        var target = Path.GetFullPath(Path.Combine(basePath, entry.FullName));
                         if (!target.StartsWith(LocalDb.DataPath))
                             continue;
                         if (entry.FullName.EndsWith('\\') || entry.FullName.EndsWith('/'))
