@@ -13,6 +13,7 @@ namespace SplamyWeb.Controllers
         private static readonly HttpClient web = new HttpClient();
 
         [HttpGet("update")]
+        [HttpPost("update")]
         public async Task<IActionResult> UpdateAsync()
         {
             try
