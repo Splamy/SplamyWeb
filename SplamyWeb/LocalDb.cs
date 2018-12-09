@@ -22,7 +22,7 @@ namespace SplamyWeb
 		public static LiteCollection<NightlyProject> NightlyProjectTable { get; }
 		public static LiteCollection<LanguageEntry> LanguageTable { get; }
 		public static LiteCollection<LoginData> LoginTable { get; }
-		public static string DataPath { get; } = Path.Combine(Directory.GetCurrentDirectory(), "data");
+		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		static LocalDb()
 		{
