@@ -2,9 +2,9 @@
 @using SplamyWeb.Pages
 @model NightlyModel
 @{
-	ViewData["Title"] = "Nightly";
-	ViewData["Header"] = "Nightly Builds";
-	Layout = "_Layout";
+    ViewData["Title"] = "Nightly";
+    ViewData["Header"] = "Nightly Builds";
+    Layout = "~/Pages/_Layout.cshtml";
 }
 @foreach (var project in NightlyModel.GetNightlyProjects())
 {

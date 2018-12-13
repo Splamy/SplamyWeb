@@ -102,3 +102,10 @@ nav .navuser {
   color: red;
   padding: 10px;
 }
+.readblock {
+  display: flex;
+  justify-content: center;
+}
+.readblock > div {
+  max-width: 800px;
+}

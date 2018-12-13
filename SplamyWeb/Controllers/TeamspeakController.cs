@@ -288,7 +288,11 @@ namespace SplamyWeb.Controllers
 					}
 				}
 			}
-			catch (Exception ex) { return null; }
+			catch (Exception ex)
+			{
+				Log.Error(ex);
+				return null;
+			}
 		}
 
 		private static bool PutJson<T>(string action, T data) where T : class
