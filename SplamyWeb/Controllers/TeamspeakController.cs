@@ -21,7 +21,7 @@ namespace SplamyWeb.Controllers
 		private static readonly WebClient wc = new WebClient();
 		private static readonly Regex diffMatch = new Regex(@"^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
 		private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
-		private const string CsvHeader = "channel,version,platform,hash\n";
+		private const string CsvHeader = "version,platform,hash\n";
 		private static readonly string AuthData = System.IO.File.ReadAllText(Path.Combine(LocalDb.DataPath, "github_auth"));
 
 		private static readonly object cacheLock = new object();
@@ -83,7 +83,6 @@ namespace SplamyWeb.Controllers
 
 		// , "text/csv"
 		[HttpPost("version/{build}/{platform}")]
-		[Consumes("application/json")]
 		[Produces("application/json")]
 		public async Task<IActionResult> AddNewVersionSign(string build, string platform, [FromQuery] string sign)
 		{
@@ -173,12 +172,12 @@ namespace SplamyWeb.Controllers
 			{
 				branch = "master",
 				content = base64Content,
-				message = "Added new version",
+				message = "Added new version\n\n" + string.Join("\n", newEntries.Select(x => $"New: {x.Build},{x.Platform}")),
 				sha = file.sha,
 			});
 
 			if (!postResult)
-				return null;
+				return null; /* Retry */
 
 			foreach (var newSign in newEntries)
 				Log.Info("Added new version: {0},{1}", newSign.Build, newSign.Platform);
@@ -201,7 +200,6 @@ namespace SplamyWeb.Controllers
 			}
 
 			var header = lines[0].Split(',');
-			int ichan = Array.IndexOf(header, "channel");
 			int iname = Array.IndexOf(header, "version");
 			int iplat = Array.IndexOf(header, "platform");
 			int ihash = Array.IndexOf(header, "hash");
@@ -212,12 +210,11 @@ namespace SplamyWeb.Controllers
 				{
 					var split = line.Split(',');
 
-					string chan = ichan != -1 ? split[ichan] : null;
 					string name = split[iname];
 					string platform = split[iplat];
 					string hash = split[ihash];
 
-					var vsign = new VersionSign(name, platform, hash, chan);
+					var vsign = new VersionSign(name, platform, hash);
 
 					if (duplicates.Contains(vsign))
 					{
@@ -242,12 +239,9 @@ namespace SplamyWeb.Controllers
 
 		public static VersionError CheckVersion(VersionSign sign)
 		{
-			if (string.IsNullOrEmpty(sign.Channel) || (sign.Channel != "Alpha" && sign.Channel != "Beta" && sign.Channel != "Stable"))
-				return new VersionError(-1, "Unrecognized channel", sign);
-
 			if (sign.Sign.Contains('\\'))
 			{
-				var tryFixSign = new VersionSign(sign.Build, sign.Platform, sign.Sign.Replace("\\", ""), sign.Channel);
+				var tryFixSign = new VersionSign(sign.Build, sign.Platform, sign.Sign.Replace("\\", ""));
 				var result = EdCheck(tryFixSign);
 				return result ?? new VersionError(-1, "The sign is correct but you forgot to remove all backslashes ('\\')", sign) { FixedVersion = tryFixSign };
 			}
@@ -357,18 +351,14 @@ namespace SplamyWeb.Controllers
 		public string Build { get; }
 		public long BuildNumber { get; }
 		public string Platform { get; }
-		public string Channel { get; set; }
 
 		private static readonly Regex buildMatch = new Regex(@"\[Build: (\d+)\]", RegexOptions.Compiled | RegexOptions.ECMAScript);
 
-		public const string StateStable = "Stable";
-
-		public VersionSign(string build, string platform, string sign, string state = StateStable)
+		public VersionSign(string build, string platform, string sign)
 		{
-			Build = build;
-			Sign = sign;
-			Platform = platform;
-			Channel = state;
+			Build = build ?? throw new ArgumentNullException(nameof(build));
+			Platform = platform ?? throw new ArgumentNullException(nameof(platform));
+			Sign = sign ?? throw new ArgumentNullException(nameof(sign));
 
 			var match = buildMatch.Match(Build);
 			if (match.Success && long.TryParse(match.Groups[1].Value, out var buildNum))
@@ -387,7 +377,7 @@ namespace SplamyWeb.Controllers
 
 		public override int GetHashCode() => HashCode.Combine(Sign, Build, Platform);
 
-		public override string ToString() => $"{Channel},{Build},{Platform},{Sign}";
+		public override string ToString() => $"{Build},{Platform},{Sign}";
 	}
 
 #pragma warning disable IDE1006 // Naming Styles
