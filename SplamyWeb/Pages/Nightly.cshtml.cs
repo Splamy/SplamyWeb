@@ -39,7 +39,9 @@ namespace SplamyWeb.Pages
 			else
 			{
 				return from meta in db.NightlyMetaTable.Find(x => x.Project == project)
-					   select (db.NightlyTable.FindById(meta.ToEntryId()), true);
+					   select db.NightlyTable.FindById(meta.ToEntryId()) into entry
+					   where entry != null
+					   select (entry, true);
 			}
 		}
 
