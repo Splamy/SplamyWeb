@@ -1,50 +1,45 @@
-using System;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using SplamyWeb.Components;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using SplamyWeb.Controllers;
 
 namespace SplamyWeb.Pages
 {
 	public class NightlyModel : PageModel
 	{
 		private readonly UserManager<LoginData> userManager;
+		private readonly LocalDb db;
 
-		public NightlyModel(UserManager<LoginData> userManager)
+		public NightlyModel(UserManager<LoginData> userManager, LocalDb db)
 		{
 			this.userManager = userManager;
+			this.db = db;
 		}
 
 		public async Task<bool> IsExtented()
 		{
 			var user = await userManager.GetUserAsync(User);
-			return user != null && user.Rank > UserType.CoAdmin;
+			return user != null && user.Rank >= UserType.Admin;
 		}
 
-		public static IEnumerable<NightlyProject> GetNightlyProjects()
+		public IEnumerable<NightlyProject> GetNightlyProjects()
 		{
-			return LocalDb.NightlyProjectTable.FindAll();
+			return db.NightlyProjectTable.FindAll();
 		}
 
-		public static IEnumerable<(NightlyEntry entry, bool active)> GetActives(string project, bool includeInactive)
+		public IEnumerable<(NightlyEntry entry, bool active)> GetActives(string project, bool includeInactive)
 		{
 			if (includeInactive)
 			{
-				return LocalDb.NightlyTable.Find(x => x.Project == project)
-					.Select(x =>
-						(x, LocalDb.NightlyMetaTable.FindById(NightlyController.ToActive(project, x.Branch))?.Active == x.Commit));
+				return from entry in db.NightlyTable.Find(x => x.Project == project)
+					   select (entry, db.NightlyMetaTable.FindById(NightlyMeta.GetId(project, entry.Branch))?.Active == entry.Commit);
 			}
 			else
 			{
-				var list = LocalDb.NightlyMetaTable.Find(x => x.Project == project).ToArray();
-				if(list.Length > 0)
-					return list.Select(meta => (LocalDb.NightlyTable.FindById(meta.ToId()), true));
-				else
-					return LocalDb.NightlyTable.Find(x => x.Project == project).GroupBy(x => x.Branch).Select(x => (x.First(), true));
+				return from meta in db.NightlyMetaTable.Find(x => x.Project == project)
+					   select (db.NightlyTable.FindById(meta.ToEntryId()), true);
 			}
 		}
 

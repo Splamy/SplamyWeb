@@ -1,0 +1,27 @@
+async function ask_delete_nightly(project: string, branch: string) {
+	let answer = await swal(`Delete ${project}/${branch} ?`, {
+		dangerMode: true,
+		button: {
+			text: "Delete",
+			closeModal: false,
+		},
+	});
+	if (answer) {
+		try {
+			var response = await fetch(`api/nightly/${project}/${branch}`, {
+				method: "DELETE",
+				credentials: "include",
+				redirect: "follow",
+			});
+			if (!response.ok) {
+				throw response;
+			}
+
+			swal.close();
+		} catch {
+			await swal("Failed to delete branch", {
+				icon: "error"
+			});
+		}
+	}
+}

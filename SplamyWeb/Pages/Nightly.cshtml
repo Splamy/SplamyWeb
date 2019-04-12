@@ -2,11 +2,11 @@
 @using SplamyWeb.Pages
 @model NightlyModel
 @{
-    ViewData["Title"] = "Nightly";
-    ViewData["Header"] = "Nightly Builds";
-    Layout = "~/Pages/_Layout.cshtml";
+	ViewData["Title"] = "Nightly";
+	ViewData["Header"] = "Nightly Builds";
+	Layout = "~/Pages/_Layout.cshtml";
 }
-@foreach (var project in NightlyModel.GetNightlyProjects())
+@foreach (var project in this.Model.GetNightlyProjects())
 {
 	<h3 id="@project.Id">@(project.ProjectName ?? "<unnamed>"):</h3>
 	var isExtended = await Html.ViewData.Model.IsExtented();
@@ -23,7 +23,7 @@
 				<th>Options</th>
 			}
 		</tr>
-		@foreach (var (entry, active) in NightlyModel.GetActives(project.Id, isExtended))
+		@foreach (var (entry, active) in this.Model.GetActives(project.Id, isExtended))
 		{
 			<tr>
 				<td>@entry.Branch</td>
@@ -36,12 +36,19 @@
 				}
 				else
 				{
-					<td>-</td>
+					<td></td>
 				}
 				@if (isExtended)
 				{
 					<td>@entry.DownloadCount</td>
-					<td>[X]</td>
+					@if (active)
+					{
+						<td><a class="dllink" onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">X</a></td>
+					}
+					else
+					{
+						<td></td>
+					}
 				}
 			</tr>
 		}

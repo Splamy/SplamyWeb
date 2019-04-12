@@ -1,9 +1,9 @@
-﻿@page
+@page
 @using SplamyWeb.Pages
 @model TS3AudioBotModel
 @{
-    ViewData["Title"] = "TS3AudioBot";
-    Layout = "~/Pages/_Layout.cshtml";
+	ViewData["Title"] = "TS3AudioBot";
+	Layout = "~/Pages/_Layout.cshtml";
 }
 
 <div>
@@ -17,7 +17,7 @@
 		<th>Date</th>
 		<th>Link</th>
 	</tr>
-	@foreach (var lang in TS3AudioBotModel.GetLanguages())
+	@foreach (var lang in this.Model.GetLanguages())
 	{
 		<tr>
 			<td>@lang.GetCulture().DisplayName</td>

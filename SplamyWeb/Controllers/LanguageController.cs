@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using SplamyWeb.Components;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +20,13 @@ namespace SplamyWeb.Controllers
 	public class LanguageController : Controller
 	{
 		private static readonly string languageBasePath = Path.Combine(LocalDb.DataPath, "language");
+
+		private readonly LocalDb db;
+
+		public LanguageController(LocalDb db)
+		{
+			this.db = db;
+		}
 
 		[HttpGet("project/{project}/languages")]
 		[Produces(MediaTypeNames.Application.Json)]
@@ -68,7 +76,7 @@ namespace SplamyWeb.Controllers
 				return NotFound("The language was not found");
 
 			langEntry.DownloadCount++;
-			LocalDb.LanguageTable.Upsert(langEntry);
+			db.LanguageTable.Upsert(langEntry);
 
 			return PhysicalFile(fullPath.FullName, MediaTypeNames.Application.Octet, "strings.dll");
 		}
@@ -137,7 +145,7 @@ namespace SplamyWeb.Controllers
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 
-			LocalDb.LanguageTable.Delete(LiteDB.Query.All());
+			db.LanguageTable.Delete(LiteDB.Query.All());
 
 			foreach (var langFile in GetLanguageListDir(project))
 			{
@@ -166,7 +174,7 @@ namespace SplamyWeb.Controllers
 				System.IO.File.Copy(Path.Combine(languagePath, "TS3AudioBot.resources.dll"), Path.Combine(languagePath, "strings.dll"), true);
 
 				var entryId = ToId(project, language);
-				var langEntry = LocalDb.LanguageTable.FindById(entryId);
+				var langEntry = db.LanguageTable.FindById(entryId);
 				if (langEntry == null)
 				{
 					langEntry = new LanguageEntry
@@ -178,7 +186,7 @@ namespace SplamyWeb.Controllers
 				}
 
 				langEntry.UploadTime = DateTime.UtcNow;
-				LocalDb.LanguageTable.Upsert(langEntry);
+				db.LanguageTable.Upsert(langEntry);
 
 				report.Add(new BuildReport
 				{
@@ -226,10 +234,10 @@ namespace SplamyWeb.Controllers
 			return request;
 		}
 
-		private static LanguageEntry GetLanguageEntry(string project, CultureInfo culture)
+		private LanguageEntry GetLanguageEntry(string project, CultureInfo culture)
 		{
 			var id = ToId(project, culture.Name);
-			return LocalDb.LanguageTable.FindById(id);
+			return db.LanguageTable.FindById(id);
 		}
 
 		public static string ToId(string project, string language) => $"{project}.{language}";

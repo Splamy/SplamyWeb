@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using SplamyWeb.Components;
 using System.Threading.Tasks;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 namespace SplamyWeb.Controllers
 {
 	[Route("[controller]")]
+	[Authorize]
 	public class AccountController : Controller
 	{
 		private readonly UserManager<LoginData> userManager;
@@ -20,6 +22,7 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPost("Login")]
+		[AllowAnonymous]
 		public async Task<IActionResult> LoginAsync([FromForm] string name, [FromForm] string pass, [FromForm] bool remember)
 		{
 			var result = await signInManager.PasswordSignInAsync(name, pass, remember, false);
@@ -30,16 +33,15 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPost("Update")]
-		[Authorize]
 		public async Task<IActionResult> UpdateAsync([FromForm] LoginData upuser)
 		{
+			// Uuuh, splamy, waddaya do?
 			var user = await userManager.GetUserAsync(User);
 			await userManager.UpdateAsync(upuser);
 			return RedirectToPage("/User");
 		}
 
 		[HttpPost("Logout")]
-		[Authorize]
 		public async Task<IActionResult> LogoutAsync()
 		{
 			await signInManager.SignOutAsync();

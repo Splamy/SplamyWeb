@@ -10,22 +10,24 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SplamyWeb
+namespace SplamyWeb.Components
 {
 	public class LocalDb : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 	{
 		private const string NomalizedName = "NameNormal";
 
-		public static LiteDatabase Database { get; }
-		public static LiteCollection<NightlyEntry> NightlyTable { get; }
-		public static LiteCollection<NightlyMeta> NightlyMetaTable { get; }
-		public static LiteCollection<NightlyProject> NightlyProjectTable { get; }
-		public static LiteCollection<LanguageEntry> LanguageTable { get; }
-		public static LiteCollection<LoginData> LoginTable { get; }
+		public LiteDatabase Database { get; }
+		public LiteCollection<NightlyEntry> NightlyTable { get; }
+		public LiteCollection<NightlyMeta> NightlyMetaTable { get; }
+		public LiteCollection<NightlyProject> NightlyProjectTable { get; }
+		public LiteCollection<LanguageEntry> LanguageTable { get; }
+		public LiteCollection<LoginData> LoginTable { get; }
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
-		static LocalDb()
+		public LocalDb()
 		{
+			var mapper = BsonMapper.Global;
+
 			Directory.CreateDirectory(DataPath);
 			Database = new LiteDatabase(Path.Combine(DataPath, "webdata.litedb"));
 			NightlyTable = Database.GetCollection<NightlyEntry>();
@@ -67,7 +69,7 @@ namespace SplamyWeb
 			}
 		}
 
-		public static LoginData GetUserByToken(string token)
+		public LoginData GetUserByToken(string token)
 		{
 			if (token == null)
 				return null;
@@ -83,7 +85,7 @@ namespace SplamyWeb
 				rng.GetBytes(buffer);
 				var strb = new StringBuilder(buffer.Length);
 				for (int i = 0; i < buffer.Length; i++)
-					strb.Append(tokenChars[((tokenChars.Length - 1) * buffer[i]) / 255]);
+					strb.Append(tokenChars[(tokenChars.Length - 1) * buffer[i] / 255]);
 				return strb.ToString();
 			}
 		}
@@ -280,7 +282,7 @@ namespace SplamyWeb
 
 	public class NightlyEntry
 	{
-		public string Id { get; set; }
+		public string Id => GetId(Project, Branch, Commit);
 		public string Project { get; set; }
 		public string Branch { get; set; }
 		public string Version { get; set; }
@@ -298,15 +300,20 @@ namespace SplamyWeb
 			Version,
 			Commit,
 		};
+
+		public static string GetId(string project, string branch, string commit) => $"{project}.{branch}.{commit}";
 	}
 
 	public class NightlyMeta
 	{
-		public string Id { get; set; }
+		public string Id { get => GetId(Project, Branch); }
 		public string Project { get; set; }
+		public string Branch { get; set; }
 		public string Active { get; set; }
 
-		public string ToId() => NightlyController.ActiveToId(Id, Active);
+		public string ToEntryId() => NightlyEntry.GetId(Project, Branch, Active);
+
+		public static string GetId(string project, string branch) => $"{project}.{branch}";
 	}
 
 	public class LanguageEntry
@@ -334,7 +341,6 @@ namespace SplamyWeb
 	public enum UserType
 	{
 		User,
-		CoAdmin,
 		Admin,
 	}
 }
