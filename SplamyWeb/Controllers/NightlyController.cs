@@ -151,7 +151,7 @@ namespace SplamyWeb.Controllers
 			db.NightlyTable.Upsert(entry);
 			var meta = db.NightlyMetaTable.FindById(NightlyMeta.GetId(project, branch));
 			if (meta == null)
-				meta = new NightlyMeta { Id = NightlyMeta.GetId(project, branch), Active = commit, Project = project, Branch = branch };
+				meta = new NightlyMeta { Active = commit, Project = project, Branch = branch };
 			else
 				meta.Active = commit;
 			db.NightlyMetaTable.Upsert(meta);
