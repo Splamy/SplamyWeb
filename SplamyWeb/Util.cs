@@ -1,11 +1,17 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace SplamyWeb
 {
-	public class Util
+	public static class Util
 	{
-		private static Regex saveRegex = new Regex(@"^[\w-_]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
+		private static readonly Regex saveRegex = new Regex(@"^[\w-_]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
 
 		public static bool IsSave(string param) => saveRegex.IsMatch(param);
+
+		public static string Truncate(this string value, int maxLength)
+		{
+			if (string.IsNullOrEmpty(value)) return value;
+			return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+		}
 	}
 }

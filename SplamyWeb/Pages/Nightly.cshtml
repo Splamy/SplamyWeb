@@ -1,4 +1,6 @@
 @page
+@using System
+@using SplamyWeb
 @using SplamyWeb.Pages
 @model NightlyModel
 @{
@@ -28,7 +30,16 @@
 			<tr>
 				<td>@entry.Branch</td>
 				<td>@entry?.Version</td>
-				<td>@entry?.Commit.Substring(0, 8)</td>
+				<td>
+					@if (project.CommitUrl != null && project.CommitUrl.Contains("{0}"))
+					{
+						<a href="@string.Format(project.CommitUrl, entry?.Commit)"></a>
+					}
+					else
+					{
+						entry?.Commit.Truncate(8);
+					}
+				</td>
 				<td>@entry?.UploadTime</td>
 				@if (active)
 				{

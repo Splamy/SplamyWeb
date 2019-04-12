@@ -99,7 +99,8 @@ namespace SplamyWeb.Controllers
 
 		[HttpPatch("{project}")]
 		public IActionResult SetProjectProperties(string project,
-			[FromQuery] string name)
+			[FromQuery] string name,
+			[FromQuery] string commit_url)
 		{
 			project = project.ToLower();
 
@@ -109,6 +110,8 @@ namespace SplamyWeb.Controllers
 
 			if (name != null)
 				projData.ProjectName = name;
+			if (commit_url != null)
+				projData.CommitUrl = commit_url;
 
 			db.NightlyProjectTable.Upsert(projData);
 

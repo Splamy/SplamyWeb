@@ -278,6 +278,7 @@ namespace SplamyWeb.Components
 	{
 		public string Id { get; set; } // Something like "ts3ab", "ts3hook"
 		public string ProjectName { get; set; }
+		public string CommitUrl { get; set; } // https://github.com/Splamy/TS3AudioBot/commit/{0}
 	}
 
 	public class NightlyEntry
