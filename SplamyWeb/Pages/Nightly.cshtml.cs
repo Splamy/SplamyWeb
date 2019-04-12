@@ -33,6 +33,18 @@ namespace SplamyWeb.Pages
 		{
 			if (includeInactive)
 			{
+				var nm = db.NightlyMetaTable.FindAll().ToArray();
+				foreach (var n in nm)
+				{
+					if(n.Project == null || n.Branch == null)
+					{
+						var split = n.Id.Split('.', 2);
+						n.Project = split[0];
+						n.Branch = split[1];
+						db.NightlyMetaTable.Update(n);
+					}
+				}
+
 				return from entry in db.NightlyTable.Find(x => x.Project == project)
 					   select (entry, db.NightlyMetaTable.FindById(NightlyMeta.GetId(project, entry.Branch))?.Active == entry.Commit);
 			}

@@ -1,4 +1,4 @@
-﻿using LiteDB;
+using LiteDB;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
 using SplamyWeb.Controllers;
@@ -306,7 +306,7 @@ namespace SplamyWeb.Components
 
 	public class NightlyMeta
 	{
-		public string Id { get => GetId(Project, Branch); }
+		public string Id { get; set; } //{ get => GetId(Project, Branch); }
 		public string Project { get; set; }
 		public string Branch { get; set; }
 		public string Active { get; set; }
