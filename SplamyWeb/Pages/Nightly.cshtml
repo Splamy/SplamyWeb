@@ -33,33 +33,29 @@
 				<td>
 					@if (project.CommitUrl != null && project.CommitUrl.Contains("{0}"))
 					{
-						<a href="@string.Format(project.CommitUrl, entry?.Commit)"></a>
+						<a href="@string.Format(project.CommitUrl, entry?.Commit)">@entry?.Commit.Truncate(8)</a>
 					}
 					else
 					{
-						entry?.Commit.Truncate(8);
+						@entry?.Commit.Truncate(8);
 					}
 				</td>
 				<td>@entry?.UploadTime</td>
-				@if (active)
-				{
-					<td><a href="~/api/nightly/@project.Id/@entry.Branch/download" download="@entry.FileName" class="dllink">Download</a></td>
-				}
-				else
-				{
-					<td></td>
-				}
+				<td>
+					@if (active)
+					{
+						<a href="~/api/nightly/@project.Id/@entry.Branch/download" download="@entry.FileName" class="dllink">Download</a>
+					}
+				</td>
 				@if (isExtended)
 				{
 					<td>@entry.DownloadCount</td>
-					@if (active)
-					{
-						<td><a class="dllink" onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">X</a></td>
-					}
-					else
-					{
-						<td></td>
-					}
+					<td>
+						@if (active)
+						{
+							<a class="dllink" onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">X</a>
+						}
+					</td>
 				}
 			</tr>
 		}
