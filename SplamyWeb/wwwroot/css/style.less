@@ -1,9 +1,25 @@
-@color-main: #00CC00;
-@color-main-sub: #009900;
-@color-main-hi: #33CC33;
-@color-contrast: #CD0074;
-@color-background: #001212;
-@color-background-hi: #002020;
+@base03:    #002b36;
+@base02:    #073642;
+@base01:    #586e75;
+@base00:    #657b83;
+@base0:     #839496;
+@base1:     #93a1a1;
+@base2:     #eee8d5;
+@base3:     #fdf6e3;
+@yellow:    #b58900;
+@orange:    #cb4b16;
+@red:       #dc322f;
+@magenta:   #d33682;
+@violet:    #6c71c4;
+@blue:      #268bd2;
+@cyan:      #2aa198;
+@green:     #859900;
+
+@color-main: @green;
+@color-main-hi: lighten(@green, 10%);
+@color-main-low: darken(@green, 10%);
+@color-background: @base03;
+@color-background-hi: @base02;
 
 body {
 	margin: 0;
@@ -29,21 +45,20 @@ h2 {
 
 .link-default() {
 	color: black;
-	background-color: @color-main-sub;
+	background-color: @color-main;
 	text-decoration: none;
 	font-weight: bold;
 }
 
 .link-hover() {
 	background-color: @color-main-hi;
-	box-shadow: 0 0 10px 0 greenyellow;
-	color: @color-contrast;
+	box-shadow: 0 0 10px 0 @color-main-hi;
 }
 
 nav {
 	display: flex;
 	flex-wrap: wrap;
-	background-color: @color-main-sub;
+	background-color: @color-main;
 
 	.navl, .navl:link, .navl:visited, .navl:active {
 		display: flex;
@@ -106,7 +121,7 @@ nav {
 .navdrop-list {
 	display: none;
 	position: absolute;
-	background-color: @color-main-sub;
+	background-color: @color-main;
 	z-index: 1;
 	white-space: nowrap;
 }
@@ -140,9 +155,9 @@ nav {
 }
 
 a {
-	color: #00CCCC;
+	color: @color-main;
 
 	&:visited {
-		color: #8000FF;
+		color: @color-main-low;
 	}
 }
