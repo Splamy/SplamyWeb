@@ -22,7 +22,7 @@
 		@if (User.Identity.Name != null)
 		{
 			<a class="navl" href="~/Admin">Admin</a>
-			<a class="navuser" href="~/User">User: @Html.ViewContext.HttpContext.User.FindFirst(ClaimTypes.Name).Value</a>
+			<a class="navl navuser" href="~/User">User: @Html.ViewContext.HttpContext.User.FindFirst(ClaimTypes.Name).Value</a>
 			<form action="~/Account/Logout" method="POST">
 				<label class="navl">
 					Logout

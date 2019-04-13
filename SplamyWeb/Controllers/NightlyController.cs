@@ -113,7 +113,7 @@ namespace SplamyWeb.Controllers
 			if (commit_url != null)
 				projData.CommitUrl = commit_url;
 
-			db.NightlyProjectTable.Upsert(projData);
+			db.NightlyProjectTable.Update(projData);
 
 			return Ok(projData);
 		}

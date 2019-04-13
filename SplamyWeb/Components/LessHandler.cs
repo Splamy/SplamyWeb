@@ -12,7 +12,7 @@ namespace SplamyWeb.Components
 	public class LessHandler
 	{
 		private readonly IMemoryCache memoryCache;
-		public readonly IHostingEnvironment env;
+		private readonly IHostingEnvironment env;
 		private static readonly DotlessConfiguration conf = new DotlessConfiguration()
 		{
 			MinifyOutput = true,
@@ -39,7 +39,11 @@ namespace SplamyWeb.Components
 			try
 			{
 				return memoryCache.GetOrCreate(file, ce =>
-					Less.Parse(File.ReadAllText(env.WebRootFileProvider.GetFileInfo((string)ce.Key).PhysicalPath), conf));
+				{
+					var data = Less.Parse(File.ReadAllText(env.WebRootFileProvider.GetFileInfo((string)ce.Key).PhysicalPath), conf);
+					ce.AddExpirationToken(env.WebRootFileProvider.Watch((string)ce.Key));
+					return data;
+				});
 			}
 			catch
 			{
