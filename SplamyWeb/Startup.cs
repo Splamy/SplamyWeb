@@ -57,9 +57,9 @@ namespace SplamyWeb
 				// Cookie settings
 				options.Cookie.HttpOnly = false;
 				options.Cookie.Expiration = TimeSpan.FromDays(30);
-				options.LoginPath = "/User";
-				options.LogoutPath = "/User"; // TODO
-				options.AccessDeniedPath = "/User"; // TODO
+				options.LoginPath = "~/User";
+				options.LogoutPath = "~/User"; // TODO
+				options.AccessDeniedPath = "~/User"; // TODO
 				options.SlidingExpiration = true;
 			});
 
