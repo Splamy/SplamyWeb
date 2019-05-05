@@ -1,0 +1,13 @@
+@page
+@model SplamyWeb.Pages.LogModel
+@{
+	ViewData["Title"] = "Log";
+	Layout = "~/Pages/_Layout.cshtml";
+}
+
+<ol>
+	@foreach (var entry in this.Model.GetLogs())
+	{
+		<li>@entry</li>
+	}
+</ol>

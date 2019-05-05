@@ -4,6 +4,11 @@ namespace SplamyWeb
 {
 	public static class Util
 	{
+		public static NLog.Targets.MemoryTarget NLogMemory = new NLog.Targets.MemoryTarget()
+		{
+			Layout = "${longdate} | ${level} | ${message}",
+		};
+
 		private static readonly Regex saveRegex = new Regex(@"^[\w-_]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
 
 		public static bool IsSave(string param) => saveRegex.IsMatch(param);

@@ -26,8 +26,14 @@ namespace SplamyWeb
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{
-			services.AddMvc();
 			services.AddMemoryCache();
+
+			services
+				.AddMvc()
+				.AddRazorPagesOptions(options =>
+				{
+					options.Conventions.AuthorizeFolder("/Admin");
+				});
 
 			services.AddIdentity<LoginData, LoginData>()
 				.AddDefaultTokenProviders();
@@ -51,9 +57,9 @@ namespace SplamyWeb
 				// Cookie settings
 				options.Cookie.HttpOnly = false;
 				options.Cookie.Expiration = TimeSpan.FromDays(30);
-				options.LoginPath = "/Account/Login";
-				options.LogoutPath = "/Account/Logout";
-				options.AccessDeniedPath = "/Account/AccessDenied";
+				options.LoginPath = "/User";
+				options.LogoutPath = "/User"; // TODO
+				options.AccessDeniedPath = "/User"; // TODO
 				options.SlidingExpiration = true;
 			});
 
@@ -62,7 +68,11 @@ namespace SplamyWeb
 				EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
 				ValidationAlgorithm = ValidationAlgorithm.HMACSHA256,
 			});
-		}
+
+			services.AddHttpClient();
+			services.AddHostedService<TimedTsScraper>();
+			NLog.Config.SimpleConfigurator.ConfigureForTargetLogging(Util.NLogMemory);
+	}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)

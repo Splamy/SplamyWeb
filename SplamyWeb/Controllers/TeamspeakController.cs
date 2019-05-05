@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SplamyWeb.Components;
@@ -100,28 +100,39 @@ namespace SplamyWeb.Controllers
 					return UnprocessableEntity(checkResult);
 			}
 
+			return await TryAddNewVersionSign(vsign);
+		}
+
+		public static async Task TryAddNewVersionSignChecked(params VersionSign[] vsign)
+		{
+			var correctSigns = vsign.Select(x => CheckVersionClean(x)).Where(x => x != null).ToArray();
+			await TryAddNewVersionSign(correctSigns);
+		}
+
+		private static async Task<IActionResult> TryAddNewVersionSign(params VersionSign[] vsign)
+		{
 			for (int i = 0; i < 4; i++)
 			{
-				var result = TryAddNewVersionSign(vsign);
+				var result = AddNewVersionSign(vsign);
 				if (result != null)
 					return result;
 				await Task.Delay(1000).ConfigureAwait(false);
 			}
 
 			Log.Warn("Failed to push to github after multiple retries");
-			return StatusCode(503, "Github request could not be completed");
+			return new ObjectResult("Github request could not be completed") { StatusCode = 503 };
 		}
 
-		public IActionResult TryAddNewVersionSign(params VersionSign[] vsign)
+		private static IActionResult AddNewVersionSign(params VersionSign[] vsign)
 		{
 			if (vsign.Length == 0)
-				return Ok("No signs requested");
+				return new OkObjectResult("No signs requested");
 
 			if (vsign.All(x => cachedVersions.Contains(x)))
-				return Ok("All signs ok. No new entries.");
+				return new OkObjectResult("All signs ok. No new entries.");
 
 			var file = DownloadJson<Json_File>("/contents/Versions.csv");
-			if (file == null) return BadRequest("No file found");
+			if (file == null) return new BadRequestObjectResult("No file found");
 
 			HashSet<VersionSign> versions;
 			bool recalculate;
@@ -147,7 +158,7 @@ namespace SplamyWeb.Controllers
 				CheckFile(content, versions, errors);
 
 				if (errors.Count > 0)
-					return UnprocessableEntity(errors);
+					return new UnprocessableEntityObjectResult(errors);
 
 				lock (cacheLock)
 				{
@@ -159,7 +170,7 @@ namespace SplamyWeb.Controllers
 			var newEntries = vsign.Where(x => !versions.Contains(x)).ToArray();
 
 			if (newEntries.Length == 0)
-				return Ok("All signs ok. No new entries.");
+				return new OkObjectResult("All signs ok. No new entries.");
 
 			var newContent = CsvHeader + string.Join("\n",
 				versions
@@ -183,7 +194,7 @@ namespace SplamyWeb.Controllers
 			foreach (var newSign in newEntries)
 				Log.Info("Added new version: {0},{1}", newSign.Build, newSign.Platform);
 
-			return Ok("All signs ok. Added new ones to db.");
+			return new OkObjectResult("All signs ok. Added new ones to db.");
 		}
 
 		private static void CheckFile(string data, HashSet<VersionSign> duplicates, List<VersionError> errors)
@@ -236,6 +247,19 @@ namespace SplamyWeb.Controllers
 					errors.Add(new VersionError(lineNumber, $"Invalid line ({ex.Message})"));
 				}
 			}
+		}
+
+		public static VersionSign CheckVersionClean(VersionSign sign)
+		{
+			var checkResult = CheckVersion(sign);
+			if (checkResult != null)
+			{
+				if (checkResult.FixedVersion != null)
+					return checkResult.FixedVersion;
+				else
+					return null;
+			}
+			return sign;
 		}
 
 		public static VersionError CheckVersion(VersionSign sign)
