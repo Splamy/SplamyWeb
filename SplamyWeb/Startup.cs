@@ -50,7 +50,6 @@ namespace SplamyWeb
 			services.AddSingleton<IUserPasswordStore<LoginData>>(db);
 			services.AddSingleton<IPasswordValidator<LoginData>>(db);
 			services.AddSingleton<IPasswordHasher<LoginData>>(db);
-			//services.AddSingleton(Environment);
 
 			services.ConfigureApplicationCookie(options =>
 			{
@@ -72,7 +71,7 @@ namespace SplamyWeb
 			services.AddHttpClient();
 			services.AddHostedService<TimedTsScraper>();
 			NLog.Config.SimpleConfigurator.ConfigureForTargetLogging(Util.NLogMemory);
-	}
+		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)

@@ -1,21 +1,20 @@
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SplamyWeb.Controllers;
-using System.Net.Http;
+using System;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
 	internal class TimedTsScraper : IHostedService, IDisposable
 	{
 		private readonly IHttpClientFactory _clientFactory;
-		static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private Timer timer;
 
 		public TimedTsScraper(IHttpClientFactory clientFactory)
@@ -35,10 +34,18 @@ namespace SplamyWeb.Components
 
 		private async void DoWork(object state)
 		{
+			Log.Info("Started scrape");
+
+			await UpdateVersions();
+			await UpdateBadges();
+
+			Log.Info("Done scape");
+		}
+
+		private async Task UpdateVersions()
+		{
 			try
 			{
-				Log.Info("Startet version check");
-
 				var client = _clientFactory.CreateClient();
 				var response = await client.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
 				var stream = await response.Content.ReadAsStreamAsync();
@@ -56,10 +63,37 @@ namespace SplamyWeb.Components
 
 				var vsign = data.data.Select(x => new VersionSign(x.version, x.platform, x.sign)).ToArray();
 				await TeamspeakController.TryAddNewVersionSignChecked(vsign);
-
-				Log.Info("Version check done");
 			}
 			catch (Exception ex) { Log.Warn("Failed to check verions: {0}", ex.Message); }
+		}
+
+		private async Task UpdateBadges()
+		{
+			try
+			{
+				var client = _clientFactory.CreateClient();
+				var request = new HttpRequestMessage()
+				{
+					RequestUri = new Uri("https://badges-content.teamspeak.com/list"),
+					Method = HttpMethod.Get,
+				};
+				request.Headers.UserAgent.Clear();
+				request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0");
+				var cook = request.Headers.GetCookies();
+				cook.Add(new CookieHeaderValue("__cfduid", "d10e713663dd1405a7d4055a1cb37436c1560562132"));
+				cook.Add(new CookieHeaderValue("bb_lastvisit", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()));
+				cook.Add(new CookieHeaderValue("bb_lastactivity", "0"));
+				var response = await client.SendAsync(request);
+				var stream = await response.Content.ReadAsStreamAsync();
+
+				var badges = ProtoBuf.Serializer.Deserialize<Badges>(stream);
+
+				if (badges?.BadgeList == null)
+					return;
+
+				TeamspeakController.AddNewBadge(badges);
+			}
+			catch (Exception ex) { Log.Warn("Failed to update badges: {0}", ex.Message); }
 		}
 
 		public Task StopAsync(CancellationToken cancellationToken)

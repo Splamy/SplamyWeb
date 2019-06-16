@@ -9,13 +9,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="CsvHelper" Version="12.1.2" />
 		<PackageReference Include="dotless.Core" Version="1.6.7" />
 		<PackageReference Include="LiteDB" Version="4.1.4" />
-		<PackageReference Include="Markdig" Version="0.16.0" />
+		<PackageReference Include="Markdig" Version="0.17.0" />
 		<PackageReference Include="Microsoft.AspNetCore.All" />
 		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.2.3" />
-		<PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
-		<PackageReference Include="NLog" Version="4.6.2" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+		<PackageReference Include="NLog" Version="4.6.5" />
+		<PackageReference Include="protobuf-portable-net" Version="2.0.0.668" />
 		<PackageReference Include="Splamy.Ed25519.Toolkit" Version="1.0.3" />
 	</ItemGroup>
 

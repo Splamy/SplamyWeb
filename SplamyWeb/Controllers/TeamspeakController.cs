@@ -1,9 +1,13 @@
+using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using ProtoBuf;
 using SplamyWeb.Components;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -28,6 +32,8 @@ namespace SplamyWeb.Controllers
 		private static readonly object cacheLock = new object();
 		private static HashSet<VersionSign> cachedVersions = new HashSet<VersionSign>();
 		private static string cachedFileSha;
+		private static long LastBadgeUpdate = 0;
+		private static Configuration CsvConfig = new Configuration(CultureInfo.InvariantCulture);
 
 		public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
 
@@ -153,7 +159,7 @@ namespace SplamyWeb.Controllers
 
 			if (recalculate)
 			{
-				var content = Encoding.UTF8.GetString(Convert.FromBase64String(file.content));
+				var content = file.ContentString();
 				var errors = new List<VersionError>();
 				CheckFile(content, versions, errors);
 
@@ -286,6 +292,90 @@ namespace SplamyWeb.Controllers
 			catch (Exception ex) { return new VersionError(-1, $"Invalid data ({ex.Message})", sign); }
 		}
 
+		public static IActionResult AddNewBadge(Badges badges)
+		{
+			if (badges.BadgeList.Length == 0)
+				return new OkObjectResult("No badges requested");
+
+			if (LastBadgeUpdate == badges.LastUpdate)
+				return new OkObjectResult("Badge file hasn't changed");
+
+			var file = DownloadJson<Json_File>("/contents/Badges.csv");
+			if (file == null) return new BadRequestObjectResult("No file found");
+
+			var dictBadges = new Dictionary<string, CSV_Badge>();
+			using (var csvReader = new CsvReader(new StreamReader(file.ContentStream()), CsvConfig))
+				foreach (var badge in csvReader.GetRecords<CSV_Badge>())
+					dictBadges[badge.uid] = badge;
+
+			bool changed = false;
+
+			var newEntries = new List<CSV_Badge>();
+
+			foreach (var badge in badges.BadgeList)
+			{
+				// 0 - empty, 1 - guid, 2 - filename
+				var filename = new Uri(badge.Url).AbsolutePath.Split('/')[2];
+
+				if (dictBadges.TryGetValue(badge.Guid, out var compareBadge))
+				{
+					if (compareBadge.name != badge.Name) { compareBadge.name = badge.Name; changed = true; }
+					if (compareBadge.description != badge.Description) { compareBadge.description = badge.Description; changed = true; }
+					if (compareBadge.filename != filename) { compareBadge.filename = filename; changed = true; }
+				}
+				else
+				{
+					changed = true;
+
+					dictBadges[badge.Guid] = compareBadge = new CSV_Badge()
+					{
+						uid = badge.Guid,
+						name = badge.Name,
+						description = badge.Description,
+						filename = filename,
+						codes = "",
+					};
+					newEntries.Add(compareBadge);
+				}
+			}
+
+			if (changed)
+			{
+				string base64Content;
+				using (var mem = new MemoryStream())
+				using (var sw = new StreamWriter(mem))
+				using (var csvWriter = new CsvWriter(sw, CsvConfig))
+				{
+					var badgeSort = dictBadges.Values.ToList();
+					badgeSort.Sort((a, b) => a.name.CompareTo(b.name));
+					csvWriter.WriteRecords(badgeSort);
+					csvWriter.Flush();
+					sw.Flush();
+					mem.Seek(0, SeekOrigin.Begin);
+					base64Content = Convert.ToBase64String(mem.ToArray());
+				}
+
+				bool postResult = PutJson("/contents/Badges.csv", new Json_File_POST
+				{
+					branch = "master",
+					content = base64Content,
+					message = "Added new badge\n\n" + string.Join("\n", newEntries.Select(x => $"New: {x.uid},{x.name}")),
+					sha = file.sha,
+				});
+
+				if (!postResult)
+					return null; /* Retry */
+			}
+
+			foreach (var badge in newEntries)
+				Log.Info("Added new badge: {0},{1}", badge.uid, badge.name);
+
+			LastBadgeUpdate = badges.LastUpdate;
+
+			return new OkObjectResult("All signs ok. Added new ones to db.");
+		}
+
+
 		private static T DownloadJson<T>(string action) where T : class
 		{
 			try
@@ -405,6 +495,43 @@ namespace SplamyWeb.Controllers
 		public override string ToString() => $"{Build},{Platform},{Sign}";
 	}
 
+	[ProtoContract]
+	public class Badges
+	{
+		[ProtoMember(1)]
+		public long _1 { get; set; }
+		[ProtoMember(2)]
+		public long LastUpdate { get; set; }
+		[ProtoMember(3)]
+		public Badge[] BadgeList { get; set; }
+	}
+
+	[ProtoContract]
+	public class Badge
+	{
+		[ProtoMember(1)]
+		public string Guid { get; set; }
+		[ProtoMember(2)]
+		public string Name { get; set; }
+		[ProtoMember(3)]
+		public string Url { get; set; }
+		[ProtoMember(4)]
+		public string Description { get; set; }
+		[ProtoMember(5)]
+		public long Timestamp { get; set; }
+		[ProtoMember(6)]
+		public long _1 { get; set; }
+	}
+
+	public class CSV_Badge
+	{
+		public string uid { get; set; }
+		public string name { get; set; }
+		public string description { get; set; }
+		public string filename { get; set; }
+		public string codes { get; set; }
+	}
+
 #pragma warning disable IDE1006 // Naming Styles
 	public class Json_Github
 	{
@@ -448,6 +575,9 @@ namespace SplamyWeb.Controllers
 		public string sha { get; set; }
 		public string content { get; set; }
 		public string encoding { get; set; }
+
+		public Stream ContentStream() => new MemoryStream(Convert.FromBase64String(content));
+		public string ContentString() => Encoding.UTF8.GetString(Convert.FromBase64String(content));
 	}
 
 	public class Json_File_POST
