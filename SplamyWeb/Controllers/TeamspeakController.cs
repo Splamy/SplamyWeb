@@ -187,11 +187,22 @@ namespace SplamyWeb.Controllers
 				.Select(x => x.ToString()));
 			var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(newContent));
 
+			var strb = new StringBuilder();
+			strb.AppendFormat("Added new version: {0},{1}", newEntries[0].Build, newEntries[1].Platform);
+			if (newEntries.Length > 1)
+			{
+				strb.AppendFormat(" (and {0} more)", newEntries.Length - 1);
+				strb.Append("\n\n");
+				foreach (var newEntry in newEntries.Skip(1))
+					strb.AppendFormat("New: {0},{1}\n", newEntry.Build, newEntry.Platform);
+				strb.Length -= 1;
+			}
+
 			bool postResult = PutJson("/contents/Versions.csv", new Json_File_POST
 			{
 				branch = "master",
 				content = base64Content,
-				message = "Added new version\n\n" + string.Join("\n", newEntries.Select(x => $"New: {x.Build},{x.Platform}")),
+				message = strb.ToString(),
 				sha = file.sha,
 			});
 
