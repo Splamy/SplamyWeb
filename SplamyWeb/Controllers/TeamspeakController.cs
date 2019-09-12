@@ -25,6 +25,7 @@ namespace SplamyWeb.Controllers
 
 		private static readonly WebClient wc = new WebClient();
 		private static readonly Regex diffMatch = new Regex(@"^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
+		private static readonly Regex versionClean = new Regex(@"[^a-zA-Z0-9\+=/]");
 		private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
 		private const string CsvHeader = "version,platform,hash\n";
 		private static readonly string AuthData = System.IO.File.ReadAllText(Path.Combine(LocalDb.DataPath, "github_auth"));
@@ -270,14 +271,17 @@ namespace SplamyWeb.Controllers
 
 		public static VersionError CheckVersion(VersionSign sign)
 		{
-			if (sign.Sign.Contains('\\'))
+			var tryFixSignStr = versionClean.Replace(sign.Sign, "");
+			if (tryFixSignStr != sign.Sign)
 			{
-				var tryFixSign = new VersionSign(sign.Build, sign.Platform, sign.Sign.Replace("\\", ""));
+				var tryFixSign = new VersionSign(sign.Build, sign.Platform, tryFixSignStr);
 				var result = EdCheck(tryFixSign);
-				return result ?? new VersionError(-1, "The sign is correct but you forgot to remove all backslashes ('\\')", sign) { FixedVersion = tryFixSign };
+				return result ?? new VersionError(-1, "The sign is correct but some junk characters were removed", sign) { FixedVersion = tryFixSign };
 			}
-
-			return EdCheck(sign);
+			else
+			{
+				return EdCheck(sign);
+			}
 		}
 
 		public static VersionError EdCheck(VersionSign sign)
