@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
@@ -29,7 +30,7 @@ namespace SplamyWeb.Controllers
 					foreach (ZipArchiveEntry entry in zip.Entries)
 					{
 						var target = Path.GetFullPath(Path.Combine(basePath, entry.FullName));
-						if (!target.StartsWith(LocalDb.DataPath))
+						if (!target.StartsWith(LocalDb.DataPath, StringComparison.Ordinal))
 							continue;
 						if (entry.FullName.EndsWith('\\') || entry.FullName.EndsWith('/'))
 						{

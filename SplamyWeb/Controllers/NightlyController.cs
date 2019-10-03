@@ -27,8 +27,8 @@ namespace SplamyWeb.Controllers
 		[AllowAnonymous]
 		public IActionResult GetDownload(string project, string branch)
 		{
-			project = project.ToLower();
-			branch = branch.ToLower();
+			project = project.ToLowerInvariant();
+			branch = branch.ToLowerInvariant();
 
 			if (!IsSave(project) || !IsSave(branch))
 				return BadRequest("Invalid path");
@@ -53,8 +53,8 @@ namespace SplamyWeb.Controllers
 		[AllowAnonymous]
 		public IActionResult GetInfo(string project, string branch)
 		{
-			project = project.ToLower();
-			branch = branch.ToLower();
+			project = project.ToLowerInvariant();
+			branch = branch.ToLowerInvariant();
 
 			var entry = GetActive(project, branch);
 			if (entry == null)
@@ -66,7 +66,7 @@ namespace SplamyWeb.Controllers
 		[AllowAnonymous]
 		public IActionResult FindBranches(string project)
 		{
-			project = project.ToLower();
+			project = project.ToLowerInvariant();
 
 			var name = db.NightlyProjectTable.FindById(project);
 			if (name == null)
@@ -84,7 +84,7 @@ namespace SplamyWeb.Controllers
 
 		private NightlyProject CreateProject(string project)
 		{
-			project = project.ToLower();
+			project = project.ToLowerInvariant();
 
 			var projData = db.NightlyProjectTable.FindById(project);
 			if (projData != null)
@@ -102,7 +102,7 @@ namespace SplamyWeb.Controllers
 			[FromQuery] string name,
 			[FromQuery] string commit_url)
 		{
-			project = project.ToLower();
+			project = project.ToLowerInvariant();
 
 			var projData = db.NightlyProjectTable.FindById(project);
 			if (projData == null)
@@ -125,8 +125,8 @@ namespace SplamyWeb.Controllers
 			[FromQuery] string version,
 			[FromQuery] string commit)
 		{
-			project = project.ToLower();
-			branch = branch.ToLower();
+			project = project.ToLowerInvariant();
+			branch = branch.ToLowerInvariant();
 
 			if (!IsSave(project) || !IsSave(branch))
 				return BadRequest("Invalid path");

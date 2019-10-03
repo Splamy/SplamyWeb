@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using SplamyWeb.Controllers;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -26,8 +27,7 @@ namespace SplamyWeb.Components
 		{
 			Log.Info("TS3Index scraper Service is starting.");
 
-			timer = new Timer(DoWork, null, TimeSpan.Zero,
-				TimeSpan.FromHours(1));
+			//timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
 
 			return Task.CompletedTask;
 		}
@@ -36,8 +36,8 @@ namespace SplamyWeb.Components
 		{
 			Log.Info("Started scrape");
 
-			await UpdateVersions();
-			await UpdateBadges();
+			await UpdateVersions().ConfigureAwait(false);
+			await UpdateBadges().ConfigureAwait(false);
 
 			Log.Info("Done scape");
 		}
@@ -46,9 +46,9 @@ namespace SplamyWeb.Components
 		{
 			try
 			{
-				var client = _clientFactory.CreateClient();
-				var response = await client.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
-				var stream = await response.Content.ReadAsStreamAsync();
+				using var client = _clientFactory.CreateClient();
+				var response = await client.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp").ConfigureAwait(false);
+				var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
 				JsonData data;
 				var serializer = new JsonSerializer();
@@ -62,7 +62,7 @@ namespace SplamyWeb.Components
 					return;
 
 				var vsign = data.data.Select(x => new VersionSign(x.version, x.platform, x.sign)).ToArray();
-				await TeamspeakController.TryAddNewVersionSignChecked(vsign);
+				await TeamspeakController.TryAddNewVersionSignChecked(vsign).ConfigureAwait(false);
 			}
 			catch (Exception ex) { Log.Warn("Failed to check verions: {0}", ex.Message); }
 		}
@@ -71,7 +71,7 @@ namespace SplamyWeb.Components
 		{
 			try
 			{
-				var client = _clientFactory.CreateClient();
+				using var client = _clientFactory.CreateClient();
 				var request = new HttpRequestMessage()
 				{
 					RequestUri = new Uri("https://badges-content.teamspeak.com/list"),
@@ -81,7 +81,7 @@ namespace SplamyWeb.Components
 				request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0");
 				var cook = request.Headers.GetCookies();
 				cook.Add(new CookieHeaderValue("__cfduid", "d10e713663dd1405a7d4055a1cb37436c1560562132"));
-				cook.Add(new CookieHeaderValue("bb_lastvisit", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()));
+				cook.Add(new CookieHeaderValue("bb_lastvisit", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)));
 				cook.Add(new CookieHeaderValue("bb_lastactivity", "0"));
 				var response = await client.SendAsync(request);
 				var stream = await response.Content.ReadAsStreamAsync();

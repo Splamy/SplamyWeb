@@ -35,7 +35,7 @@ namespace SplamyWeb.Controllers
 			if (!IsSave(project))
 				return BadRequest("Invalid path");
 
-			project = project.ToLower();
+			project = project.ToLowerInvariant();
 
 			var fullPath = new DirectoryInfo(Path.Combine(languageBasePath, project));
 			if (!fullPath.Exists)
@@ -49,7 +49,7 @@ namespace SplamyWeb.Controllers
 			if (!IsSave(project))
 				return Enumerable.Empty<string>();
 
-			project = project.ToLower();
+			project = project.ToLowerInvariant();
 
 			var fullPath = new DirectoryInfo(Path.Combine(languageBasePath, project));
 			if (!fullPath.Exists)
@@ -65,7 +65,7 @@ namespace SplamyWeb.Controllers
 			if (!IsSave(project) || !IsSave(language))
 				return BadRequest("Invalid path");
 
-			project = project.ToLower();
+			project = project.ToLowerInvariant();
 			CultureInfo culture;
 			try { culture = CultureInfo.GetCultureInfo(language); }
 			catch { return NotFound("Culture not found"); }
@@ -117,18 +117,16 @@ namespace SplamyWeb.Controllers
 					if (!result.IsSuccessStatusCode)
 						return;
 
-					try { language = CultureInfo.GetCultureInfo(language.Replace("_", "-")).Name; }
+					try { language = CultureInfo.GetCultureInfo(language.Replace("_", "-", StringComparison.Ordinal)).Name; }
 					catch { return; }
 
 					var languagePath = Path.Combine(projectPath, language);
 					Directory.CreateDirectory(languagePath);
 
-					using (var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write))
-					using (var stream = await result.Content.ReadAsStreamAsync())
-					{
-						await stream.CopyToAsync(demoDataStream);
-					}
-				}).ToArray());
+					using var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write);
+					using var stream = await result.Content.ReadAsStreamAsync();
+					await stream.CopyToAsync(demoDataStream);
+				}).ToArray()).ConfigureAwait(false);
 			}
 
 			return RebuildLanguageFiles(project);
@@ -200,7 +198,7 @@ namespace SplamyWeb.Controllers
 
 		private static BuildReport ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
 		{
-			using (var proc = new Process
+			using var proc = new Process
 			{
 				StartInfo = new ProcessStartInfo
 				{
@@ -208,22 +206,20 @@ namespace SplamyWeb.Controllers
 					Arguments = arg,
 					WorkingDirectory = languagePath,
 				}
-			})
-			{
-				proc.Start();
-				proc.WaitForExit(10000);
+			};
+			proc.Start();
+			proc.WaitForExit(10000);
 
-				if (proc.ExitCode != 0)
+			if (proc.ExitCode != 0)
+			{
+				return new BuildReport
 				{
-					return new BuildReport
-					{
-						language = language,
-						ok = false,
-						message = errMsg
-					};
-				}
-				return null;
+					language = language,
+					ok = false,
+					message = errMsg
+				};
 			}
+			return null;
 		}
 
 		private static HttpRequestMessage TransifexRequest(HttpMethod method, string link, string token)

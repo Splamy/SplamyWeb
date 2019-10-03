@@ -22,6 +22,7 @@ namespace SplamyWeb.Components
 		public LiteCollection<NightlyProject> NightlyProjectTable { get; }
 		public LiteCollection<LanguageEntry> LanguageTable { get; }
 		public LiteCollection<LoginData> LoginTable { get; }
+		public LiteCollection<RamsesEntry> RamsesTable { get; }
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		public LocalDb()
@@ -49,6 +50,9 @@ namespace SplamyWeb.Components
 			LoginTable.EnsureIndex(x => x.Id, true);
 			LoginTable.EnsureIndex(x => x.Token, true);
 			LoginTable.EnsureIndex(NomalizedName, "UPPER($.Name)", true);
+
+			RamsesTable = Database.GetCollection<RamsesEntry>();
+			RamsesTable.EnsureIndex(x => x.Id, true);
 
 			if (LoginTable.Count() == 0)
 			{
@@ -79,15 +83,13 @@ namespace SplamyWeb.Components
 		private static string RandomToken(int length = 64)
 		{
 			const string tokenChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-			using (var rng = RandomNumberGenerator.Create())
-			{
-				var buffer = new byte[length];
-				rng.GetBytes(buffer);
-				var strb = new StringBuilder(buffer.Length);
-				for (int i = 0; i < buffer.Length; i++)
-					strb.Append(tokenChars[(tokenChars.Length - 1) * buffer[i] / 255]);
-				return strb.ToString();
-			}
+			using var rng = RandomNumberGenerator.Create();
+			var buffer = new byte[length];
+			rng.GetBytes(buffer);
+			var strb = new StringBuilder(buffer.Length);
+			for (int i = 0; i < buffer.Length; i++)
+				strb.Append(tokenChars[(tokenChars.Length - 1) * buffer[i] / 255]);
+			return strb.ToString();
 		}
 
 		public static (string password, byte[] salt) HashPw(string password)
@@ -123,7 +125,7 @@ namespace SplamyWeb.Components
 		public async Task<string> GetUserIdAsync(LoginData user, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			return user.Id.ToString();
+			return user.Id.ToString(CultureInfo.InvariantCulture);
 		}
 
 		public async Task<string> GetUserNameAsync(LoginData user, CancellationToken cancellationToken)
@@ -142,7 +144,7 @@ namespace SplamyWeb.Components
 		public async Task<string> GetNormalizedUserNameAsync(LoginData user, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			return user.Name.ToUpper(CultureInfo.InvariantCulture);
+			return user.Name.ToUpperInvariant();
 		}
 
 		public async Task SetNormalizedUserNameAsync(LoginData user, string normalizedName, CancellationToken cancellationToken)
@@ -188,7 +190,7 @@ namespace SplamyWeb.Components
 		public async Task<string> GetRoleIdAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			return role.Rank.ToString().ToUpper();
+			return role.Rank.ToString().ToUpperInvariant();
 		}
 
 		public async Task<string> GetRoleNameAsync(LoginData role, CancellationToken cancellationToken)
@@ -206,7 +208,7 @@ namespace SplamyWeb.Components
 		public async Task<string> GetNormalizedRoleNameAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			return role.Rank.ToString().ToUpper(CultureInfo.InvariantCulture);
+			return role.Rank.ToString().ToUpperInvariant();
 		}
 
 		public async Task SetNormalizedRoleNameAsync(LoginData role, string normalizedName, CancellationToken cancellationToken)
@@ -219,7 +221,7 @@ namespace SplamyWeb.Components
 		public async Task<LoginData> FindByIdAsync(string roleId, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			return LoginTable.FindById(int.Parse(roleId));
+			return LoginTable.FindById(int.Parse(roleId, CultureInfo.InvariantCulture));
 		}
 
 		public async Task<LoginData> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)

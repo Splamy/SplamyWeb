@@ -34,7 +34,7 @@ namespace SplamyWeb.Controllers
 		private static HashSet<VersionSign> cachedVersions = new HashSet<VersionSign>();
 		private static string cachedFileSha;
 		private static long LastBadgeUpdate = 0;
-		private static Configuration CsvConfig = new Configuration(CultureInfo.InvariantCulture);
+		private static readonly Configuration CsvConfig = new Configuration(CultureInfo.InvariantCulture);
 
 		public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
 
@@ -113,7 +113,7 @@ namespace SplamyWeb.Controllers
 		public static async Task TryAddNewVersionSignChecked(params VersionSign[] vsign)
 		{
 			var correctSigns = vsign.Select(x => CheckVersionClean(x)).Where(x => x != null).ToArray();
-			await TryAddNewVersionSign(correctSigns);
+			await TryAddNewVersionSign(correctSigns).ConfigureAwait(false);
 		}
 
 		private static async Task<IActionResult> TryAddNewVersionSign(params VersionSign[] vsign)
@@ -188,13 +188,13 @@ namespace SplamyWeb.Controllers
 			var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(newContent));
 
 			var strb = new StringBuilder();
-			strb.AppendFormat("Added new version: {0},{1}", newEntries[0].Build, newEntries[1].Platform);
+			strb.AppendFormat(CultureInfo.InvariantCulture, "Added new version: {0},{1}", newEntries[0].Build, newEntries[0].Platform);
 			if (newEntries.Length > 1)
 			{
-				strb.AppendFormat(" (and {0} more)", newEntries.Length - 1);
+				strb.AppendFormat(CultureInfo.InvariantCulture, " (and {0} more)", newEntries.Length - 1);
 				strb.Append("\n\n");
 				foreach (var newEntry in newEntries.Skip(1))
-					strb.AppendFormat("New: {0},{1}\n", newEntry.Build, newEntry.Platform);
+					strb.AppendFormat(CultureInfo.InvariantCulture, "New: {0},{1}\n", newEntry.Build, newEntry.Platform);
 				strb.Length -= 1;
 			}
 
@@ -217,10 +217,10 @@ namespace SplamyWeb.Controllers
 
 		private static void CheckFile(string data, HashSet<VersionSign> duplicates, List<VersionError> errors)
 		{
-			if (data.Contains('\r'))
+			if (data.Contains('\r', StringComparison.Ordinal))
 			{
 				errors.Add(new VersionError(-1, "File is not using consistent \\n line endigns."));
-				data = data.Replace("\r", "");
+				data = data.Replace("\r", "", StringComparison.Ordinal);
 			}
 
 			var lines = data.Split('\n');
@@ -362,7 +362,7 @@ namespace SplamyWeb.Controllers
 				using (var csvWriter = new CsvWriter(sw, CsvConfig))
 				{
 					var badgeSort = dictBadges.Values.ToList();
-					badgeSort.Sort((a, b) => a.name.CompareTo(b.name));
+					badgeSort.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.Ordinal));
 					csvWriter.WriteRecords(badgeSort);
 					csvWriter.Flush();
 					sw.Flush();
@@ -398,19 +398,15 @@ namespace SplamyWeb.Controllers
 				var request = WebRequest.Create(ProjectUrlBase + action);
 				request.Method = "GET";
 				request.Headers[HttpRequestHeader.UserAgent] = "TAB Service Bot";
-				using (var resp = request.GetResponse())
-				using (var stream = resp.GetResponseStream())
-				{
-					if (stream == null)
-						return null;
+				using var resp = request.GetResponse();
+				using var stream = resp.GetResponseStream();
+				if (stream == null)
+					return null;
 
-					using (var streamReader = new StreamReader(stream, Encoding.UTF8))
-					using (var jsonReader = new JsonTextReader(streamReader))
-					{
-						var ser = new JsonSerializer();
-						return ser.Deserialize<T>(jsonReader);
-					}
-				}
+				using var streamReader = new StreamReader(stream, Encoding.UTF8);
+				using var jsonReader = new JsonTextReader(streamReader);
+				var ser = new JsonSerializer();
+				return ser.Deserialize<T>(jsonReader);
 			}
 			catch (Exception ex)
 			{
@@ -444,7 +440,7 @@ namespace SplamyWeb.Controllers
 			}
 			catch (WebException ex)
 			{
-				var mem = new MemoryStream();
+				using var mem = new MemoryStream();
 				ex.Response.GetResponseStream().CopyTo(mem);
 				var str = Encoding.UTF8.GetString(mem.ToArray());
 				Log.Warn(ex, "Error uploading to github: " + str);

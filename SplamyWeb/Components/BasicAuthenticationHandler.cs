@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
@@ -57,7 +58,7 @@ namespace SplamyWeb.Components
 				return AuthenticateResult.Fail("Invalid Username or Password");
 
 			var claims = new[] {
-				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture)),
 				new Claim(ClaimTypes.Name, user.Name),
 			};
 			var identity = new ClaimsIdentity(claims, Scheme.Name);

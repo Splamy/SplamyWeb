@@ -12,14 +12,14 @@ namespace SplamyWeb.Components
 	public class LessHandler
 	{
 		private readonly IMemoryCache memoryCache;
-		private readonly IHostingEnvironment env;
+		private readonly IWebHostEnvironment env;
 		private static readonly DotlessConfiguration conf = new DotlessConfiguration()
 		{
 			MinifyOutput = true,
 			Debug = false,
 		};
 
-		public LessHandler(RequestDelegate _, IHostingEnvironment env, IMemoryCache memoryCache)
+		public LessHandler(RequestDelegate _, IWebHostEnvironment env, IMemoryCache memoryCache)
 		{
 			this.env = env;
 			this.memoryCache = memoryCache;

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,14 +13,12 @@ namespace SplamyWeb
 {
 	public class Startup
 	{
-		public Startup(IConfiguration configuration, IHostingEnvironment environment)
+		public Startup(IConfiguration configuration)
 		{
 			Configuration = configuration;
-			Environment = environment;
 		}
 
 		public IConfiguration Configuration { get; }
-		public IHostingEnvironment Environment { get; }
 
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
@@ -29,7 +26,10 @@ namespace SplamyWeb
 			services.AddMemoryCache();
 
 			services
-				.AddMvc()
+				.AddMvc(options =>
+				{
+					options.EnableEndpointRouting = false;
+				})
 				.AddRazorPagesOptions(options =>
 				{
 					options.Conventions.AuthorizeFolder("/Admin");
@@ -55,7 +55,7 @@ namespace SplamyWeb
 			{
 				// Cookie settings
 				options.Cookie.HttpOnly = false;
-				options.Cookie.Expiration = TimeSpan.FromDays(30);
+				options.ExpireTimeSpan = TimeSpan.FromDays(30);
 				options.LoginPath = "/User";
 				options.LogoutPath = "/User"; // TODO
 				options.AccessDeniedPath = "/User"; // TODO
@@ -74,21 +74,21 @@ namespace SplamyWeb
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+		public void Configure(IApplicationBuilder app)
 		{
-			if (env.IsDevelopment())
+			//if (env.IsDevelopment())
+			//{
+			//	app.UseDeveloperExceptionPage();
+			//}
+			//else
 			{
-				app.UseDeveloperExceptionPage();
-			}
-			else
-			{
-				app.UseExceptionHandler("Error");
+				app.UseExceptionHandler("/Error");
 			}
 
 			app.UseStatusCodePagesWithReExecute("/Error");
 
 			app.MapWhen(
-				context => context.Request.Path.ToString().EndsWith(".less"),
+				context => context.Request.Path.ToString().EndsWith(".less", StringComparison.Ordinal),
 				appBranch =>
 				{
 					// ... optionally add more middleware to this branch
