@@ -27,7 +27,7 @@ namespace SplamyWeb.Components
 		{
 			Log.Info("TS3Index scraper Service is starting.");
 
-			//timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
 
 			return Task.CompletedTask;
 		}
