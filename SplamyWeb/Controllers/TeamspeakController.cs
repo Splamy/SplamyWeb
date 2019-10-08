@@ -71,7 +71,7 @@ namespace SplamyWeb.Controllers
 				bool affectsVersion = false;
 
 				var diff = wc.DownloadString(url);
-				foreach (Match item in diffMatch.Matches(diff))
+				foreach (var item in (IEnumerable<Match>)diffMatch.Matches(diff))
 				{
 					if (item.Value == "diff --git a/Version.csv b/Version.csv")
 					{
@@ -113,7 +113,7 @@ namespace SplamyWeb.Controllers
 		public static async Task TryAddNewVersionSignChecked(params VersionSign[] vsign)
 		{
 			var correctSigns = vsign.Select(x => CheckVersionClean(x)).Where(x => x != null).ToArray();
-			await TryAddNewVersionSign(correctSigns).ConfigureAwait(false);
+			await TryAddNewVersionSign(correctSigns!).ConfigureAwait(false);
 		}
 
 		private static async Task<IActionResult> TryAddNewVersionSign(params VersionSign[] vsign)
@@ -130,7 +130,7 @@ namespace SplamyWeb.Controllers
 			return new ObjectResult("Github request could not be completed") { StatusCode = 503 };
 		}
 
-		private static IActionResult AddNewVersionSign(params VersionSign[] vsign)
+		private static IActionResult? AddNewVersionSign(params VersionSign[] vsign)
 		{
 			if (vsign.Length == 0)
 				return new OkObjectResult("No signs requested");
@@ -267,7 +267,7 @@ namespace SplamyWeb.Controllers
 			}
 		}
 
-		public static VersionSign CheckVersionClean(VersionSign sign)
+		public static VersionSign? CheckVersionClean(VersionSign sign)
 		{
 			var checkResult = CheckVersion(sign);
 			if (checkResult != null)
@@ -280,7 +280,7 @@ namespace SplamyWeb.Controllers
 			return sign;
 		}
 
-		public static VersionError CheckVersion(VersionSign sign)
+		public static VersionError? CheckVersion(VersionSign sign)
 		{
 			var tryFixSignStr = versionClean.Replace(sign.Sign, "");
 			if (tryFixSignStr != sign.Sign)
@@ -295,7 +295,7 @@ namespace SplamyWeb.Controllers
 			}
 		}
 
-		public static VersionError EdCheck(VersionSign sign)
+		public static VersionError? EdCheck(VersionSign sign)
 		{
 			try
 			{
@@ -307,7 +307,7 @@ namespace SplamyWeb.Controllers
 			catch (Exception ex) { return new VersionError(-1, $"Invalid data ({ex.Message})", sign); }
 		}
 
-		public static IActionResult AddNewBadge(Badges badges)
+		public static IActionResult? AddNewBadge(Badges badges)
 		{
 			if (badges.BadgeList.Length == 0)
 				return new OkObjectResult("No badges requested");
@@ -391,7 +391,7 @@ namespace SplamyWeb.Controllers
 		}
 
 
-		private static T DownloadJson<T>(string action) where T : class
+		private static T? DownloadJson<T>(string action) where T : class
 		{
 			try
 			{
@@ -459,10 +459,10 @@ namespace SplamyWeb.Controllers
 	{
 		public int Line { get; set; }
 		public string Error { get; }
-		public VersionSign Version { get; }
-		public VersionSign FixedVersion { get; set; }
+		public VersionSign? Version { get; }
+		public VersionSign? FixedVersion { get; set; }
 
-		public VersionError(int line, string error, VersionSign version = null)
+		public VersionError(int line, string error, VersionSign? version = null)
 		{
 			FixedVersion = null;
 			Line = line;
@@ -493,9 +493,9 @@ namespace SplamyWeb.Controllers
 				BuildNumber = -1;
 		}
 
-		public override bool Equals(object obj) => Equals(obj as VersionSign);
+		public override bool Equals(object? obj) => Equals(obj as VersionSign);
 
-		public bool Equals(VersionSign other)
+		public bool Equals(VersionSign? other)
 			=> other != null
 			&& Sign == other.Sign
 			&& Build == other.Build

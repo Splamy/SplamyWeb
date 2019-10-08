@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+using System.Threading.Tasks;
 using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers
@@ -120,7 +121,7 @@ namespace SplamyWeb.Controllers
 
 		[HttpPut("{project}/{branch}")]
 		[RequestSizeLimit(100_000_000)]
-		public IActionResult Put(string project, string branch,
+		public async Task<IActionResult> Put(string project, string branch,
 			[FromQuery] string fileName,
 			[FromQuery] string version,
 			[FromQuery] string commit)
@@ -165,13 +166,13 @@ namespace SplamyWeb.Controllers
 			Directory.CreateDirectory(fullPath.DirectoryName);
 			using (var demoDataStream = fullPath.OpenWrite())
 			{
-				HttpContext.Request.Body.CopyTo(demoDataStream);
+				await HttpContext.Request.Body.CopyToAsync(demoDataStream);
 			}
 
 			return Ok();
 		}
 
-		private NightlyEntry GetActive(string project, string branch)
+		private NightlyEntry? GetActive(string project, string branch)
 		{
 			var activeId = NightlyMeta.GetId(project, branch);
 			var meta = db.NightlyMetaTable.FindById(activeId);

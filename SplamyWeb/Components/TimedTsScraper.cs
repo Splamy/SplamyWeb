@@ -16,7 +16,7 @@ namespace SplamyWeb.Components
 	{
 		private readonly IHttpClientFactory _clientFactory;
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		private Timer timer;
+		private Timer? timer;
 
 		public TimedTsScraper(IHttpClientFactory clientFactory)
 		{
@@ -32,7 +32,7 @@ namespace SplamyWeb.Components
 			return Task.CompletedTask;
 		}
 
-		private async void DoWork(object state)
+		private async void DoWork(object? state)
 		{
 			Log.Info("Started scrape");
 

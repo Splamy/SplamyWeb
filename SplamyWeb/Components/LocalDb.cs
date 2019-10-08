@@ -73,7 +73,7 @@ namespace SplamyWeb.Components
 			}
 		}
 
-		public LoginData GetUserByToken(string token)
+		public LoginData? GetUserByToken(string token)
 		{
 			if (token == null)
 				return null;
