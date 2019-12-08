@@ -20,7 +20,7 @@ namespace SplamyWeb.Controllers
 		private readonly BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)> _bufferBlock = new BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)>();
 		private readonly LocalDb db;
 
-		private string RamsesVersion;
+		private readonly string RamsesVersion;
 
 		public RamsesController(LocalDb db)
 		{
@@ -123,6 +123,7 @@ namespace SplamyWeb.Controllers
 		}
 	}
 
+#pragma warning disable CS8618
 	public class RamsesEntry
 	{
 		[JsonIgnore]
@@ -144,4 +145,5 @@ namespace SplamyWeb.Controllers
 		[JsonProperty(PropertyName = "graph")]
 		public float[] Graph { get; set; }
 	}
+#pragma warning restore CS8618
 }

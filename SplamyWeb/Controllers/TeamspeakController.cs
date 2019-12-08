@@ -32,7 +32,7 @@ namespace SplamyWeb.Controllers
 
 		private static readonly object cacheLock = new object();
 		private static HashSet<VersionSign> cachedVersions = new HashSet<VersionSign>();
-		private static string cachedFileSha;
+		private static string? cachedFileSha;
 		private static long LastBadgeUpdate = 0;
 		private static readonly Configuration CsvConfig = new Configuration(CultureInfo.InvariantCulture);
 
@@ -48,7 +48,7 @@ namespace SplamyWeb.Controllers
 
 			var json = data.ToObject<Json_Github>();
 
-			if (json.pull_request != null)
+			if (json?.pull_request != null)
 			{
 				if (json.pull_request.state == "closed")
 					return Ok();
@@ -58,7 +58,7 @@ namespace SplamyWeb.Controllers
 				Log.Debug("PR #{0} is safe:{1} version:{2}", json.pull_request.number, safe, affectsVersion);
 			}
 
-			Console.WriteLine("Action: {0}", json.action);
+			Log.Debug("Action: {@data}", json);
 
 			return Ok();
 		}
@@ -506,6 +506,7 @@ namespace SplamyWeb.Controllers
 		public override string ToString() => $"{Build},{Platform},{Sign}";
 	}
 
+#pragma warning disable CS8618
 	[ProtoContract]
 	public class Badges
 	{
@@ -599,4 +600,5 @@ namespace SplamyWeb.Controllers
 		public string branch { get; set; }
 	}
 #pragma warning restore IDE1006 // Naming Styles
+#pragma warning restore CS8618
 }

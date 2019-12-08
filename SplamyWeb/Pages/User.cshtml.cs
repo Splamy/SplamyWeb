@@ -9,7 +9,7 @@ namespace SplamyWeb.Pages
 	public class UserModel : PageModel
 	{
 		[BindProperty]
-		public LoginData LoginData { get; set; }
+		public LoginData? LoginData { get; set; }
 
 		private readonly UserManager<LoginData> userManager;
 

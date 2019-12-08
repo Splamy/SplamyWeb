@@ -34,7 +34,7 @@ namespace SplamyWeb.Components
 			if (!Request.Headers.ContainsKey("Authorization"))
 				return AuthenticateResult.Fail("Missing Authorization Header");
 
-			LoginData user = null;
+			LoginData? user = null;
 			try
 			{
 				var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
@@ -54,7 +54,7 @@ namespace SplamyWeb.Components
 				return AuthenticateResult.Fail("Invalid Authorization Header");
 			}
 
-			if (user == null)
+			if (user is null)
 				return AuthenticateResult.Fail("Invalid Username or Password");
 
 			var claims = new[] {

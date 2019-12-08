@@ -29,18 +29,18 @@
 		{
 			<tr>
 				<td>@entry.Branch</td>
-				<td>@entry?.Version</td>
+				<td>@entry.Version</td>
 				<td>
 					@if (project.CommitUrl != null && project.CommitUrl.Contains("{0}"))
 					{
-						<a href="@string.Format(project.CommitUrl, entry?.Commit)">@entry?.Commit.Truncate(8)</a>
+						<a href="@string.Format(project.CommitUrl, entry.Commit)">@entry.Commit.Truncate(8)</a>
 					}
 					else
 					{
-						@entry?.Commit.Truncate(8);
+						@entry.Commit.Truncate(8);
 					}
 				</td>
-				<td>@entry?.UploadTime</td>
+				<td>@entry.UploadTime</td>
 				<td>
 					@if (active)
 					{

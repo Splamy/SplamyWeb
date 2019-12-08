@@ -276,6 +276,8 @@ namespace SplamyWeb.Components
 		#endregion
 	}
 
+#pragma warning disable CS8618
+
 	public class NightlyProject
 	{
 		public string Id { get; set; } // Something like "ts3ab", "ts3hook"
@@ -346,4 +348,6 @@ namespace SplamyWeb.Components
 		User,
 		Admin,
 	}
+
+#pragma warning restore CS8618
 }

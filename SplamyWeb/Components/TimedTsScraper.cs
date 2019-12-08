@@ -50,7 +50,7 @@ namespace SplamyWeb.Components
 				var response = await client.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp").ConfigureAwait(false);
 				var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-				JsonData data;
+				JsonData? data;
 				var serializer = new JsonSerializer();
 				using (var sr = new StreamReader(stream))
 				using (var jsonTextReader = new JsonTextReader(sr))
@@ -58,7 +58,7 @@ namespace SplamyWeb.Components
 					data = serializer.Deserialize<JsonData>(jsonTextReader);
 				}
 
-				if (!data.success || data.data == null)
+				if (data?.data is null || !data.success)
 					return;
 
 				var vsign = data.data.Select(x => new VersionSign(x.version, x.platform, x.sign)).ToArray();
@@ -110,10 +110,11 @@ namespace SplamyWeb.Components
 			timer?.Dispose();
 		}
 
+#pragma warning disable CS8618, IDE1006
 		class JsonData
 		{
 			public bool success { get; set; }
-			public JsonVersion[] data { get; set; }
+			public JsonVersion[]? data { get; set; }
 		}
 
 		class JsonVersion
@@ -121,6 +122,7 @@ namespace SplamyWeb.Components
 			public string platform { get; set; }
 			public string version { get; set; }
 			public string sign { get; set; }
+#pragma warning restore CS8618, IDE1006
 		}
 	}
 }

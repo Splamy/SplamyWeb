@@ -102,7 +102,7 @@ namespace SplamyWeb.Controllers
 				using (var sr = new StreamReader(streamM))
 				using (var jsonTextReader = new JsonTextReader(sr))
 				{
-					languages = serializer.Deserialize<TransifexLanguage[]>(jsonTextReader);
+					languages = serializer.Deserialize<TransifexLanguage[]>(jsonTextReader)!;
 				}
 
 				var projectPath = Path.Combine(languageBasePath, project);
@@ -186,17 +186,13 @@ namespace SplamyWeb.Controllers
 				langEntry.UploadTime = DateTime.UtcNow;
 				db.LanguageTable.Upsert(langEntry);
 
-				report.Add(new BuildReport
-				{
-					language = language,
-					ok = true,
-				});
+				report.Add(new BuildReport(language, true));
 			}
 
 			return Ok(report);
 		}
 
-		private static BuildReport ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
+		private static BuildReport? ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
 		{
 			using var proc = new Process
 			{
@@ -212,12 +208,7 @@ namespace SplamyWeb.Controllers
 
 			if (proc.ExitCode != 0)
 			{
-				return new BuildReport
-				{
-					language = language,
-					ok = false,
-					message = errMsg
-				};
+				return new BuildReport(language, false, errMsg);
 			}
 			return null;
 		}
@@ -239,12 +230,19 @@ namespace SplamyWeb.Controllers
 		public static string ToId(string project, string language) => $"{project}.{language}";
 	}
 
-#pragma warning disable IDE1006 // Naming Styles
+#pragma warning disable IDE1006, CS8618 // Naming Styles
 	internal class BuildReport
 	{
 		public string language { get; set; }
 		public bool ok { get; set; }
-		public string message { get; set; }
+		public string? message { get; set; }
+
+		public BuildReport(string language, bool ok, string? message = null)
+		{
+			this.language = language;
+			this.ok = ok;
+			this.message = message;
+		}
 	}
 
 	internal class TransifexLanguage
@@ -252,5 +250,5 @@ namespace SplamyWeb.Controllers
 		//public object coordinators { get; set; }
 		public string language_code { get; set; }
 	}
-#pragma warning restore IDE1006 // Naming Styles
+#pragma warning restore IDE1006, CS8618 // Naming Styles
 }
