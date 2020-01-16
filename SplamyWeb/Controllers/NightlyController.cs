@@ -11,7 +11,7 @@ using static SplamyWeb.Util;
 namespace SplamyWeb.Controllers
 {
 	[Route("api/[controller]")]
-	[Authorize(AuthenticationSchemes = "BasicAuthentication,Identity.Application")] // , Roles = "Admin"
+	[Authorize(AuthenticationSchemes = AuthScheme)] // , Roles = "Admin"
 	public class NightlyController : Controller
 	{
 		private readonly LocalDb db;
@@ -154,10 +154,8 @@ namespace SplamyWeb.Controllers
 			entry.Commit = commit;
 			db.NightlyTable.Upsert(entry);
 			var meta = db.NightlyMetaTable.FindById(NightlyMeta.GetId(project, branch));
-			if (meta == null)
-				meta = new NightlyMeta { Active = commit, Project = project, Branch = branch };
-			else
-				meta.Active = commit;
+			meta ??= new NightlyMeta { Project = project, Branch = branch };
+			meta.Active = commit;
 			db.NightlyMetaTable.Upsert(meta);
 
 			var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, entry.FileName));

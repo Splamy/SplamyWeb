@@ -4,6 +4,8 @@ namespace SplamyWeb
 {
 	public static class Util
 	{
+		public const string AuthScheme = "BasicAuthentication,Identity.Application";
+
 		public static NLog.Targets.MemoryTarget NLogMemory = new NLog.Targets.MemoryTarget()
 		{
 			Layout = "${longdate} | ${level} | ${message}",

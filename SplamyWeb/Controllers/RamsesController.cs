@@ -1,14 +1,12 @@
+using LiteDB;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using RateMapSeveritySaber;
 using SplamyWeb.Components;
 using System;
-using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
-using System.Numerics;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -18,13 +16,13 @@ namespace SplamyWeb.Controllers
 	public class RamsesController : Controller
 	{
 		private readonly BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)> _bufferBlock = new BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)>();
-		private readonly LocalDb db;
+		private readonly LiteCollection<RamsesEntry> ramsesTable;
 
 		private readonly string RamsesVersion;
 
 		public RamsesController(LocalDb db)
 		{
-			this.db = db;
+			ramsesTable = db.RamsesTable;
 			var ver = typeof(Analyzer).Assembly.GetName().Version!;
 			RamsesVersion = $"{ver.Major}.{ver.Minor}";
 			Process();
@@ -34,7 +32,7 @@ namespace SplamyWeb.Controllers
 		{
 			while (true)
 			{
-				var (key, response) = await _bufferBlock.ReceiveAsync().ConfigureAwait(false);
+				var (key, response) = await _bufferBlock.ReceiveAsync();
 				RamsesEntry? res;
 				try
 				{
@@ -71,7 +69,7 @@ namespace SplamyWeb.Controllers
 
 		private async Task<RamsesEntry?> GetInternal(string key)
 		{
-			var entry = db.RamsesTable.FindById(key);
+			var entry = ramsesTable.FindById(key);
 			if (entry != null && entry.Version == RamsesVersion)
 				return entry;
 
@@ -117,7 +115,7 @@ namespace SplamyWeb.Controllers
 				Version = RamsesVersion,
 			};
 
-			db.RamsesTable.Upsert(entry);
+			ramsesTable.Upsert(entry);
 
 			return entry;
 		}

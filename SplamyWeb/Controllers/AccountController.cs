@@ -25,7 +25,7 @@ namespace SplamyWeb.Controllers
 		[AllowAnonymous]
 		public async Task<IActionResult> LoginAsync([FromForm] string name, [FromForm] string pass, [FromForm] bool remember)
 		{
-			var result = await signInManager.PasswordSignInAsync(name, pass, remember, false).ConfigureAwait(false);
+			var result = await signInManager.PasswordSignInAsync(name, pass, remember, false);
 			if (result.Succeeded)
 				return RedirectToPage("/Index");
 			else
@@ -36,15 +36,15 @@ namespace SplamyWeb.Controllers
 		public async Task<IActionResult> UpdateAsync([FromForm] LoginData upuser)
 		{
 			// Uuuh, splamy, waddaya do?
-			var user = await userManager.GetUserAsync(User).ConfigureAwait(false);
-			await userManager.UpdateAsync(upuser).ConfigureAwait(false);
+			var user = await userManager.GetUserAsync(User);
+			await userManager.UpdateAsync(upuser);
 			return RedirectToPage("/User");
 		}
 
 		[HttpPost("Logout")]
 		public async Task<IActionResult> LogoutAsync()
 		{
-			await signInManager.SignOutAsync().ConfigureAwait(false);
+			await signInManager.SignOutAsync();
 			return RedirectToPage("/Index");
 		}
 	}

@@ -126,7 +126,7 @@ namespace SplamyWeb.Controllers
 					using var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write);
 					using var stream = await result.Content.ReadAsStreamAsync();
 					await stream.CopyToAsync(demoDataStream);
-				}).ToArray()).ConfigureAwait(false);
+				}).ToArray());
 			}
 
 			return RebuildLanguageFiles(project);

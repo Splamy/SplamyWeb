@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
 using SplamyWeb.Components;
 using System;
 
@@ -70,7 +72,12 @@ namespace SplamyWeb
 
 			services.AddHttpClient();
 			services.AddHostedService<TimedTsScraper>();
-			NLog.Config.SimpleConfigurator.ConfigureForTargetLogging(Util.NLogMemory);
+
+			var config = new LoggingConfiguration();
+			var consoleTarget = new ConsoleTarget();
+			config.AddRule(LogLevel.Info, LogLevel.Fatal, consoleTarget, "SplamyWeb.*");
+			config.AddRule(LogLevel.Info, LogLevel.Fatal, Util.NLogMemory, "SplamyWeb.*");
+			LogManager.Configuration = config;
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

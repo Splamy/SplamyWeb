@@ -23,6 +23,7 @@ namespace SplamyWeb.Components
 		public LiteCollection<LanguageEntry> LanguageTable { get; }
 		public LiteCollection<LoginData> LoginTable { get; }
 		public LiteCollection<RamsesEntry> RamsesTable { get; }
+		public LiteCollection<TabStatsEntry> TabStatsTable { get; }
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		public LocalDb()
@@ -53,6 +54,9 @@ namespace SplamyWeb.Components
 
 			RamsesTable = Database.GetCollection<RamsesEntry>();
 			RamsesTable.EnsureIndex(x => x.Id, true);
+
+			TabStatsTable = Database.GetCollection<TabStatsEntry>();
+			TabStatsTable.EnsureIndex(x => x.Id, true);
 
 			if (LoginTable.Count() == 0)
 			{

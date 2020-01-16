@@ -113,7 +113,7 @@ namespace SplamyWeb.Controllers
 		public static async Task TryAddNewVersionSignChecked(params VersionSign[] vsign)
 		{
 			var correctSigns = vsign.Select(x => CheckVersionClean(x)).Where(x => x != null).ToArray();
-			await TryAddNewVersionSign(correctSigns!).ConfigureAwait(false);
+			await TryAddNewVersionSign(correctSigns!);
 		}
 
 		private static async Task<IActionResult> TryAddNewVersionSign(params VersionSign[] vsign)
@@ -123,7 +123,7 @@ namespace SplamyWeb.Controllers
 				var result = AddNewVersionSign(vsign);
 				if (result != null)
 					return result;
-				await Task.Delay(1000).ConfigureAwait(false);
+				await Task.Delay(1000);
 			}
 
 			Log.Warn("Failed to push to github after multiple retries");
@@ -506,7 +506,7 @@ namespace SplamyWeb.Controllers
 		public override string ToString() => $"{Build},{Platform},{Sign}";
 	}
 
-#pragma warning disable CS8618
+#pragma warning disable CS8618, IDE1006
 	[ProtoContract]
 	public class Badges
 	{
@@ -544,7 +544,6 @@ namespace SplamyWeb.Controllers
 		public string codes { get; set; }
 	}
 
-#pragma warning disable IDE1006 // Naming Styles
 	public class Json_Github
 	{
 		public string action { get; set; }
@@ -599,6 +598,5 @@ namespace SplamyWeb.Controllers
 		public string sha { get; set; }
 		public string branch { get; set; }
 	}
-#pragma warning restore IDE1006 // Naming Styles
-#pragma warning restore CS8618
+#pragma warning restore CS8618, IDE1006
 }

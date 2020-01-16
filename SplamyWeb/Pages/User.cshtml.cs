@@ -1,21 +1,22 @@
-
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SplamyWeb.Components;
+using System.Linq;
 
 namespace SplamyWeb.Pages
 {
 	public class UserModel : PageModel
 	{
 		[BindProperty]
-		public LoginData? LoginData { get; set; }
+		public LoginData LoginData { get; set; }
 
 		private readonly UserManager<LoginData> userManager;
 
 		public UserModel(UserManager<LoginData> userManager)
 		{
 			this.userManager = userManager;
+			LoginData = null!;
 		}
 
 		public async void OnGet()
@@ -25,11 +26,11 @@ namespace SplamyWeb.Pages
 
 		public string Error()
 		{
-			switch (HttpContext.Request.Query["error"])
+			return (HttpContext.Request.Query["error"].FirstOrDefault()) switch
 			{
-			case "1": return "Invalid credentials.";
-			default: return string.Empty;
-			}
+				"1" => "Invalid credentials.",
+				_ => string.Empty,
+			};
 		}
 	}
 }

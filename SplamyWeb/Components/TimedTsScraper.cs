@@ -36,8 +36,8 @@ namespace SplamyWeb.Components
 		{
 			Log.Info("Started scrape");
 
-			await UpdateVersions().ConfigureAwait(false);
-			await UpdateBadges().ConfigureAwait(false);
+			await UpdateVersions();
+			await UpdateBadges();
 
 			Log.Info("Done scape");
 		}
@@ -47,8 +47,8 @@ namespace SplamyWeb.Components
 			try
 			{
 				using var client = _clientFactory.CreateClient();
-				var response = await client.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp").ConfigureAwait(false);
-				var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+				var response = await client.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
+				var stream = await response.Content.ReadAsStreamAsync();
 
 				JsonData? data;
 				var serializer = new JsonSerializer();
@@ -62,7 +62,7 @@ namespace SplamyWeb.Components
 					return;
 
 				var vsign = data.data.Select(x => new VersionSign(x.version, x.platform, x.sign)).ToArray();
-				await TeamspeakController.TryAddNewVersionSignChecked(vsign).ConfigureAwait(false);
+				await TeamspeakController.TryAddNewVersionSignChecked(vsign);
 			}
 			catch (Exception ex) { Log.Warn("Failed to check verions: {0}", ex.Message); }
 		}
