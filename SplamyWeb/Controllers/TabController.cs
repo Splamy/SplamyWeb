@@ -22,7 +22,7 @@ namespace SplamyWeb.Controllers
 		private static readonly TimeSpan ResetIpRequestsAfter = TimeSpan.FromHours(1);
 		private const int MaxRunningBots = 10_000;
 		private const int MaxDaysCalculation = 10; // Aim to send stats once per week. So 10 days should be the maximum for values calculation
-		private static readonly TimeSpan MaxWorkTime = TimeSpan.FromDays(MaxDaysCalculation);
+		private static readonly TimeSpan MaxTotalUptime = TimeSpan.FromDays(MaxDaysCalculation);
 		private const int MaxSongsPerFactory = 60 * 60 * 24 * MaxDaysCalculation;
 
 		public TabController(LocalDb db)
@@ -30,7 +30,7 @@ namespace SplamyWeb.Controllers
 			tabStatsTable = db.TabStatsTable;
 		}
 
-		[HttpPost("ping")]
+		[HttpPost("stats")]
 		[Consumes("application/json")]
 		public void PostPing([FromBody]TabStatsData obj)
 		{
@@ -65,17 +65,15 @@ namespace SplamyWeb.Controllers
 			if (obj.RunningBots > MaxRunningBots)
 				return false;
 
-			if (obj.RunTime > MaxWorkTime)
+			if (obj.TotalUptime > MaxTotalUptime)
 				return false;
 
 			if (obj.SongStats != null)
 			{
-				if (obj.SongStats.Keys.Any(x => x.Length > 256))
+				if (obj.SongStats.Keys.Any(x => x.Length > 16))
 					return false;
 
-				if (obj.SongStats.Values.Any(x =>
-					x.Requests > MaxSongsPerFactory
-				))
+				if (obj.SongStats.Values.Any(x => x.Requests > MaxSongsPerFactory))
 					return false;
 			}
 
@@ -121,7 +119,7 @@ namespace SplamyWeb.Controllers
 		public string? Runtime { get; set; }
 		public string? BotVersion { get; set; }
 		public int? RunningBots { get; set; }
-		public TimeSpan? RunTime { get; set; }
+		public TimeSpan? TotalUptime { get; set; }
 		public TimeSpan? BotsRunTime { get; set; }
 		public Dictionary<string, TabStatsFactory>? SongStats { get; set; }
 	}

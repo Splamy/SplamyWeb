@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,14 +29,18 @@ namespace SplamyWeb
 			services.AddMemoryCache();
 
 			services
-				.AddMvc(options =>
+			   .AddMvc(options =>
 				{
 					options.EnableEndpointRouting = false;
 				})
 				.AddRazorPagesOptions(options =>
 				{
 					options.Conventions.AuthorizeFolder("/Admin");
-				});
+				})
+#if DEBUG
+				.AddRazorRuntimeCompilation()
+#endif
+			;
 
 			services.AddIdentity<LoginData, LoginData>()
 				.AddDefaultTokenProviders();
@@ -83,14 +88,11 @@ namespace SplamyWeb
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app)
 		{
-			//if (env.IsDevelopment())
-			//{
-			//	app.UseDeveloperExceptionPage();
-			//}
-			//else
-			{
-				app.UseExceptionHandler("/Error");
-			}
+#if DEBUG
+			app.UseDeveloperExceptionPage();
+#else
+			app.UseExceptionHandler("/Error");
+#endif
 
 			app.UseStatusCodePagesWithReExecute("/Error");
 

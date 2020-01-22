@@ -7,8 +7,12 @@
 			"destination": "wwwroot/lib/sweetalert/"
 		},
 		{
-			"library": "bulma@0.7.5",
+			"library": "bulma@0.8.0",
 			"destination": "wwwroot/lib/bulma/"
+		},
+		{
+			"library": "MaterialDesign-Webfont@4.7.95",
+			"destination": "wwwroot/lib/MaterialDesign-Webfont/"
 		}
 	]
 }

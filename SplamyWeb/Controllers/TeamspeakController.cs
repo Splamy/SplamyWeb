@@ -24,7 +24,7 @@ namespace SplamyWeb.Controllers
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
 		private static readonly WebClient wc = new WebClient();
-		private static readonly Regex diffMatch = new Regex(@"^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
+		private static readonly Regex diffMatch = new Regex("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
 		private static readonly Regex versionClean = new Regex(@"[^a-zA-Z0-9\+=/]");
 		private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
 		private const string CsvHeader = "version,platform,hash\n";
@@ -34,7 +34,7 @@ namespace SplamyWeb.Controllers
 		private static HashSet<VersionSign> cachedVersions = new HashSet<VersionSign>();
 		private static string? cachedFileSha;
 		private static long LastBadgeUpdate = 0;
-		private static readonly Configuration CsvConfig = new Configuration(CultureInfo.InvariantCulture);
+		private static readonly CsvConfiguration CsvConfig = new CsvConfiguration(CultureInfo.InvariantCulture);
 
 		public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
 
@@ -195,7 +195,7 @@ namespace SplamyWeb.Controllers
 				strb.Append("\n\n");
 				foreach (var newEntry in newEntries.Skip(1))
 					strb.AppendFormat(CultureInfo.InvariantCulture, "New: {0},{1}\n", newEntry.Build, newEntry.Platform);
-				strb.Length -= 1;
+				strb.Length--;
 			}
 
 			bool postResult = PutJson("/contents/Versions.csv", new Json_File_POST
@@ -362,7 +362,7 @@ namespace SplamyWeb.Controllers
 				using (var csvWriter = new CsvWriter(sw, CsvConfig))
 				{
 					var badgeSort = dictBadges.Values.ToList();
-					badgeSort.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.Ordinal));
+					badgeSort.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
 					csvWriter.WriteRecords(badgeSort);
 					csvWriter.Flush();
 					sw.Flush();
@@ -389,7 +389,6 @@ namespace SplamyWeb.Controllers
 
 			return new OkObjectResult("All signs ok. Added new ones to db.");
 		}
-
 
 		private static T? DownloadJson<T>(string action) where T : class
 		{

@@ -21,7 +21,7 @@ namespace SplamyWeb.Pages
 		public async Task<bool> IsExtented()
 		{
 			var user = await userManager.GetUserAsync(User);
-			return user != null && user.Rank >= UserType.Admin;
+			return user?.Rank >= UserType.Admin;
 		}
 
 		public IEnumerable<NightlyProject> GetNightlyProjects()

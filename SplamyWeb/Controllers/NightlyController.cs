@@ -140,9 +140,8 @@ namespace SplamyWeb.Controllers
 
 			const string defaultName = "data.dat";
 			string id = NightlyEntry.GetId(project, branch, commit);
-			var entry = db.NightlyTable.FindById(id);
-			if (entry == null)
-				entry = new NightlyEntry
+			var entry = db.NightlyTable.FindById(id)
+				?? new NightlyEntry
 				{
 					Branch = branch,
 					Project = project,

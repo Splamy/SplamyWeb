@@ -6,7 +6,6 @@ namespace SplamyWeb.Pages
 	{
 		public void OnGet()
 		{
-
 		}
 	}
 }

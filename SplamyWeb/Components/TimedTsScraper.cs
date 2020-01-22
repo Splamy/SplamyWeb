@@ -14,6 +14,7 @@ namespace SplamyWeb.Components
 {
 	internal class TimedTsScraper : IHostedService, IDisposable
 	{
+		private static readonly string[] CheckedNicknames = new[] { "loc", "splamy" };
 		private readonly IHttpClientFactory _clientFactory;
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private Timer? timer;
@@ -27,7 +28,9 @@ namespace SplamyWeb.Components
 		{
 			Log.Info("TS3Index scraper Service is starting.");
 
+#if !DEBUG
 			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+#endif
 
 			return Task.CompletedTask;
 		}
@@ -36,13 +39,14 @@ namespace SplamyWeb.Components
 		{
 			Log.Info("Started scrape");
 
-			await UpdateVersions();
-			await UpdateBadges();
+			await UpdateVersionsAsync();
+			await UpdateBadgesAsync();
+			await KeepNicknamesValidAsync();
 
 			Log.Info("Done scape");
 		}
 
-		private async Task UpdateVersions()
+		private async Task UpdateVersionsAsync()
 		{
 			try
 			{
@@ -64,10 +68,10 @@ namespace SplamyWeb.Components
 				var vsign = data.data.Select(x => new VersionSign(x.version, x.platform, x.sign)).ToArray();
 				await TeamspeakController.TryAddNewVersionSignChecked(vsign);
 			}
-			catch (Exception ex) { Log.Warn("Failed to check verions: {0}", ex.Message); }
+			catch (Exception ex) { Log.Warn(ex, "Failed to check verions: {0}", ex.Message); }
 		}
 
-		private async Task UpdateBadges()
+		private async Task UpdateBadgesAsync()
 		{
 			try
 			{
@@ -93,7 +97,21 @@ namespace SplamyWeb.Components
 
 				TeamspeakController.AddNewBadge(badges);
 			}
-			catch (Exception ex) { Log.Warn("Failed to update badges: {0}", ex.Message); }
+			catch (Exception ex) { Log.Warn(ex, "Failed to update badges: {0}", ex.Message); }
+		}
+
+		private async Task KeepNicknamesValidAsync()
+		{
+			using var client = _clientFactory.CreateClient();
+
+			foreach (var name in CheckedNicknames)
+			{
+				try
+				{
+					await client.GetAsync("https://named.myteamspeak.com/lookup?name=" + name);
+				}
+				catch (Exception ex) { Log.Warn(ex, "Failed to check nickname: {0}", name); }
+			}
 		}
 
 		public Task StopAsync(CancellationToken cancellationToken)
@@ -111,13 +129,13 @@ namespace SplamyWeb.Components
 		}
 
 #pragma warning disable CS8618, IDE1006
-		class JsonData
+		public class JsonData
 		{
 			public bool success { get; set; }
 			public JsonVersion[]? data { get; set; }
 		}
 
-		class JsonVersion
+		public class JsonVersion
 		{
 			public string platform { get; set; }
 			public string version { get; set; }

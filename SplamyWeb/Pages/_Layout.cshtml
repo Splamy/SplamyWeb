@@ -3,6 +3,8 @@
 <html>
 <head>
 	<title>Splamy - @ViewData["Title"]</title>
+	<link rel="stylesheet" href="~/lib/bulma/css/bulma.min.css">
+	<link rel="stylesheet" href="~/lib/MaterialDesign-Webfont/css/materialdesignicons.min.css">
 	<link rel="stylesheet" href="~/css/style.less">
 	<script src="~/ts/script.js"></script>
 	<script src="~/lib/sweetalert/sweetalert.min.js"></script>
@@ -12,10 +14,24 @@
 		<a class="navl" href="~/Index">Home</a>
 		<a class="navl" href="~/Nightly">Nightly</a>
 		<div class="navdrop">
-			<a class="navl" href="~/TS3AudioBot">TS3AudioBot</a>
+			<a class="navl" href="~/TSAudioBot/Home">TS3AudioBot</a>
 			<div class="navdrop-list">
-				<a class="navl" href="~/TSAudioBlog">📜 Blog</a>
-				<a class="navl" href="https://github.com/Splamy/TS3AudioBot" target="_blank">🐱 Github</a>
+				<a class="navl" href="~/TSAudioBot/LanguagePacks">
+					<span class="icon is-medium"><i class="mdi mdi-24px mdi-translate"></i></span>
+					Language Packs
+				</a>
+				<a class="navl" href="~/TSAudioBot/Stats">
+					<span class="icon is-medium"><i class="mdi mdi-24px mdi-counter"></i></span>
+					Stats
+				</a>
+				<a class="navl" href="~/TSAudioBot/Blog">
+					<span class="icon is-medium"><i class="mdi mdi-24px mdi-calendar-text"></i></span>
+					Blog
+				</a>
+				<a class="navl" href="https://github.com/Splamy/TS3AudioBot" target="_blank">
+					<span class="icon is-medium"><i class="mdi mdi-24px mdi-github-circle"></i></span>
+					Github
+				</a>
 			</div>
 		</div>
 		<a class="navl" href="~/Impress">Impress &amp; Privacy</a>
@@ -41,7 +57,7 @@
 		}
 	</nav>
 
-	<h1>@(ViewData["Header"] ?? ViewData["Title"])</h1>
+	<h1 class="title">@(ViewData["Header"] ?? ViewData["Title"])</h1>
 
 	<div id="content">
 		@RenderBody()

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace SplamyWeb.Pages.Admin
 {
@@ -6,7 +6,6 @@ namespace SplamyWeb.Pages.Admin
 	{
 		public void OnGet()
 		{
-
 		}
 	}
 }

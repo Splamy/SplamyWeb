@@ -11,12 +11,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CsvHelper" Version="12.2.2" />
+		<PackageReference Include="CsvHelper" Version="13.0.0" />
 		<PackageReference Include="dotless.Core" Version="1.6.7" />
 		<PackageReference Include="LiteDB" Version="4.1.4" />
-		<PackageReference Include="Markdig" Version="0.18.0" />
+		<PackageReference Include="Markdig" Version="0.18.1" />
 		<PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="3.1.1" Condition="'$(Configuration)' == 'Debug'" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.1" />
 		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 		<PackageReference Include="NLog" Version="4.6.8" />
