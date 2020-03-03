@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using LiteDB;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SplamyWeb.Components;
+using System;
+using System.Collections.Generic;
 
 namespace SplamyWeb
 {
@@ -18,7 +14,12 @@ namespace SplamyWeb
 			this.db = db;
 		}
 
-		public AccumStats GetStats()
+		public IEnumerable<TabStatsEntry> GetStats()
+		{
+			return db.TabStatsTable.FindAll();
+		}
+
+		public AccumStats GetStatsSum()
 		{
 			var all = db.TabStatsTable.FindAll();
 			var acc = new AccumStats();

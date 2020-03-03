@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -76,7 +76,15 @@ namespace SplamyWeb
 			});
 
 			services.AddHttpClient();
-			services.AddHostedService<TimedTsScraper>();
+			services.AddSingleton<SlowTimer>();
+			services.AddSingleton<IHostedService>(p => p.GetService<SlowTimer>());
+
+			services.AddSingleton<TabBackingData>();
+			services.AddSingleton<SpamBackingData>();
+			services.AddSingleton<RamsesBackingData>();
+#if !DEBUG
+			services.AddSingleton<TeamspeakBackingData>();
+#endif
 
 			var config = new LoggingConfiguration();
 			var consoleTarget = new ConsoleTarget();

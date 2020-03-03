@@ -20,14 +20,10 @@
 					<span class="icon is-medium"><i class="mdi mdi-24px mdi-translate"></i></span>
 					Language Packs
 				</a>
-				<a class="navl" href="~/TSAudioBot/Stats">
+				@*<a class="navl" href="~/TSAudioBot/Stats">
 					<span class="icon is-medium"><i class="mdi mdi-24px mdi-counter"></i></span>
 					Stats
-				</a>
-				<a class="navl" href="~/TSAudioBot/Blog">
-					<span class="icon is-medium"><i class="mdi mdi-24px mdi-calendar-text"></i></span>
-					Blog
-				</a>
+				</a>*@
 				<a class="navl" href="https://github.com/Splamy/TS3AudioBot" target="_blank">
 					<span class="icon is-medium"><i class="mdi mdi-24px mdi-github-circle"></i></span>
 					Github
@@ -37,6 +33,8 @@
 		<a class="navl" href="~/Impress">Impress &amp; Privacy</a>
 		@if (User.Identity.Name != null)
 		{
+			<a class="navl" href="~/Blog">Blog</a>
+			@*<span class="icon is-medium"><i class="mdi mdi-24px mdi-calendar-text"></i></span>*@
 			<div class="navdrop">
 				<a class="navl" href="~/Admin/Hub">Admin</a>
 				<div class="navdrop-list">

@@ -1,15 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SplamyWeb.Components;
+using System.Collections.Generic;
 
 namespace SplamyWeb
 {
-    public class TabLanguagePacksModel : PageModel
-    {
+	public class TabLanguagePacksModel : PageModel
+	{
 		private readonly LocalDb db;
 
 		public TabLanguagePacksModel(LocalDb db)

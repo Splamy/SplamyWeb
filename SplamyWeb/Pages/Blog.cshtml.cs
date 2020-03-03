@@ -10,7 +10,7 @@ namespace SplamyWeb.Pages
 		// Create new (POST/PUT)
 		// Edit (PATCH)
 		// Delete (DELETE)
-		
+
 		// Optional:
 		// Hide
 
@@ -23,6 +23,12 @@ namespace SplamyWeb.Pages
 
 		public IEnumerable<BlogEntry> GetBlogs()
 		{
+			yield return new BlogEntry
+			{
+				Header = "Hi",
+				Summary = "This is blog",
+				Tags = new[] { "ts3audiobot" },
+			};
 			yield break;
 		}
 	}

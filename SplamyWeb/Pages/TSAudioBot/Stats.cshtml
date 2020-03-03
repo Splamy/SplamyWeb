@@ -1,7 +1,13 @@
 @page
 @model SplamyWeb.StatsModel
 @{
-    ViewData["Title"] = "TSAudioBot Stats";
-    Layout = "~/Pages/_Layout.cshtml";
+	ViewData["Title"] = "TSAudioBot Stats";
+	Layout = "~/Pages/_Layout.cshtml";
 }
 
+@foreach (var stat in this.Model.GetStats())
+{
+	<div>
+		@Newtonsoft.Json.JsonConvert.SerializeObject(stat.Data)
+	</div>
+}

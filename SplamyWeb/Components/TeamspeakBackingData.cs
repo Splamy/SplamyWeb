@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using SplamyWeb.Controllers;
 using System;
@@ -7,50 +6,30 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	internal class TimedTsScraper : IHostedService, IDisposable
+	public class TeamspeakBackingData
 	{
-		private static readonly string[] CheckedNicknames = new[] { "loc", "splamy" };
-		private readonly IHttpClientFactory _clientFactory;
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		private Timer? timer;
 
-		public TimedTsScraper(IHttpClientFactory clientFactory)
+		private static readonly string[] CheckedNicknames = new[] { "loc", "splamy" };
+		private readonly IHttpClientFactory clientFactory;
+
+		public TeamspeakBackingData(IHttpClientFactory clientFactory, SlowTimer timer)
 		{
-			_clientFactory = clientFactory;
-		}
-
-		public Task StartAsync(CancellationToken cancellationToken)
-		{
-			Log.Info("TS3Index scraper Service is starting.");
-
-#if !DEBUG
-			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
-#endif
-
-			return Task.CompletedTask;
-		}
-
-		private async void DoWork(object? state)
-		{
-			Log.Info("Started scrape");
-
-			await UpdateVersionsAsync();
-			await UpdateBadgesAsync();
-			await KeepNicknamesValidAsync();
-
-			Log.Info("Done scape");
+			timer.Register(UpdateVersionsAsync);
+			timer.Register(UpdateBadgesAsync);
+			timer.Register(KeepNicknamesValidAsync);
+			this.clientFactory = clientFactory;
 		}
 
 		private async Task UpdateVersionsAsync()
 		{
 			try
 			{
-				using var client = _clientFactory.CreateClient();
+				using var client = clientFactory.CreateClient();
 				var response = await client.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
 				var stream = await response.Content.ReadAsStreamAsync();
 
@@ -75,7 +54,7 @@ namespace SplamyWeb.Components
 		{
 			try
 			{
-				using var client = _clientFactory.CreateClient();
+				using var client = clientFactory.CreateClient();
 				var request = new HttpRequestMessage()
 				{
 					RequestUri = new Uri("https://badges-content.teamspeak.com/list"),
@@ -102,7 +81,7 @@ namespace SplamyWeb.Components
 
 		private async Task KeepNicknamesValidAsync()
 		{
-			using var client = _clientFactory.CreateClient();
+			using var client = clientFactory.CreateClient();
 
 			foreach (var name in CheckedNicknames)
 			{
@@ -112,20 +91,6 @@ namespace SplamyWeb.Components
 				}
 				catch (Exception ex) { Log.Warn(ex, "Failed to check nickname: {0}", name); }
 			}
-		}
-
-		public Task StopAsync(CancellationToken cancellationToken)
-		{
-			Log.Info("TS3Index scraper Service is stopping.");
-
-			timer?.Change(Timeout.Infinite, 0);
-
-			return Task.CompletedTask;
-		}
-
-		public void Dispose()
-		{
-			timer?.Dispose();
 		}
 
 #pragma warning disable CS8618, IDE1006
