@@ -10,7 +10,7 @@
 }
 @foreach (var project in this.Model.GetNightlyProjects())
 {
-	<h3 id="@project.Id">@(project.ProjectName ?? "<unnamed>"):</h3>
+	<h2 id="@project.Id" class="is-size-4">@(project.ProjectName ?? "<unnamed>"):</h2>
 	var isExtended = await Html.ViewData.Model.IsExtented();
 	<table class="dltable">
 		<tr>
@@ -30,21 +30,26 @@
 			<tr>
 				<td>@entry.Branch</td>
 				<td>@entry.Version</td>
-				<td>
+				<td style="text-transform: uppercase;">
+					@{ var com = entry.Commit.Truncate(8); }
 					@if (project.CommitUrl != null && project.CommitUrl.Contains("{0}"))
 					{
-						<a href="@string.Format(project.CommitUrl, entry.Commit)">@entry.Commit.Truncate(8)</a>
+						<a href="@string.Format(project.CommitUrl, entry.Commit)">@com</a>
 					}
 					else
 					{
-						@entry.Commit.Truncate(8);
+						@com;
 					}
 				</td>
 				<td>@entry.UploadTime</td>
 				<td>
 					@if (active)
 					{
-						<a href="~/api/nightly/@project.Id/@entry.Branch/download" download="@entry.FileName" class="dllink">Download</a>
+						<a href="~/api/nightly/@project.Id/@entry.Branch/download"
+						   download="@entry.FileName"
+						   class="button is-primary is-rounded is-small">
+							Download
+						</a>
 					}
 				</td>
 				@if (isExtended)
@@ -53,7 +58,12 @@
 					<td>
 						@if (active)
 						{
-							<a class="dllink" onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">X</a>
+							<button class="button is-primary is-rounded is-small compact"
+									onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">
+								<span class="icon">
+									<i class="mdi mdi-close mdi-24px"></i>
+								</span>
+							</button>
 						}
 					</td>
 				}

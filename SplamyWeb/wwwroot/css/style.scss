@@ -1,0 +1,126 @@
+@import "_bulma";
+@import "font/font";
+
+@mixin unselectable {
+	cursor: pointer;
+	user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
+}
+
+@mixin link_shine {
+	&:hover {
+		background-color: $link-light;
+		box-shadow: 0 0 10px 0 $link-light;
+	}
+}
+
+html {
+	background-color: $black-bis;
+}
+
+body {
+	margin: 0;
+	padding: 40px 40px 0;
+}
+
+nav {
+	display: flex;
+	flex-wrap: wrap;
+	background-color: $primary;
+
+	.navl {
+		display: flex;
+		padding: 14px 16px;
+		color: $primary-invert;
+		text-decoration: none;
+		cursor: pointer;
+		align-items: center;
+	}
+
+	.navl:hover {
+		@include link_shine;
+	}
+
+	.navuser {
+		margin-left: auto;
+	}
+
+	.navdrop {
+		@include unselectable;
+		position: relative;
+		display: inline-block;
+	}
+
+	.navdrop-list {
+		display: none;
+		position: absolute;
+		background-color: $primary;
+		z-index: 1;
+		white-space: nowrap;
+	}
+
+	.navdrop:hover .navdrop-list {
+		display: block;
+	}
+}
+
+a {
+	text-decoration: underline;
+}
+a.button {
+	text-decoration: none;
+}
+
+.dltable {
+	width: 100%;
+
+	tr > th {
+		border-style: none none double none;
+	}
+
+	td {
+		vertical-align: middle;
+	}
+
+	tr:not(:first-child):hover {
+		background-color: $black-ter;
+	}
+
+	.button {
+		margin: 0.3em 0;
+	}
+
+	.button.compact {
+		padding: 0 1em;
+	}
+}
+
+.content {
+	font-family: $family-sans-serif;
+}
+
+.readblock {
+	justify-content: center;
+	display: flex;
+
+	& > * {
+		width: 100%;
+		max-width: 800px;
+	}
+}
+
+h1 {
+	margin-top: 1.5rem;
+	text-align: center;
+}
+
+.button {
+	@include link_shine;
+
+	&.is-primary {
+		@include link_shine;
+	}
+}

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
+using System.Linq;
 using System.Threading.Tasks;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -29,16 +30,34 @@ namespace SplamyWeb.Controllers
 			if (result.Succeeded)
 				return RedirectToPage("/Index");
 			else
-				return RedirectToPage("/User", new { error = 1 });
+				return RedirectToPage("/User", new { login = "PasswordMismatch" });
 		}
 
 		[HttpPost("Update")]
-		public async Task<IActionResult> UpdateAsync([FromForm] LoginData upuser)
+		public async Task<IActionResult> UpdateAsync(
+			[FromForm] int id,
+			[FromForm] string? name,
+			[FromForm] string? pass,
+			[FromForm] string? pass_old)
 		{
-			// Uuuh, splamy, waddaya do?
 			var user = await userManager.GetUserAsync(User);
-			await userManager.UpdateAsync(upuser);
-			return RedirectToPage("/User");
+			if (id != user.Id && !user.CanEditOtherUser())
+			{
+				return Forbid();
+			}
+			else
+			{
+				// Admin feature
+			}
+
+			if (!string.IsNullOrWhiteSpace(pass))
+			{
+				var result = await userManager.ChangePasswordAsync(user, pass_old ?? "", pass);
+				if (!result.Succeeded)
+					return RedirectToPage("/User", new { changepw = ToErrs(result) });
+			}
+
+			return RedirectToPage("/User", new { });
 		}
 
 		[HttpPost("Logout")]
@@ -47,5 +66,7 @@ namespace SplamyWeb.Controllers
 			await signInManager.SignOutAsync();
 			return RedirectToPage("/Index");
 		}
+
+		private string ToErrs(IdentityResult res) => string.Join(",", res.Errors.Select(e => e.Code));
 	}
 }

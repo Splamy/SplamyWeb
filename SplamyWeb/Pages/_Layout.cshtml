@@ -3,9 +3,9 @@
 <html>
 <head>
 	<title>Splamy - @ViewData["Title"]</title>
-	<link rel="stylesheet" href="~/lib/bulma/css/bulma.min.css">
 	<link rel="stylesheet" href="~/lib/MaterialDesign-Webfont/css/materialdesignicons.min.css">
-	<link rel="stylesheet" href="~/css/style.less">
+	<link rel="stylesheet" href="~/css/style.css">
+	@*<link rel="stylesheet" href="~/css/style.less">*@
 	<script src="~/ts/script.js"></script>
 	<script src="~/lib/sweetalert/sweetalert.min.js"></script>
 </head>
@@ -21,9 +21,9 @@
 					Language Packs
 				</a>
 				@*<a class="navl" href="~/TSAudioBot/Stats">
-					<span class="icon is-medium"><i class="mdi mdi-24px mdi-counter"></i></span>
-					Stats
-				</a>*@
+						<span class="icon is-medium"><i class="mdi mdi-24px mdi-counter"></i></span>
+						Stats
+					</a>*@
 				<a class="navl" href="https://github.com/Splamy/TS3AudioBot" target="_blank">
 					<span class="icon is-medium"><i class="mdi mdi-24px mdi-github-circle"></i></span>
 					Github
@@ -55,10 +55,15 @@
 		}
 	</nav>
 
-	<h1 class="title">@(ViewData["Header"] ?? ViewData["Title"])</h1>
+	<div class="">
+		@if (ViewData["Header"]?.ToString() != "")
+		{
+			<h1 class="title">@(ViewData["Header"] ?? ViewData["Title"])</h1>
+		}
 
-	<div id="content">
-		@RenderBody()
+		<div>
+			@RenderBody()
+		</div>
 	</div>
 </body>
 </html>

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -13,24 +14,24 @@ namespace SplamyWeb.Components
 {
 	public class LocalDb : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 	{
-		private const string NomalizedName = "NameNormal";
-
 		public LiteDatabase Database { get; }
-		public LiteCollection<NightlyEntry> NightlyTable { get; }
-		public LiteCollection<NightlyMeta> NightlyMetaTable { get; }
-		public LiteCollection<NightlyProject> NightlyProjectTable { get; }
-		public LiteCollection<LanguageEntry> LanguageTable { get; }
-		public LiteCollection<LoginData> LoginTable { get; }
-		public LiteCollection<RamsesEntry> RamsesTable { get; }
-		public LiteCollection<TabStatsEntry> TabStatsTable { get; }
+		public ILiteCollection<NightlyEntry> NightlyTable { get; }
+		public ILiteCollection<NightlyMeta> NightlyMetaTable { get; }
+		public ILiteCollection<NightlyProject> NightlyProjectTable { get; }
+		public ILiteCollection<LanguageEntry> LanguageTable { get; }
+		public ILiteCollection<LoginData> LoginTable { get; }
+		public ILiteCollection<RamsesEntry> RamsesTable { get; }
+		public ILiteCollection<TabStatsEntry> TabStatsTable { get; }
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		public LocalDb()
 		{
-			var mapper = BsonMapper.Global;
-
 			Directory.CreateDirectory(DataPath);
-			Database = new LiteDatabase(Path.Combine(DataPath, "webdata.litedb"));
+			Database = new LiteDatabase(new ConnectionString()
+			{
+				Filename = Path.Combine(DataPath, "webdata.litedb"),
+				Upgrade = true
+			});
 			NightlyTable = Database.GetCollection<NightlyEntry>();
 			NightlyTable.EnsureIndex(x => x.Id, true);
 			NightlyTable.EnsureIndex(x => x.Project);
@@ -49,7 +50,7 @@ namespace SplamyWeb.Components
 			LoginTable = Database.GetCollection<LoginData>();
 			LoginTable.EnsureIndex(x => x.Id, true);
 			LoginTable.EnsureIndex(x => x.Token, true);
-			LoginTable.EnsureIndex(NomalizedName, "UPPER($.Name)", true);
+			LoginTable.EnsureIndex(x => x.NameNormalized, true);
 
 			RamsesTable = Database.GetCollection<RamsesEntry>();
 			RamsesTable.EnsureIndex(x => x.Id, true);
@@ -63,14 +64,13 @@ namespace SplamyWeb.Components
 				string initPass = RandomToken(16);
 				var (password, salt) = HashPw(initPass);
 
-				LoginTable.Insert(new LoginData
-				{
-					Name = "Splamy",
-					Password = password,
-					Salt = salt,
-					Token = initToken,
-					Rank = UserType.Admin,
-				});
+				LoginTable.Insert(new LoginData(
+					name: "Splamy",
+					password: password,
+					salt: salt,
+					token: initToken,
+					rank: UserType.Admin
+				));
 				Console.WriteLine("Initial token (written to token.tmp): {0}", initToken);
 				File.WriteAllText(Path.Combine(DataPath, "token.tmp"), initToken + "\n" + initPass);
 			}
@@ -147,13 +147,13 @@ namespace SplamyWeb.Components
 		public async Task<string> GetNormalizedUserNameAsync(LoginData user, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			return user.Name.ToUpperInvariant();
+			return user.NameNormalized;
 		}
 
 		public async Task SetNormalizedUserNameAsync(LoginData user, string normalizedName, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			user.Name = normalizedName;
+			user.NameNormalized = normalizedName;
 			LoginTable.Update(user);
 		}
 
@@ -165,29 +165,23 @@ namespace SplamyWeb.Components
 				LoginTable.Insert(role);
 				return IdentityResult.Success;
 			}
-			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
+			catch { return IdentityResult.Failed(new IdentityError { Code = "UserAlreadyExists", Description = "Could not create because user already exists" }); }
 		}
 
 		public async Task<IdentityResult> UpdateAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			try
-			{
-				LoginTable.Update(role);
-				return IdentityResult.Success;
-			}
-			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
+			return LoginTable.Update(role)
+				? IdentityResult.Success
+				: IdentityResult.Failed(new IdentityError { Code = "UserNotFound", Description = "The user to update could not be found" });
 		}
 
 		public async Task<IdentityResult> DeleteAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			try
-			{
-				LoginTable.Delete(role.Id);
-				return IdentityResult.Success;
-			}
-			catch { return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" }); }
+			return LoginTable.Delete(role.Id)
+				? IdentityResult.Success
+				: IdentityResult.Failed(new IdentityError { Code = "UserNotFound", Description = "The user to delete could not be found" });
 		}
 
 		public async Task<string> GetRoleIdAsync(LoginData role, CancellationToken cancellationToken)
@@ -230,7 +224,7 @@ namespace SplamyWeb.Components
 		public async Task<LoginData> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			var user = LoginTable.FindOne(Query.EQ(NomalizedName, normalizedRoleName));
+			var user = LoginTable.FindOne(x => x.NameNormalized == normalizedRoleName);
 			return user;
 		}
 
@@ -255,10 +249,7 @@ namespace SplamyWeb.Components
 
 		public async Task<IdentityResult> ValidateAsync(UserManager<LoginData> manager, LoginData user, string password)
 		{
-			if (HashPw(password, user.Salt) == user.Password)
-				return IdentityResult.Success;
-			else
-				return IdentityResult.Failed(new IdentityError { Code = "it", Description = "failed" });
+			return IdentityResult.Success;
 		}
 
 		public string HashPassword(LoginData user, string password)
@@ -340,16 +331,58 @@ namespace SplamyWeb.Components
 	{
 		public int Id { get; set; }
 		public string Name { get; set; }
+		public string NameNormalized { get; set; }
 		public string Password { get; set; }
 		public byte[] Salt { get; set; }
 		public string Token { get; set; }
 		public UserType Rank { get; set; }
+
+		[Obsolete("Reserved for DB", true)]
+		public LoginData() { }
+
+		public void SetName(string name)
+		{
+			this.Name = name;
+			this.NameNormalized = NormalizeName(name);
+		}
+
+		public LoginData(string name, string password, byte[] salt, string token, UserType rank)
+		{
+			Name = name;
+			NameNormalized = NormalizeName(name);
+			Password = password;
+			Salt = salt;
+			Token = token;
+			Rank = rank;
+		}
+
+		public static string NormalizeName(string name) => name.ToUpperInvariant();
+
+		public bool CanEditOtherUser() => Rank.AtLeast(UserType.Admin);
+		public bool CanSetRankUpTo(UserType targetRank) => targetRank <= Rank.CanSetRankUpTo();
 	}
 
+	// Rank (currently) ordered by number
+	// the lower the more powerful
+	// 0 = Admin
 	public enum UserType
 	{
-		User,
 		Admin,
+		User,
+	}
+
+	public static class Rank
+	{
+		public static bool AtLeast(this UserType self, UserType rankOrHigher)
+		{
+			return self <= rankOrHigher;
+		}
+
+		public static UserType? CanSetRankUpTo(this UserType self) => self switch
+		{
+			UserType.Admin => UserType.Admin,
+			_ => null,
+		};
 	}
 
 #pragma warning restore CS8618

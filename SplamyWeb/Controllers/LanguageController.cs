@@ -143,7 +143,7 @@ namespace SplamyWeb.Controllers
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 
-			db.LanguageTable.Delete(LiteDB.Query.All());
+			db.LanguageTable.DeleteMany(x => true);
 
 			foreach (var langFile in GetLanguageListDir(project))
 			{

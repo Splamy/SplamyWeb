@@ -1,0 +1,39 @@
+@charset "utf-8";
+
+$black-bis: #002b36;
+$black-ter: #073642;
+$grey-darker: #586e75;
+$grey-dark: #657b83;
+
+$grey-light: #839496;
+$grey-lighter: #93a1a1;
+$grey-lightest: #eee8d5;
+$white-ter: #fdf6e3;
+$white-bis: #fdf6f3;
+
+$orange: #cb4b16;
+$yellow: #b58900;
+$green: #859900;
+// turq
+$cyan: #2aa198;
+$blue: #268bd2;
+$purple: #6c71c4;
+$red: #dc322f;
+//$magenta: #d33682;
+
+$primary: $green;
+$primary-invert: black;
+$info: $cyan;
+$success: $green;
+$warning: $yellow;
+$danger: $red;
+$link: $green;
+
+$text: $primary;
+$text-strong: $primary;
+
+$family-primary: 'Fira Mono', monospace;
+
+$link-light: lighten($green, 10%);
+
+@import "../lib/bulma/bulma";

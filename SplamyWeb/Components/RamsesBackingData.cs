@@ -15,7 +15,7 @@ namespace SplamyWeb.Components
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private readonly BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)> _bufferBlock = new BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)>();
-		private readonly LiteCollection<RamsesEntry> ramsesTable;
+		private readonly ILiteCollection<RamsesEntry> ramsesTable;
 
 		private readonly string RamsesVersion;
 

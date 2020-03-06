@@ -3,7 +3,46 @@
 @model TS3AudioBotModel
 @{
 	ViewData["Title"] = "TS3AudioBot";
+	ViewData["Header"] = "";
 	Layout = "~/Pages/_Layout.cshtml";
 }
 
-<div>/* TODO */</div>
+<section class="hero is-primary is-medium ">
+	<div class="hero-body">
+		<div class="container" style="text-align: center;">
+			<h2 class="title heading is-1">
+				TS3Audiobot
+			</h2>
+			<h3 class="subtitle">
+				Open source selfhosted music bot and more...
+			</h3>
+		</div>
+	</div>
+
+	<div class="level">
+		<div class="level-item has-text-centered">
+			<div>
+				<p class="heading">Downloads</p>
+				<p class="title">@Model.FormatMetric(Model.Downloads)</p>
+			</div>
+		</div>
+		<div class="level-item has-text-centered">
+			<div>
+				<p class="heading">Instances</p>
+				<p class="title">@Model.FormatMetric(Model.RunningInstances)</p>
+			</div>
+		</div>
+		<div class="level-item has-text-centered">
+			<div>
+				<p class="heading">Bots</p>
+				<p class="title">@Model.FormatMetric(Model.RunningBots)</p>
+			</div>
+		</div>
+		<div class="level-item has-text-centered">
+			<div>
+				<p class="heading">Playtime</p>
+				<p class="title">@Model.FormatMetric(Model.PlaybackTime) min</p>
+			</div>
+		</div>
+	</div>
+</section>

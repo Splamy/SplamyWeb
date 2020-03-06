@@ -29,7 +29,7 @@ namespace SplamyWeb
 			services.AddMemoryCache();
 
 			services
-			   .AddMvc(options =>
+				.AddMvc(options =>
 				{
 					options.EnableEndpointRouting = false;
 				})
@@ -42,8 +42,13 @@ namespace SplamyWeb
 #endif
 			;
 
-			services.AddIdentity<LoginData, LoginData>()
-				.AddDefaultTokenProviders();
+			services.AddIdentity<LoginData, LoginData>(options =>
+			{
+				options.Password.RequireDigit = false;
+				options.Password.RequireUppercase = false;
+				options.Password.RequiredUniqueChars = 3;
+				options.Password.RequireNonAlphanumeric = false;
+			}).AddDefaultTokenProviders();
 
 			services.AddAuthentication(options =>
 			{
