@@ -34,6 +34,7 @@ namespace SplamyWeb.Pages
 			if (includeInactive)
 			{
 				return from entry in db.NightlyTable.Find(x => x.Project == project)
+					   orderby entry.UploadTime
 					   select (entry, db.NightlyMetaTable.FindById(NightlyMeta.GetId(project, entry.Branch))?.Active == entry.Commit);
 			}
 			else
@@ -41,6 +42,7 @@ namespace SplamyWeb.Pages
 				return from meta in db.NightlyMetaTable.Find(x => x.Project == project)
 					   select db.NightlyTable.FindById(meta.ToEntryId()) into entry
 					   where entry != null
+					   orderby entry.Branch
 					   select (entry, true);
 			}
 		}

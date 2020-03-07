@@ -8,66 +8,68 @@
 	ViewData["Header"] = "Nightly Builds";
 	Layout = "~/Pages/_Layout.cshtml";
 }
-@foreach (var project in this.Model.GetNightlyProjects())
+@foreach (var project in Model.GetNightlyProjects())
 {
-	<h2 id="@project.Id" class="is-size-4">@(project.ProjectName ?? "<unnamed>"):</h2>
-	var isExtended = await Html.ViewData.Model.IsExtented();
-	<table class="table" style="width:100%;">
-		<tr>
-			<th>Branch</th>
-			<th>Version</th>
-			<th>Commit</th>
-			<th>Date</th>
-			<th>Link</th>
-			@if (isExtended)
-			{
-				<th>Count</th>
-				<th>Options</th>
-			}
-		</tr>
-		@foreach (var (entry, active) in this.Model.GetActives(project.Id, isExtended))
-		{
+	<div class="box">
+		<h2 id="@project.Id" class="is-size-4">@(project.ProjectName ?? "<unnamed>"):</h2>
+		@{var isExtended = await Model.IsExtented(); }
+		<table class="table" style="width:100%;">
 			<tr>
-				<td>@entry.Branch</td>
-				<td>@entry.Version</td>
-				<td style="text-transform: uppercase;">
-					@{ var com = entry.Commit.Truncate(8); }
-					@if (project.CommitUrl != null && project.CommitUrl.Contains("{0}"))
-					{
-						<a href="@string.Format(project.CommitUrl, entry.Commit)">@com</a>
-					}
-					else
-					{
-						@com;
-					}
-				</td>
-				<td>@entry.UploadTime</td>
-				<td>
-					@if (active)
-					{
-						<a href="~/api/nightly/@project.Id/@entry.Branch/download"
-						   download="@entry.FileName"
-						   class="button is-primary is-rounded is-small">
-							Download
-						</a>
-					}
-				</td>
+				<th>Branch</th>
+				<th>Version</th>
+				<th>Commit</th>
+				<th>Date</th>
+				<th>Link</th>
 				@if (isExtended)
 				{
-					<td>@entry.DownloadCount</td>
+					<th>Count</th>
+					<th>Options</th>
+				}
+			</tr>
+			@foreach (var (entry, active) in Model.GetActives(project.Id, isExtended))
+			{
+				<tr>
+					<td>@entry.Branch</td>
+					<td>@entry.Version</td>
+					<td style="text-transform: uppercase;">
+						@{ var com = entry.Commit.Truncate(8); }
+						@if (project.CommitUrl != null && project.CommitUrl.Contains("{0}"))
+						{
+							<a href="@string.Format(project.CommitUrl, entry.Commit)">@com</a>
+						}
+						else
+						{
+							@com;
+						}
+					</td>
+					<td>@entry.UploadTime</td>
 					<td>
 						@if (active)
 						{
-							<button class="button is-primary is-tool is-small compact"
-									onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">
-								<span class="icon">
-									<i class="mdi mdi-close mdi-24px"></i>
-								</span>
-							</button>
+							<a href="~/api/nightly/@project.Id/@entry.Branch/download"
+							   download="@entry.FileName"
+							   class="button is-primary is-rounded is-small">
+								Download
+							</a>
 						}
 					</td>
-				}
-			</tr>
-		}
-	</table>
+					@if (isExtended)
+					{
+						<td>@entry.DownloadCount</td>
+						<td>
+							@if (active)
+							{
+								<button class="button is-primary is-tool is-small compact"
+										onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">
+									<span class="icon">
+										<i class="mdi mdi-close mdi-24px"></i>
+									</span>
+								</button>
+							}
+						</td>
+					}
+				</tr>
+			}
+		</table>
+	</div>
 }

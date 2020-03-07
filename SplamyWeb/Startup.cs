@@ -103,13 +103,18 @@ namespace SplamyWeb
 			config.AddRule(LogLevel.Info, LogLevel.Fatal, Util.NLogMemory, "SplamyWeb.*");
 
 			LogManager.Configuration = config;
+
+
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IServiceProvider provider)
+		public void Configure(IApplicationBuilder app, IServiceProvider provider, IHostApplicationLifetime applicationLifetime)
 		{
 			provider.GetService<TeamspeakBackingData>();
 			provider.GetService<TabBackingData>();
+			var db = provider.GetService<LocalDb>();
+			if (db != null)
+				applicationLifetime.ApplicationStopping.Register(() => db.CloseDb());
 
 #if DEBUG
 			app.UseDeveloperExceptionPage();

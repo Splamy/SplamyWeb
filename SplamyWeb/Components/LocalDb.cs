@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -32,10 +31,13 @@ namespace SplamyWeb.Components
 				Filename = Path.Combine(DataPath, "webdata.litedb"),
 				Upgrade = true
 			});
+
 			NightlyTable = Database.GetCollection<NightlyEntry>();
 			NightlyTable.EnsureIndex(x => x.Id, true);
 			NightlyTable.EnsureIndex(x => x.Project);
 			NightlyTable.EnsureIndex(x => x.Branch);
+			NightlyTable.UpdateMany("{ Version: '<?>' }", "Version = null");
+			NightlyTable.UpdateMany("{ DownloadCount: 0 }", "DownloadCount = null");
 
 			NightlyMetaTable = Database.GetCollection<NightlyMeta>();
 			NightlyMetaTable.EnsureIndex(x => x.Id, true);
@@ -128,7 +130,11 @@ namespace SplamyWeb.Components
 
 		public void Dispose()
 		{
-			//Database.Dispose();
+		}
+
+		public void CloseDb()
+		{
+			Database.Dispose();
 		}
 
 		#region Never go full enterprise
