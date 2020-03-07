@@ -39,7 +39,7 @@ namespace SplamyWeb.Components
 				{
 					await func();
 				}
-				catch (Exception ex) { Log.Error(ex, "HTask error"); }
+				catch (Exception ex) { Log.Error(ex, "HTask error in {0}", func.Method.Name); }
 			}
 
 			Log.Info("HTask done");

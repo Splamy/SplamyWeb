@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
+using NLog.Layouts;
 using NLog.Targets;
 using SplamyWeb.Components;
 using System;
@@ -91,8 +92,11 @@ namespace SplamyWeb
 			services.AddSingleton<TeamspeakBackingData>();
 #endif
 
+			var layout = Layout.FromString("${pad:padding=5:inner=${level:uppercase=true}} ${message} ${exception:format=ToString}");
 			var config = new LoggingConfiguration();
 			var consoleTarget = new ConsoleTarget();
+			consoleTarget.Layout = layout;
+			Util.NLogMemory.Layout = layout;
 			var nullTarget = new NullTarget();
 			config.AddRule(LogLevel.Trace, LogLevel.Off, nullTarget, "SplamyWeb.Components.BasicAuthenticationHandler", final: true);
 			config.AddRule(LogLevel.Info, LogLevel.Fatal, consoleTarget, "SplamyWeb.*");
