@@ -14,16 +14,32 @@
 			<div class="notification is-danger">@err</div>
 		}
 
-		<form action="~/Account/Login" method="POST">
-			<div>
-				<label><b>Username</b></label>
-				<input type="text" placeholder="Enter Username" name="name" required>
-				<br />
-				<label><b>Password</b></label>
-				<input type="password" placeholder="Enter Password" name="pass" required>
-				<br />
-				<button type="submit">Login</button>
-				<input type="checkbox" checked="checked" name="remember" /> Remember me
+		<form action="~/Account/Login" method="POST" class="box">
+			<div class="field">
+				<label class="label">Username</label>
+				<div class="control">
+					<input name="name"
+						   class="input"
+						   type="text"
+						   placeholder="Username"
+						   required>
+				</div>
+			</div>
+
+			<div class="field">
+				<label class="label">Password</label>
+				<div class="control">
+					<input name="pass"
+						   class="input"
+						   type="password"
+						   placeholder="Password">
+				</div>
+			</div>
+
+			<div class="field">
+				<div class="control">
+					<button type="submit" class="button is-primary">Login</button>
+				</div>
 			</div>
 		</form>
 	</div>

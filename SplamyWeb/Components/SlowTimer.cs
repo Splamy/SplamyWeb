@@ -17,7 +17,7 @@ namespace SplamyWeb.Components
 		{
 			Log.Info("HTask service is starting.");
 
-			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(1)); // TODO !! HOURS 
+			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
 
 			return Task.CompletedTask;
 		}

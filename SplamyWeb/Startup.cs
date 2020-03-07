@@ -8,9 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
+using NLog.Filters;
+using NLog.Layouts;
 using NLog.Targets;
 using SplamyWeb.Components;
 using System;
+using System.Linq;
 
 namespace SplamyWeb
 {
@@ -93,8 +96,11 @@ namespace SplamyWeb
 
 			var config = new LoggingConfiguration();
 			var consoleTarget = new ConsoleTarget();
+			var nullTarget = new NullTarget();
+			config.AddRule(LogLevel.Trace, LogLevel.Off, nullTarget, "SplamyWeb.Components.BasicAuthenticationHandler", final: true);
 			config.AddRule(LogLevel.Info, LogLevel.Fatal, consoleTarget, "SplamyWeb.*");
 			config.AddRule(LogLevel.Info, LogLevel.Fatal, Util.NLogMemory, "SplamyWeb.*");
+
 			LogManager.Configuration = config;
 		}
 

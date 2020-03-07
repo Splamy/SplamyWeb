@@ -1,5 +1,6 @@
 @charset "utf-8";
 
+$black: black;
 $black-bis: #002b36;
 $black-ter: #073642;
 $grey-darker: #586e75;
@@ -10,6 +11,7 @@ $grey-lighter: #93a1a1;
 $grey-lightest: #eee8d5;
 $white-ter: #fdf6e3;
 $white-bis: #fdf6f3;
+$white: white;
 
 $orange: #cb4b16;
 $yellow: #b58900;
@@ -21,19 +23,31 @@ $purple: #6c71c4;
 $red: #dc322f;
 //$magenta: #d33682;
 
-$primary: $green;
-$primary-invert: black;
-$info: $cyan;
-$success: $green;
-$warning: $yellow;
-$danger: $red;
-$link: $green;
+$invert-all: black;
 
-$text: $primary;
-$text-strong: $primary;
+$scheme-main: $black-bis;
+
+$primary: $green;
+$primary-invert: $invert-all;
+$info: $cyan;
+$info-invert: $invert-all;
+$success: $green;
+$success-invert: $invert-all;
+$warning: $yellow;
+$warning-invert: $invert-all;
+$danger: $red;
+$danger-invert: $invert-all;
+$link: $green;
+$link-invert: $invert-all;
+
+$text: $green;
+$text-strong: $green;
 
 $family-primary: 'Fira Mono', monospace;
 
 $link-light: lighten($green, 10%);
+
+//$table-color: black;
+$table-background-color: transparent;
 
 @import "../lib/bulma/bulma";

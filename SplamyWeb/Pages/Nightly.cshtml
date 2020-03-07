@@ -12,7 +12,7 @@
 {
 	<h2 id="@project.Id" class="is-size-4">@(project.ProjectName ?? "<unnamed>"):</h2>
 	var isExtended = await Html.ViewData.Model.IsExtented();
-	<table class="dltable">
+	<table class="table" style="width:100%;">
 		<tr>
 			<th>Branch</th>
 			<th>Version</th>
@@ -58,7 +58,7 @@
 					<td>
 						@if (active)
 						{
-							<button class="button is-primary is-rounded is-small compact"
+							<button class="button is-primary is-tool is-small compact"
 									onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">
 								<span class="icon">
 									<i class="mdi mdi-close mdi-24px"></i>

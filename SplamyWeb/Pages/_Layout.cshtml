@@ -55,15 +55,13 @@
 		}
 	</nav>
 
-	<div class="">
-		@if (ViewData["Header"]?.ToString() != "")
-		{
-			<h1 class="title">@(ViewData["Header"] ?? ViewData["Title"])</h1>
-		}
+	@if (ViewData["Header"]?.ToString() != "")
+	{
+		<h1 class="title">@(ViewData["Header"] ?? ViewData["Title"])</h1>
+	}
 
-		<div>
-			@RenderBody()
-		</div>
-	</div>
+	<section class="section">
+		@RenderBody()
+	</section>
 </body>
 </html>
