@@ -13,13 +13,14 @@ namespace SplamyWeb.Components
 
 		private readonly List<Func<Task>> tick = new List<Func<Task>>();
 
-		public Task StartAsync(CancellationToken cancellationToken)
+		public async Task StartAsync(CancellationToken cancellationToken)
 		{
 			Log.Info("HTask service is starting.");
 
-			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+			// Wait a second for other services to register first
+			await Task.Delay(1000);
 
-			return Task.CompletedTask;
+			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
 		}
 
 		public void Register(Func<Task> func)

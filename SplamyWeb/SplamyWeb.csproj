@@ -53,7 +53,7 @@
 	  <Folder Include="wwwroot\img\" />
 	</ItemGroup>
 
-	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+	<PropertyGroup>
 		<TypeScriptTarget>ES2015</TypeScriptTarget>
 		<TypeScriptJSXEmit>None</TypeScriptJSXEmit>
 		<TypeScriptModuleKind>AMD</TypeScriptModuleKind>

@@ -8,12 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
-using NLog.Filters;
-using NLog.Layouts;
 using NLog.Targets;
 using SplamyWeb.Components;
 using System;
-using System.Linq;
 
 namespace SplamyWeb
 {
@@ -105,8 +102,11 @@ namespace SplamyWeb
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app)
+		public void Configure(IApplicationBuilder app, IServiceProvider provider)
 		{
+			provider.GetService<TeamspeakBackingData>();
+			provider.GetService<TabBackingData>();
+
 #if DEBUG
 			app.UseDeveloperExceptionPage();
 #else
