@@ -74,6 +74,15 @@ namespace SplamyWeb.Components
 				Console.WriteLine("Initial token (written to token.tmp): {0}", initToken);
 				File.WriteAllText(Path.Combine(DataPath, "token.tmp"), initToken + "\n" + initPass);
 			}
+			else
+			{
+				var oldEntries = LoginTable.Find(x => x.NameNormalized == null);
+				foreach (var e in oldEntries)
+				{
+					e.SetName(e.Name);
+					LoginTable.Update(e);
+				}
+			}
 		}
 
 		public LoginData? GetUserByToken(string token)
