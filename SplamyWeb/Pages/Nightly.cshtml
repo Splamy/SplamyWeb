@@ -12,6 +12,12 @@
 {
 	<div class="box">
 		<h2 id="@project.Id" class="is-size-4">@(project.ProjectName ?? "<unnamed>"):</h2>
+		@if (project.Id == "ts3ab")
+		{
+			<div class="notification is-warning">
+				All builds starting with 0.12.* on develop are for dotnet core 3.1 only. Mono and dotnet core 2.2 are not supported anymore.
+			</div>
+		}
 		@{var isExtended = await Model.IsExtented(); }
 		<table class="table" style="width:100%;">
 			<tr>
