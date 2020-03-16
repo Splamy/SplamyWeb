@@ -10,14 +10,14 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	public class TeamspeakBackingData
+	public class TeamspeakService
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
 		private static readonly string[] CheckedNicknames = new[] { "loc", "splamy" };
 		private readonly IHttpClientFactory clientFactory;
 
-		public TeamspeakBackingData(IHttpClientFactory clientFactory, SlowTimer timer)
+		public TeamspeakService(IHttpClientFactory clientFactory, TimerService timer)
 		{
 			timer.Register(UpdateVersionsAsync);
 			timer.Register(UpdateBadgesAsync);

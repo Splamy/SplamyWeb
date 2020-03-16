@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	public class SlowTimer : IHostedService, IDisposable
+	public class TimerService : IHostedService, IDisposable
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private Timer? timer;

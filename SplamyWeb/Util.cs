@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace SplamyWeb
@@ -19,6 +21,30 @@ namespace SplamyWeb
 		{
 			if (string.IsNullOrEmpty(value)) return value;
 			return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+		}
+
+		public static TimeSpan Sum(this IEnumerable<TimeSpan?> source)
+		{
+			TimeSpan sum = TimeSpan.Zero;
+			foreach (var v in source)
+				if (v != null)
+					sum += v.GetValueOrDefault();
+			return sum;
+		}
+		public static uint Sum(this IEnumerable<uint> source)
+		{
+			uint sum = 0;
+			foreach (var v in source)
+				sum += v;
+			return sum;
+		}
+		public static uint Sum(this IEnumerable<uint?> source)
+		{
+			uint sum = 0;
+			foreach (var v in source)
+				if (v != null)
+					sum += v.GetValueOrDefault();
+			return sum;
 		}
 	}
 }

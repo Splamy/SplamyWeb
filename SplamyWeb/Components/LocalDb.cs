@@ -305,7 +305,7 @@ namespace SplamyWeb.Components
 		public bool ZipContent { get; set; }
 		public string FileName { get; set; }
 		public DateTime UploadTime { get; set; }
-		public int DownloadCount { get; set; }
+		public uint DownloadCount { get; set; }
 
 		public object Strip() => new
 		{

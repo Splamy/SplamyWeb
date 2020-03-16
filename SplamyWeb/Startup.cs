@@ -82,8 +82,8 @@ namespace SplamyWeb
 			});
 
 			services.AddHttpClient();
-			services.AddSingleton<SlowTimer>();
-			services.AddSingleton<IHostedService>(p => p.GetService<SlowTimer>());
+			services.AddSingleton<TimerService>();
+			services.AddSingleton<IHostedService>(p => p.GetService<TimerService>());
 
 			services.AddSingleton<TabBackingData>();
 			services.AddSingleton<SpamBackingData>();
@@ -103,14 +103,12 @@ namespace SplamyWeb
 			config.AddRule(LogLevel.Info, LogLevel.Fatal, Util.NLogMemory, "SplamyWeb.*");
 
 			LogManager.Configuration = config;
-
-
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IServiceProvider provider, IHostApplicationLifetime applicationLifetime)
 		{
-			provider.GetService<TeamspeakBackingData>();
+			provider.GetService<TeamspeakService>();
 			provider.GetService<TabBackingData>();
 			var db = provider.GetService<LocalDb>();
 			if (db != null)

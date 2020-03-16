@@ -13,7 +13,7 @@ namespace SplamyWeb.Components
 		private const int MaxIpRequests = 10_000;
 		private static readonly TimeSpan ResetIpRequestsAfter = TimeSpan.FromHours(1);
 
-		public SpamBackingData(SlowTimer timer)
+		public SpamBackingData(TimerService timer)
 		{
 			timer.Register(CleanIpTables);
 		}
