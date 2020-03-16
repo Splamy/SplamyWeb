@@ -57,7 +57,7 @@ namespace SplamyWeb.Components
 				obj.BotVersion is null)
 				return false;
 
-			if (obj.BotVersion == "0.11.0-alpha.50/develop/96162298") // TODO: Temporary block against wrong configuration
+			if (obj.BotVersion == "0.11.0-alpha.50/develop/96162298" || obj.TotalUptime < TimeSpan.FromMinutes(3)) // TODO: Temporary block against wrong configuration
 				return false;
 
 			if (obj.RunningBots > MaxRunningBots)
