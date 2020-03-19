@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SplamyWeb.Components;
-using System.Collections.Generic;
-using System.Linq;
 using System;
 
 namespace SplamyWeb.Pages
@@ -12,7 +10,7 @@ namespace SplamyWeb.Pages
 		public uint Downloads => tabData.Downloads;
 		public uint RunningInstances => tabData.RunningInstances;
 		public uint RunningBots => tabData.RunningBots;
-		public uint PlaybackTime => tabData.PlaybackTime;
+		public TimeSpan PlaybackTime => tabData.PlaybackTime;
 
 		public TS3AudioBotModel(TabBackingData tabData)
 		{
@@ -30,6 +28,27 @@ namespace SplamyWeb.Pages
 				number /= 1000;
 			}
 			return $"{number}{ImpMod[pow]}";
+		}
+
+		public string FormatTime(TimeSpan time)
+		{
+			if (time < TimeSpan.FromMinutes(1))
+				return $"{(int)time.TotalSeconds} sec";
+			if (time < TimeSpan.FromHours(1))
+				return $"{(int)time.TotalMinutes} min";
+			if (time < TimeSpan.FromDays(1))
+			{
+				var h = (int)time.TotalHours;
+				return $"{h} hour{(h > 1 ? "s" : "")}";
+			}
+			if (time < TimeSpan.FromDays(365.25))
+			{
+				var d = (int)time.TotalDays;
+				return $"{d} day{(d > 1 ? "s" : "")}";
+			}
+
+			var y = time.TotalDays / 365.25;
+			return $"{y:0.#} year{(y > 1 ? "s" : "")}";
 		}
 	}
 }

@@ -21,7 +21,7 @@ namespace SplamyWeb.Components
 		public uint Downloads { get; set; }
 		public uint RunningInstances { get; set; }
 		public uint RunningBots { get; set; }
-		public uint PlaybackTime { get; set; }
+		public TimeSpan PlaybackTime { get; set; }
 
 		public TabBackingData(LocalDb db, TimerService timer)
 		{
@@ -101,11 +101,11 @@ namespace SplamyWeb.Components
 				.Select(x => x.Data.RunningBots)
 				.Sum();
 
-			PlaybackTime = (uint)tabStatsTable.Query()
+			PlaybackTime = tabStatsTable.Query()
 				.ToEnumerable()
 				.SelectMany(x => x.Data.SongStats?.Values ?? Enumerable.Empty<TabStatsFactory>())
 				.Select(x => x.Playtime)
-				.Sum().TotalMinutes;
+				.Sum();
 
 			return Task.CompletedTask;
 		}
