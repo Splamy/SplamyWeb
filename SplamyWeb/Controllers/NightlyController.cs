@@ -15,6 +15,12 @@ namespace SplamyWeb.Controllers
 	public class NightlyController : Controller
 	{
 		private readonly LocalDb db;
+		private static readonly string[] AcceptedContentTypes =
+		{
+			MediaTypeNames.Application.Octet, // Binary
+			MediaTypeNames.Application.Zip,
+			"application/gzip"
+		};
 
 		public NightlyController(LocalDb db)
 		{
@@ -132,8 +138,7 @@ namespace SplamyWeb.Controllers
 			if (!IsSave(project) || !IsSave(branch))
 				return BadRequest("Invalid path");
 
-			if (HttpContext.Request.ContentType != MediaTypeNames.Application.Octet
-				&& HttpContext.Request.ContentType != MediaTypeNames.Application.Zip)
+			if (!AcceptedContentTypes.Contains(HttpContext.Request.ContentType))
 				return BadRequest("Invalid type");
 
 			CreateProject(project);
