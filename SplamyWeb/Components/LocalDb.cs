@@ -31,6 +31,10 @@ namespace SplamyWeb.Components
 				Filename = Path.Combine(DataPath, "webdata.litedb"),
 				Upgrade = true
 			});
+			if (Database.CheckpointSize == 0)
+			{
+				Database.CheckpointSize = 1000;
+			}
 
 			NightlyTable = Database.GetCollection<NightlyEntry>();
 			NightlyTable.EnsureIndex(x => x.Id, true);
