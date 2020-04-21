@@ -22,6 +22,7 @@ namespace SplamyWeb.Components
 		public uint RunningInstances { get; set; }
 		public uint RunningBots { get; set; }
 		public TimeSpan PlaybackTime { get; set; }
+		public CachedDayStats[] CachedDayStats { get; set; } = Array.Empty<CachedDayStats>();
 
 		public TabBackingData(LocalDb db, TimerService timer)
 		{
@@ -107,8 +108,27 @@ namespace SplamyWeb.Components
 				.Select(x => x.Playtime)
 				.Sum();
 
+			var beforeBug = new DateTime(2020, 3, 17);
+			CachedDayStats = tabStatsTable.Query()
+				.Where(x => x.Time >= beforeBug)
+				.ToEnumerable()
+				.GroupBy(x => RoundToDay(x.Time))
+				.Select(c => new CachedDayStats {
+					Date = c.Key,
+					RunningBots = c.Aggregate(0u, (agg, y) => agg += y.Data.RunningBots ?? 0),
+					RunningInstances = (uint)c.Count(),
+					PlaybackTime = c
+						.SelectMany(x => x.Data.SongStats?.Values ?? Enumerable.Empty<TabStatsFactory>())
+						.Select(x => x.Playtime)
+						.Sum()
+				})
+				.OrderBy(x => x.Date)
+				.ToArray();
+
 			return Task.CompletedTask;
 		}
+
+		private static DateTime RoundToDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day);
 	}
 
 	public class TabStatsEntry
@@ -150,5 +170,13 @@ namespace SplamyWeb.Components
 		public uint? PlayFromUser { get; set; }
 		public uint? SearchRequests { get; set; }
 		public TimeSpan? Playtime { get; set; }
+	}
+
+	public class CachedDayStats
+	{
+		public DateTime Date { get; set; }
+		public uint RunningInstances { get; set; }
+		public uint RunningBots { get; set; }
+		public TimeSpan PlaybackTime { get; set; }
 	}
 }

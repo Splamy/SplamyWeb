@@ -7,7 +7,7 @@
 			"destination": "wwwroot/lib/sweetalert/"
 		},
 		{
-			"library": "MaterialDesign-Webfont@4.7.95",
+			"library": "MaterialDesign-Webfont@4.9.95",
 			"destination": "wwwroot/lib/MaterialDesign-Webfont/"
 		},
 		{
@@ -16,7 +16,7 @@
 		},
 		{
 			"provider": "jsdelivr",
-			"library": "bulma@0.8.0",
+			"library": "bulma@0.8.2",
 			"destination": "wwwroot/lib/bulma/",
 			"files": [
 				"sass/base/generic.sass",
@@ -75,6 +75,10 @@
 				"sass/utilities/_all.sass",
 				"bulma.sass"
 			]
+		},
+		{
+			"library": "moment.js@2.24.0",
+			"destination": "wwwroot/lib/moment.js/"
 		}
 	]
 }

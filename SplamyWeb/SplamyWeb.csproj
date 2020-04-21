@@ -5,7 +5,6 @@
 		<CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
 		<CodeAnalysisRuleSet>SplamyWeb.ruleset</CodeAnalysisRuleSet>
 		<AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
-		<TypeScriptToolsVersion>3.8</TypeScriptToolsVersion>
 		<LangVersion>8.0</LangVersion>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
@@ -54,9 +53,10 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<TypeScriptTarget>ES2015</TypeScriptTarget>
+		<TypeScriptToolsVersion>3.8</TypeScriptToolsVersion>
+		<TypeScriptTarget>es2018</TypeScriptTarget>
 		<TypeScriptJSXEmit>None</TypeScriptJSXEmit>
-		<TypeScriptModuleKind>AMD</TypeScriptModuleKind>
+		<TypeScriptModuleKind>es6</TypeScriptModuleKind>
 		<TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
 		<TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
 		<TypeScriptRemoveComments>False</TypeScriptRemoveComments>

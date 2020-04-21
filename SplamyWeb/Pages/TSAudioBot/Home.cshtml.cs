@@ -17,17 +17,15 @@ namespace SplamyWeb.Pages
 			this.tabData = tabData;
 		}
 
-		static readonly string[] ImpMod = { "", "K", "M" };
+		static readonly string[] ImpMod = { "", "K", "M", "G" };
 
 		public string FormatMetric(uint number)
 		{
-			uint pow = 0;
-			while (number > 1000 && pow <= ImpMod.Length)
-			{
-				pow++;
-				number /= 1000;
-			}
-			return $"{number}{ImpMod[pow]}";
+			uint pow = number > 0 ? (uint)Math.Log10(number) : 0;
+			string unit = ImpMod[pow / 3];
+			double trimmedNumber = number / Math.Pow(1000, pow / 3);
+
+			return $"{trimmedNumber:0.#}{unit}";
 		}
 
 		public string FormatTime(TimeSpan time)
@@ -41,13 +39,14 @@ namespace SplamyWeb.Pages
 				var h = (int)time.TotalHours;
 				return $"{h} hour{(h > 1 ? "s" : "")}";
 			}
-			if (time < TimeSpan.FromDays(365.25))
+			const double avgDaysPerYear = 365.2425;
+			if (time < TimeSpan.FromDays(avgDaysPerYear))
 			{
 				var d = (int)time.TotalDays;
 				return $"{d} day{(d > 1 ? "s" : "")}";
 			}
 
-			var y = time.TotalDays / 365.25;
+			var y = time.TotalDays / avgDaysPerYear;
 			return $"{y:0.#} year{(y > 1 ? "s" : "")}";
 		}
 	}

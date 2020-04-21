@@ -51,5 +51,12 @@ namespace SplamyWeb.Controllers
 			var entry = tab.Get();
 			return Ok(entry);
 		}
+
+		[HttpGet("stats/graph")]
+		[Produces("application/json")]
+		public IActionResult GetGraphData()
+		{
+			return Ok(tab.CachedDayStats);
+		}
 	}
 }
