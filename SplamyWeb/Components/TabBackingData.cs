@@ -45,11 +45,6 @@ namespace SplamyWeb.Components
 			});
 		}
 
-		public TabStatsEntry Get()
-		{
-			return tabStatsTable.FindOne(Query.All(Query.Descending));
-		}
-
 		private bool VaidateTabStats(TabStatsData obj)
 		{
 			if (

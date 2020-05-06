@@ -21,6 +21,7 @@ namespace SplamyWeb.Components
 		public ILiteCollection<LoginData> LoginTable { get; }
 		public ILiteCollection<RamsesEntry> RamsesTable { get; }
 		public ILiteCollection<TabStatsEntry> TabStatsTable { get; }
+		public ILiteCollection<StoreEntry> StoreTable { get; }
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		public LocalDb()
@@ -63,6 +64,9 @@ namespace SplamyWeb.Components
 
 			TabStatsTable = Database.GetCollection<TabStatsEntry>();
 			TabStatsTable.EnsureIndex(x => x.Id, true);
+
+			StoreTable =  Database.GetCollection<StoreEntry>();
+			StoreTable.EnsureIndex(x => x.Id, true);
 
 			if (LoginTable.Count() == 0)
 			{
@@ -392,6 +396,9 @@ namespace SplamyWeb.Components
 
 	public static class Rank
 	{
+		public const string Admin = "Admin"; // UserType.Admin.ToString()
+		public const string User = "User"; // UserType.User.ToString()
+
 		public static bool AtLeast(this UserType self, UserType rankOrHigher)
 		{
 			return self <= rankOrHigher;
@@ -402,6 +409,12 @@ namespace SplamyWeb.Components
 			UserType.Admin => UserType.Admin,
 			_ => null,
 		};
+	}
+
+	public class StoreEntry
+	{
+		public string Id { get; set; }
+		public string? Value { get; set; }
 	}
 
 #pragma warning restore CS8618

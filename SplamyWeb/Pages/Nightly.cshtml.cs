@@ -11,11 +11,13 @@ namespace SplamyWeb.Pages
 	{
 		private readonly UserManager<LoginData> userManager;
 		private readonly LocalDb db;
+		private readonly StoreService store;
 
-		public NightlyModel(UserManager<LoginData> userManager, LocalDb db)
+		public NightlyModel(UserManager<LoginData> userManager, LocalDb db, StoreService store)
 		{
 			this.userManager = userManager;
 			this.db = db;
+			this.store = store;
 		}
 
 		public async Task<bool> IsExtented()
@@ -27,6 +29,11 @@ namespace SplamyWeb.Pages
 		public IEnumerable<NightlyProject> GetNightlyProjects()
 		{
 			return db.NightlyProjectTable.FindAll();
+		}
+
+		public string? TryFetchNotification(string project)
+		{
+			return store.Get("notify_project_" + project);
 		}
 
 		public IEnumerable<(NightlyEntry entry, bool active)> GetActives(string project, bool includeInactive)

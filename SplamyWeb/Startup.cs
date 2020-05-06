@@ -85,6 +85,7 @@ namespace SplamyWeb
 			services.AddSingleton<TimerService>();
 			services.AddSingleton<IHostedService>(p => p.GetService<TimerService>());
 
+			services.AddSingleton<StoreService>();
 			services.AddSingleton<TabBackingData>();
 			services.AddSingleton<SpamBackingData>();
 			services.AddSingleton<RamsesBackingData>();
@@ -94,8 +95,7 @@ namespace SplamyWeb
 
 			var layout = Layout.FromString("${pad:padding=5:inner=${level:uppercase=true}} ${message} ${exception:format=ToString}");
 			var config = new LoggingConfiguration();
-			var consoleTarget = new ConsoleTarget();
-			consoleTarget.Layout = layout;
+			var consoleTarget = new ConsoleTarget { Layout = layout };
 			Util.NLogMemory.Layout = layout;
 			var nullTarget = new NullTarget();
 			config.AddRule(LogLevel.Trace, LogLevel.Off, nullTarget, "SplamyWeb.Components.BasicAuthenticationHandler", final: true);

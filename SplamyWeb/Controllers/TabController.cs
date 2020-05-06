@@ -1,12 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using SplamyWeb.Components;
-using System.IO;
-using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers
 {
@@ -30,26 +25,15 @@ namespace SplamyWeb.Controllers
 			if (!spam.Check(Request.HttpContext.Connection.RemoteIpAddress))
 				return;
 
-			TabStatsData? obj;
-
-			using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
-			using (var jsonReader = new JsonTextReader(reader))
+			TabStatsData? obj = null;
+			try
 			{
-				var json = await JObject.LoadAsync(jsonReader);
-				obj = json.ToObject<TabStatsData>();
+				obj = await JsonSerializer.DeserializeAsync<TabStatsData?>(Request.Body);
 			}
+			catch (JsonException) { }
 
 			if (obj != null)
 				tab.Add(obj);
-		}
-
-		[HttpGet("check")]
-		[Produces("application/json")]
-		//[Authorize(AuthenticationSchemes = AuthScheme)]
-		public IActionResult GetCheck()
-		{
-			var entry = tab.Get();
-			return Ok(entry);
 		}
 
 		[HttpGet("stats/graph")]

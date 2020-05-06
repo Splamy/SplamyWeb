@@ -1,0 +1,113 @@
+@page
+@model SplamyWeb.Pages.Admin.StoreModel
+@{
+	ViewData["Title"] = "Store";
+	Layout = "~/Pages/_Layout.cshtml";
+}
+
+<script>
+	function onenter(func) {
+		if (event.key.toLowerCase() === 'enter') {
+			if (!!window.event.shiftKey) {
+				event.preventDefault();
+				func();
+			}
+		}
+	}
+
+	function auto_grow(element) {
+		element.style.height = "5px";
+		element.style.height = (element.scrollHeight) + "px";
+	}
+
+	async function notify(elem) {
+		elem.classList.add("is-info");
+		setTimeout(function () { elem.classList.remove("is-info"); }, 500);
+	}
+
+	async function updateKey(key) {
+		const box = document.getElementById("key_" + key);
+		const value = encodeURIComponent(box.value);
+		await fetch(`/api/store/value/${key}?value=${value}`, {
+			method: "PUT"
+		});
+		notify(box);
+	}
+
+	async function createKey() {
+		const key = document.getElementById("new_key").value;
+		const value = encodeURIComponent(document.getElementById("new_value").value);
+		await fetch(`/api/store/value/${key}?value=${value}`, {
+			method: "PUT"
+		});
+		location.reload();
+	}
+
+	async function deleteKey(key) {
+		await fetch(`/api/store/value/${key}`, { method: "DELETE" });
+		location.reload();
+	}
+</script>
+
+<table class="table" style="width: 100%">
+	<thead>
+		<tr>
+			<th>Key</th>
+			<th>Value</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+
+		@foreach (var kvp in this.Model.Store.GetAll())
+		{
+			<tr>
+				<td>
+					<label class="label">@kvp.Id</label>
+				</td>
+				<td>
+					<textarea id="key_@kvp.Id"
+							  autocomplete="off"
+							  class="input"
+							  type="text"
+							  oninput="auto_grow(this)"
+							  onkeypress="onenter(() => updateKey('@kvp.Id'))">@kvp.Value</textarea>
+				</td>
+				<td>
+					<a href="#" class="button" onclick="updateKey('@kvp.Id')">
+						<span class="icon is-small">
+							<i class="mdi mdi-content-save"></i>
+						</span>
+					</a>
+					<a href="#" class="button" onclick="deleteKey('@kvp.Id')">
+						<span class="icon is-small">
+							<i class="mdi mdi-delete"></i>
+						</span>
+					</a>
+				</td>
+			</tr>
+		}
+
+		<tr>
+			<td>
+				<input id="new_key" autocomplete="off" class="input" type="text" placeholder="key" onkeyup="onenter(() => createKey())">
+			</td>
+			<td>
+				<textarea id="new_value"
+						  autocomplete="off"
+						  class="input"
+						  type="text"
+						  placeholder="value"
+						  oninput="auto_grow(this)"
+						  onkeypress="onenter(() => createKey())"></textarea>
+			</td>
+			<td>
+				<a href="#" class="button" onclick="createKey()">
+					<span class="icon is-small">
+						<i class="mdi mdi-plus"></i>
+					</span>
+				</a>
+			</td>
+		</tr>
+	</tbody>
+</table>

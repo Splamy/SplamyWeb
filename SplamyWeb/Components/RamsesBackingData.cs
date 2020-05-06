@@ -16,6 +16,7 @@ namespace SplamyWeb.Components
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private readonly BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)> _bufferBlock = new BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)>();
 		private readonly ILiteCollection<RamsesEntry> ramsesTable;
+		private readonly Task processTask;
 
 		private readonly string RamsesVersion;
 
@@ -24,10 +25,10 @@ namespace SplamyWeb.Components
 			ramsesTable = db.RamsesTable;
 			var ver = typeof(Analyzer).Assembly.GetName().Version!;
 			RamsesVersion = $"{ver.Major}.{ver.Minor}";
-			Process();
+			processTask = Process();
 		}
 
-		private async void Process()
+		private async Task Process()
 		{
 			while (true)
 			{
@@ -82,8 +83,9 @@ namespace SplamyWeb.Components
 				{
 					score = Analyzer.AnalyzeMap(map);
 				}
-				catch
+				catch (Exception ex)
 				{
+					Log.Warn(ex, "Failed to analyze map '{0}'", key);
 					score = new Score
 					{
 						Avg = -1,

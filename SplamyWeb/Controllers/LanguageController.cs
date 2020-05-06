@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using SplamyWeb.Components;
 using System;
 using System.Collections.Generic;
@@ -11,6 +10,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using static SplamyWeb.Util;
 
@@ -22,10 +22,12 @@ namespace SplamyWeb.Controllers
 		private static readonly string languageBasePath = Path.Combine(LocalDb.DataPath, "language");
 
 		private readonly LocalDb db;
+		private readonly StoreService store;
 
-		public LanguageController(LocalDb db)
+		public LanguageController(LocalDb db, StoreService store)
 		{
 			this.db = db;
+			this.store = store;
 		}
 
 		[HttpGet("project/{project}/languages")]
@@ -82,28 +84,19 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPost("project/{project}/update")]
-		public async Task<IActionResult> UpdateLanguageFilesAsync(string project, [FromQuery] string transifex)
+		public async Task<IActionResult> UpdateLanguageFilesAsync(string project)
 		{
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
 			using (var client = HttpClientFactory.Create())
 			{
-				var requestM = TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages", transifex);
+				var requestM = TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
 				var resultM = await client.SendAsync(requestM);
 				if (!resultM.IsSuccessStatusCode)
 					return UnprocessableEntity("Error from transifex");
 				var streamM = await resultM.Content.ReadAsStreamAsync();
-
-				var serializer = new JsonSerializer();
-
-				TransifexLanguage[] languages;
-
-				using (var sr = new StreamReader(streamM))
-				using (var jsonTextReader = new JsonTextReader(sr))
-				{
-					languages = serializer.Deserialize<TransifexLanguage[]>(jsonTextReader)!;
-				}
+				TransifexLanguage[] languages = await JsonSerializer.DeserializeAsync<TransifexLanguage[]>(streamM);
 
 				var projectPath = Path.Combine(languageBasePath, project);
 				Directory.CreateDirectory(projectPath);
@@ -111,7 +104,7 @@ namespace SplamyWeb.Controllers
 				await Task.WhenAll(languages.Select(async lang =>
 				{
 					var language = lang.language_code;
-					var request = TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language}/?file", transifex);
+					var request = TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language}/?file");
 
 					var result = await client.SendAsync(request);
 					if (!result.IsSuccessStatusCode)
@@ -213,11 +206,11 @@ namespace SplamyWeb.Controllers
 			return null;
 		}
 
-		private static HttpRequestMessage TransifexRequest(HttpMethod method, string link, string token)
+		private HttpRequestMessage TransifexRequest(HttpMethod method, string link)
 		{
 			var request = new HttpRequestMessage(method, link);
 			request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-				Convert.ToBase64String(Encoding.UTF8.GetBytes($"api:{token}")));
+				Convert.ToBase64String(Encoding.UTF8.GetBytes($"api:{store.TransifexAuth}")));
 			return request;
 		}
 
