@@ -89,38 +89,35 @@ namespace SplamyWeb.Controllers
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
-			using (var client = HttpClientFactory.Create())
+			var requestM = TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
+			using var resultM = await httpClient.SendAsync(requestM);
+			if (!resultM.IsSuccessStatusCode)
+				return UnprocessableEntity("Error from transifex");
+			using var streamM = await resultM.Content.ReadAsStreamAsync();
+			TransifexLanguage[] languages = await JsonSerializer.DeserializeAsync<TransifexLanguage[]>(streamM, JsonDefault);
+
+			var projectPath = Path.Combine(languageBasePath, project);
+			Directory.CreateDirectory(projectPath);
+
+			await Task.WhenAll(languages.Select(async lang =>
 			{
-				var requestM = TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
-				var resultM = await client.SendAsync(requestM);
-				if (!resultM.IsSuccessStatusCode)
-					return UnprocessableEntity("Error from transifex");
-				var streamM = await resultM.Content.ReadAsStreamAsync();
-				TransifexLanguage[] languages = await JsonSerializer.DeserializeAsync<TransifexLanguage[]>(streamM);
+				var language = lang.language_code;
+				var request = TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language}/?file");
 
-				var projectPath = Path.Combine(languageBasePath, project);
-				Directory.CreateDirectory(projectPath);
+				using var result = await httpClient.SendAsync(request);
+				if (!result.IsSuccessStatusCode)
+					return;
 
-				await Task.WhenAll(languages.Select(async lang =>
-				{
-					var language = lang.language_code;
-					var request = TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language}/?file");
+				try { language = CultureInfo.GetCultureInfo(language.Replace("_", "-", StringComparison.Ordinal)).Name; }
+				catch { return; }
 
-					var result = await client.SendAsync(request);
-					if (!result.IsSuccessStatusCode)
-						return;
+				var languagePath = Path.Combine(projectPath, language);
+				Directory.CreateDirectory(languagePath);
 
-					try { language = CultureInfo.GetCultureInfo(language.Replace("_", "-", StringComparison.Ordinal)).Name; }
-					catch { return; }
-
-					var languagePath = Path.Combine(projectPath, language);
-					Directory.CreateDirectory(languagePath);
-
-					using var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write);
-					using var stream = await result.Content.ReadAsStreamAsync();
-					await stream.CopyToAsync(demoDataStream);
-				}).ToArray());
-			}
+				using var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write);
+				using var stream = await result.Content.ReadAsStreamAsync();
+				await stream.CopyToAsync(demoDataStream);
+			}));
 
 			return RebuildLanguageFiles(project);
 		}

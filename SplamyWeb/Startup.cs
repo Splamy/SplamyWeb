@@ -81,7 +81,6 @@ namespace SplamyWeb
 				ValidationAlgorithm = ValidationAlgorithm.HMACSHA256,
 			});
 
-			services.AddHttpClient();
 			services.AddSingleton<TimerService>();
 			services.AddSingleton<IHostedService>(p => p.GetService<TimerService>());
 

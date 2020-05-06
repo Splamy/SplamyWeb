@@ -22,7 +22,6 @@ namespace SplamyWeb.Components
 
 		private static readonly string[] CheckedNicknames = new[] { "loc", "splamy" };
 
-		private static readonly HttpClient httpClient = new HttpClient();
 		private static readonly Regex diffMatch = new Regex("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
 		private static readonly Regex versionClean = new Regex(@"[^a-zA-Z0-9\+=/]");
 		public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
@@ -37,12 +36,6 @@ namespace SplamyWeb.Components
 		private readonly CsvConfiguration CsvConfig = new CsvConfiguration(CultureInfo.InvariantCulture);
 
 		private readonly StoreService store;
-
-		static TeamspeakService()
-		{
-			httpClient.DefaultRequestHeaders.UserAgent.Clear();
-			httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("TAB Service Bot", "1.0.0"));
-		}
 
 		public TeamspeakService(TimerService timer, StoreService store)
 		{
@@ -59,7 +52,7 @@ namespace SplamyWeb.Components
 				bool safe = true;
 				bool affectsVersion = false;
 
-				var response = await httpClient.GetAsync(url);
+				using var response = await Util.httpClient.GetAsync(url);
 				var diff = await response.Content.ReadAsStringAsync();
 				foreach (var item in (IEnumerable<Match>)diffMatch.Matches(diff))
 				{
@@ -361,9 +354,10 @@ namespace SplamyWeb.Components
 		{
 			try
 			{
-				var response = await httpClient.GetAsync(ProjectUrlBase + action);
+				using var response = await Util.httpClient.GetAsync(ProjectUrlBase + action);
+				response.EnsureSuccessStatusCode();
 				using var stream = await response.Content.ReadAsStreamAsync();
-				return await JsonSerializer.DeserializeAsync<T>(stream);
+				return await JsonSerializer.DeserializeAsync<T>(stream, Util.JsonDefault);
 			}
 			catch (Exception ex)
 			{
@@ -377,14 +371,14 @@ namespace SplamyWeb.Components
 			try
 			{
 
-				var json = JsonSerializer.Serialize(data);
+				var json = JsonSerializer.Serialize(data, Util.JsonDefault);
 				var content = new StringContent(json, Encoding.UTF8, "application/json");
 				var request = new HttpRequestMessage(HttpMethod.Put, ProjectUrlBase + action)
 				{
 					Content = content,
 				};
 				request.Headers.Authorization = new AuthenticationHeaderValue("Basic", store.GithubAuth);
-				using var response = await httpClient.SendAsync(request);
+				using var response = await Util.httpClient.SendAsync(request);
 				response.EnsureSuccessStatusCode();
 				return true;
 			}
@@ -406,9 +400,9 @@ namespace SplamyWeb.Components
 		{
 			try
 			{
-				var response = await httpClient.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
-				var stream = await response.Content.ReadAsStreamAsync();
-				JsonData? data = await JsonSerializer.DeserializeAsync<JsonData?>(stream);
+				using var response = await Util.httpClient.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
+				using var stream = await response.Content.ReadAsStreamAsync();
+				JsonData? data = await JsonSerializer.DeserializeAsync<JsonData?>(stream, Util.JsonDefault);
 
 				if (data?.data is null || !data.success)
 					return;
@@ -430,8 +424,8 @@ namespace SplamyWeb.Components
 				cook.Add(new CookieHeaderValue("__cfduid", "d10e713663dd1405a7d4055a1cb37436c1560562132"));
 				cook.Add(new CookieHeaderValue("bb_lastvisit", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)));
 				cook.Add(new CookieHeaderValue("bb_lastactivity", "0"));
-				var response = await httpClient.SendAsync(request);
-				var stream = await response.Content.ReadAsStreamAsync();
+				using var response = await Util.httpClient.SendAsync(request);
+				using var stream = await response.Content.ReadAsStreamAsync();
 
 				var badges = Serializer.Deserialize<Badges>(stream);
 
@@ -449,7 +443,7 @@ namespace SplamyWeb.Components
 			{
 				try
 				{
-					await httpClient.GetAsync("https://named.myteamspeak.com/lookup?name=" + name);
+					using var _ = await Util.httpClient.GetAsync("https://named.myteamspeak.com/lookup?name=" + name);
 				}
 				catch (Exception ex) { Log.Warn(ex, "Failed to check nickname: {0}", name); }
 			}

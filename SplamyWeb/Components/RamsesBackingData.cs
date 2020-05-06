@@ -1,11 +1,10 @@
 using LiteDB;
-using Newtonsoft.Json;
 using RateMapSeveritySaber;
 using System;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Linq;
-using System.Net.Http;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -38,8 +37,10 @@ namespace SplamyWeb.Components
 				{
 					res = await GetInternal(key);
 				}
-				catch
+				catch (Exception ex)
 				{
+					Log.Warn(ex, "Failed to process song: {0}", ex.Message);
+
 					res = new RamsesEntry
 					{
 						Id = key,
@@ -65,9 +66,10 @@ namespace SplamyWeb.Components
 				return entry;
 
 			var sw = Stopwatch.StartNew();
-			using var client = HttpClientFactory.Create();
-			var data = await client.GetAsync($"https://beatsaver.com/api/download/key/{key}");
-			var zip = new ZipArchive(await data.Content.ReadAsStreamAsync());
+			using var data = await Util.httpClient.GetAsync($"https://beatsaver.com/api/download/key/{key}");
+			data.EnsureSuccessStatusCode();
+			using var stream = await data.Content.ReadAsStreamAsync();
+			using var zip = new ZipArchive(stream);
 			var maps = BSMapIO.Read(file =>
 			{
 				var infoE = zip.GetEntry(file);
@@ -124,21 +126,21 @@ namespace SplamyWeb.Components
 	{
 		[JsonIgnore]
 		public string Id { get; set; }
-		[JsonProperty(PropertyName = "ramsesVersion")]
+		[JsonPropertyName("ramsesVersion")]
 		public string Version { get; set; }
-		[JsonProperty(PropertyName = "maps")]
+		[JsonPropertyName("maps")]
 		public RamsesMap[] Maps { get; set; }
 	}
 
 	public class RamsesMap
 	{
-		[JsonProperty(PropertyName = "difficulty")]
+		[JsonPropertyName("difficulty")]
 		public string Difficulty { get; set; }
-		[JsonProperty(PropertyName = "maxDifficulty")]
+		[JsonPropertyName("maxDifficulty")]
 		public float MaxDifficulty { get; set; }
-		[JsonProperty(PropertyName = "avgDifficulty")]
+		[JsonPropertyName("avgDifficulty")]
 		public float AvgDifficulty { get; set; }
-		[JsonProperty(PropertyName = "graph")]
+		[JsonPropertyName("graph")]
 		public float[] Graph { get; set; }
 	}
 #pragma warning restore CS8618

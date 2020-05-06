@@ -9,6 +9,8 @@ namespace SplamyWeb.Controllers
 	[ApiController]
 	public class TabController : ControllerBase
 	{
+		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
+
 		private readonly TabBackingData tab;
 		private readonly SpamBackingData spam;
 
@@ -28,9 +30,9 @@ namespace SplamyWeb.Controllers
 			TabStatsData? obj = null;
 			try
 			{
-				obj = await JsonSerializer.DeserializeAsync<TabStatsData?>(Request.Body);
+				obj = await JsonSerializer.DeserializeAsync<TabStatsData?>(Request.Body, Util.JsonDefault);
 			}
-			catch (JsonException) { }
+			catch (JsonException ex) { Log.Debug(ex, "Failed to deserialize ping"); }
 
 			if (obj != null)
 				tab.Add(obj);

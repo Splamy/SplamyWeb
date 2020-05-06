@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +11,7 @@ namespace SplamyWeb.Components
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private Timer? timer;
 
-		private readonly List<Func<Task>> tick = new List<Func<Task>>();
+		private readonly ConcurrentBag<Func<Task>> tick = new ConcurrentBag<Func<Task>>();
 
 		public async Task StartAsync(CancellationToken cancellationToken)
 		{
