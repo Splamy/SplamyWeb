@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -356,8 +357,7 @@ namespace SplamyWeb.Components
 			{
 				using var response = await Util.httpClient.GetAsync(ProjectUrlBase + action);
 				response.EnsureSuccessStatusCode();
-				using var stream = await response.Content.ReadAsStreamAsync();
-				return await JsonSerializer.DeserializeAsync<T>(stream, Util.JsonDefault);
+				return await response.Content.ReadFromJsonAsync<T>(Util.JsonDefault);
 			}
 			catch (Exception ex)
 			{
@@ -401,8 +401,7 @@ namespace SplamyWeb.Components
 			try
 			{
 				using var response = await Util.httpClient.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
-				using var stream = await response.Content.ReadAsStreamAsync();
-				JsonData? data = await JsonSerializer.DeserializeAsync<JsonData?>(stream, Util.JsonDefault);
+				JsonData? data = await response.Content.ReadFromJsonAsync<JsonData?>(Util.JsonDefault);
 
 				if (data?.data is null || !data.success)
 					return;

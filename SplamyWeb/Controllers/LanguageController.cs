@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
@@ -93,8 +94,7 @@ namespace SplamyWeb.Controllers
 			using var resultM = await httpClient.SendAsync(requestM);
 			if (!resultM.IsSuccessStatusCode)
 				return UnprocessableEntity("Error from transifex");
-			using var streamM = await resultM.Content.ReadAsStreamAsync();
-			TransifexLanguage[] languages = await JsonSerializer.DeserializeAsync<TransifexLanguage[]>(streamM, JsonDefault);
+			var languages = await resultM.Content.ReadFromJsonAsync<TransifexLanguage[]>(JsonDefault);
 
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
