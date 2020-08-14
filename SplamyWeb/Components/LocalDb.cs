@@ -1,9 +1,11 @@
 using LiteDB;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
+using SplamyWeb.Db;
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -13,6 +15,7 @@ namespace SplamyWeb.Components
 {
 	public class LocalDb : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 	{
+		public SplamyContext Context { get; }
 		public LiteDatabase Database { get; }
 		public ILiteCollection<NightlyEntry> NightlyTable { get; }
 		public ILiteCollection<NightlyMeta> NightlyMetaTable { get; }
@@ -26,6 +29,28 @@ namespace SplamyWeb.Components
 
 		public LocalDb()
 		{
+			Context = new SplamyContext();
+			Context.Database.EnsureCreated(); // Async
+
+			var all = Context.RamsesEntries.Where(x => true).ToArray();
+
+			//Context.RamsesEntries.Add(new Db.RamsesEntry()
+			//{
+			//	Id = 667,
+			//	Maps = new System.Collections.Generic.List<Db.RamsesMap>()
+			//	{
+			//		new Db.RamsesMap()
+			//		{
+			//			AvgDifficulty = 42,
+			//			Characteristic = "standard",
+			//			Difficulty = 3,
+			//			Graph = new [] { 1f, 2, 3 }
+			//		}
+			//	},
+			//	Version = "1.3.3.7"
+			//});
+			Context.SaveChanges();
+
 			Directory.CreateDirectory(DataPath);
 			Database = new LiteDatabase(new ConnectionString()
 			{
@@ -65,7 +90,7 @@ namespace SplamyWeb.Components
 			TabStatsTable = Database.GetCollection<TabStatsEntry>();
 			TabStatsTable.EnsureIndex(x => x.Id, true);
 
-			StoreTable =  Database.GetCollection<StoreEntry>();
+			StoreTable = Database.GetCollection<StoreEntry>();
 			StoreTable.EnsureIndex(x => x.Id, true);
 
 			if (LoginTable.Count() == 0)
@@ -396,8 +421,8 @@ namespace SplamyWeb.Components
 
 	public static class Rank
 	{
-		public const string Admin = "Admin"; // UserType.Admin.ToString()
-		public const string User = "User"; // UserType.User.ToString()
+		public const string Admin = nameof(UserType.Admin);
+		public const string User = nameof(UserType.User);
 
 		public static bool AtLeast(this UserType self, UserType rankOrHigher)
 		{
