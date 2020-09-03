@@ -1,7 +1,12 @@
 using LiteDB;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RateMapSeveritySaber;
+using SplamyWeb.Db;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -13,15 +18,15 @@ namespace SplamyWeb.Components
 	public class RamsesBackingData
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		private readonly BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)> _bufferBlock = new BufferBlock<(string, TaskCompletionSource<RamsesEntry?>)>();
-		private readonly ILiteCollection<RamsesEntry> ramsesTable;
+		private readonly BufferBlock<ProcessEntry> _bufferBlock = new BufferBlock<ProcessEntry>();
+		private readonly LocalDb db;
 		private readonly Task processTask;
 
 		private readonly string RamsesVersion;
 
 		public RamsesBackingData(LocalDb db)
 		{
-			ramsesTable = db.RamsesTable;
+			this.db = db;
 			var ver = typeof(Analyzer).Assembly.GetName().Version!;
 			RamsesVersion = $"{ver.Major}.{ver.Minor}";
 			processTask = Process();
@@ -31,117 +36,98 @@ namespace SplamyWeb.Components
 		{
 			while (true)
 			{
-				var (key, response) = await _bufferBlock.ReceiveAsync();
+				var req = await _bufferBlock.ReceiveAsync();
 				RamsesEntry? res;
 				try
 				{
-					res = await GetInternal(key);
+					res = await GetInternal(req);
 				}
 				catch (Exception ex)
 				{
 					Log.Warn(ex, "Failed to process song: {0}", ex.Message);
 
-					res = new RamsesEntry
-					{
-						Id = key,
-						Version = RamsesVersion,
-						Maps = Array.Empty<RamsesMap>(),
-					};
+					res = new RamsesEntry(req.MapId, RamsesVersion);
 				}
-				response.SetResult(res);
+				req.Task.SetResult(res);
 			}
 		}
 
 		public async Task<RamsesEntry?> Get(string key)
 		{
-			var tcs = new TaskCompletionSource<RamsesEntry?>();
-			await _bufferBlock.SendAsync((key, tcs));
-			return await tcs.Task;
+			var mapId = GetMapIdFromKey(key);
+			if (mapId == null) return null;
+			var req = new ProcessEntry(key, mapId.Value);
+			await _bufferBlock.SendAsync(req);
+			return await req.Task.Task;
 		}
 
-		private async Task<RamsesEntry?> GetInternal(string key)
+		private async Task<RamsesEntry?> GetInternal(ProcessEntry request)
 		{
-			var entry = ramsesTable.FindById(key);
+			var entry = (from entries in db.Context.RamsesEntries
+						 where entries.Id == request.MapId
+						 select entries)
+						 .Include(e => e.Maps)
+						 .FirstOrDefault();
+
+			//var entry = ramsesTable.FindById(key);
 			if (entry != null && entry.Version == RamsesVersion)
 				return entry;
 
 			var sw = Stopwatch.StartNew();
-			using var data = await Util.httpClient.GetAsync($"https://beatsaver.com/api/download/key/{key}");
+			using var data = await Util.httpClient.GetAsync($"https://beatsaver.com/api/download/key/{request.Key}");
 			data.EnsureSuccessStatusCode();
 			using var stream = await data.Content.ReadAsStreamAsync();
-			using var zip = new ZipArchive(stream);
-			var maps = BSMapIO.Read(file =>
-			{
-				var infoE = zip.GetEntry(file);
-				return infoE.Open();
-			});
+			var maps = BSMapIO.ReadZip(stream);
 			var timeToDownload = sw.Elapsed;
 
 			sw.Restart();
-			var parsedMaps = maps.Select(map =>
+			entry = new RamsesEntry(request.MapId, RamsesVersion);
+			entry.Maps.AddRange(maps.Where(map => map.Characteristic == MapCharacteristic.Standard).Select(map =>
 			{
-				Score score;
+				SongScore score;
 				try
 				{
 					score = Analyzer.AnalyzeMap(map);
 				}
 				catch (Exception ex)
 				{
-					Log.Warn(ex, "Failed to analyze map '{0}'", key);
-					score = new Score
-					{
-						Avg = -1,
-						Max = -1,
-						Graph = Array.Empty<float>(),
-					};
+					Log.Warn(ex, "Failed to analyze map '{0}'", request.Key);
+					score = new SongScore(-1, -1, Array.Empty<AggregatedHit>());
 				}
 
-				return new RamsesMap
-				{
-					AvgDifficulty = score.Avg,
-					MaxDifficulty = score.Max,
-					Graph = score.Graph,
-					Difficulty = map.MapInfo._difficulty,
-				};
-			}).ToArray();
+				return new RamsesMap(
+					map.Characteristic,
+					(byte)map.DifficultyIndex,
+					(byte)map.MapInfo.DifficultyRank,
+					score.Max,
+					score.Average,
+					score.Graph.Select(x => x.TotalDifficulty()).ToArray());
+			}));
 			var timeToProcess = sw.Elapsed;
 
-			Log.Info("RaMSeS Key:{0} Download:{1} Process{2}", key, timeToDownload, timeToProcess);
+			Log.Info("RaMSeS Key:{0} Download:{1} Process{2}", request.Key, timeToDownload, timeToProcess);
 
-			entry = new RamsesEntry
-			{
-				Id = key,
-				Maps = parsedMaps,
-				Version = RamsesVersion,
-			};
-
-			ramsesTable.Upsert(entry);
+			await db.Context.RamsesEntries.AddAsync(entry);
+			await db.Context.SaveChangesAsync();
 
 			return entry;
 		}
-	}
 
-#pragma warning disable CS8618
-	public class RamsesEntry
-	{
-		[JsonIgnore]
-		public string Id { get; set; }
-		[JsonPropertyName("ramsesVersion")]
-		public string Version { get; set; }
-		[JsonPropertyName("maps")]
-		public RamsesMap[] Maps { get; set; }
-	}
+		private static long? GetMapIdFromKey(string key)
+			=> long.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var mapId) ? (long?)mapId : null;
 
-	public class RamsesMap
-	{
-		[JsonPropertyName("difficulty")]
-		public string Difficulty { get; set; }
-		[JsonPropertyName("maxDifficulty")]
-		public float MaxDifficulty { get; set; }
-		[JsonPropertyName("avgDifficulty")]
-		public float AvgDifficulty { get; set; }
-		[JsonPropertyName("graph")]
-		public float[] Graph { get; set; }
+		class ProcessEntry
+		{
+			public string Key { get; }
+			public long MapId { get; }
+			public TaskCompletionSource<RamsesEntry?> Task { get; }
+
+			public ProcessEntry(string key, long mapId)
+			{
+				Key = key;
+				MapId = mapId;
+				Task = new TaskCompletionSource<RamsesEntry?>();
+			}
+		}
 	}
-#pragma warning restore CS8618
 }

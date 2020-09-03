@@ -1,7 +1,9 @@
 using LiteDB;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Db;
+using SplamyWeb.OldDb;
 using System;
 using System.Globalization;
 using System.IO;
@@ -15,6 +17,7 @@ namespace SplamyWeb.Components
 {
 	public class LocalDb : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 	{
+		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		public SplamyContext Context { get; }
 		public LiteDatabase Database { get; }
 		public ILiteCollection<NightlyEntry> NightlyTable { get; }
@@ -22,35 +25,13 @@ namespace SplamyWeb.Components
 		public ILiteCollection<NightlyProject> NightlyProjectTable { get; }
 		public ILiteCollection<LanguageEntry> LanguageTable { get; }
 		public ILiteCollection<LoginData> LoginTable { get; }
-		public ILiteCollection<RamsesEntry> RamsesTable { get; }
+		private ILiteCollection<OldDb.RamsesEntry> RamsesTable { get; }
 		public ILiteCollection<TabStatsEntry> TabStatsTable { get; }
 		public ILiteCollection<StoreEntry> StoreTable { get; }
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		public LocalDb()
 		{
-			Context = new SplamyContext();
-			Context.Database.EnsureCreated(); // Async
-
-			var all = Context.RamsesEntries.Where(x => true).ToArray();
-
-			//Context.RamsesEntries.Add(new Db.RamsesEntry()
-			//{
-			//	Id = 667,
-			//	Maps = new System.Collections.Generic.List<Db.RamsesMap>()
-			//	{
-			//		new Db.RamsesMap()
-			//		{
-			//			AvgDifficulty = 42,
-			//			Characteristic = "standard",
-			//			Difficulty = 3,
-			//			Graph = new [] { 1f, 2, 3 }
-			//		}
-			//	},
-			//	Version = "1.3.3.7"
-			//});
-			Context.SaveChanges();
-
 			Directory.CreateDirectory(DataPath);
 			Database = new LiteDatabase(new ConnectionString()
 			{
@@ -84,7 +65,7 @@ namespace SplamyWeb.Components
 			LoginTable.EnsureIndex(x => x.Token, true);
 			LoginTable.EnsureIndex(x => x.NameNormalized, true);
 
-			RamsesTable = Database.GetCollection<RamsesEntry>();
+			RamsesTable = Database.GetCollection<OldDb.RamsesEntry>();
 			RamsesTable.EnsureIndex(x => x.Id, true);
 
 			TabStatsTable = Database.GetCollection<TabStatsEntry>();
@@ -118,6 +99,17 @@ namespace SplamyWeb.Components
 					LoginTable.Update(e);
 				}
 			}
+
+			Context = new SplamyContext();
+			if(Context.Database.EnsureCreated()) // TODO Async
+			{
+				Log.Info("Created DB, updating from old");
+				DbUpgrade.DoRamses(this, RamsesTable);
+
+				Context.SaveChanges(); // TODO ASYNC
+			}
+
+			var all = Context.RamsesEntries.Include(x => x.Maps).ToArray();
 		}
 
 		public LoginData? GetUserByToken(string token)
