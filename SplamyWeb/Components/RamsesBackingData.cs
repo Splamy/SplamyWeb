@@ -1,6 +1,7 @@
 using LiteDB;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using RateMapSeveritySaber;
 using SplamyWeb.Db;
 using System;
@@ -19,17 +20,17 @@ namespace SplamyWeb.Components
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private readonly BufferBlock<ProcessEntry> _bufferBlock = new BufferBlock<ProcessEntry>();
-		private readonly LocalDb db;
+		private readonly IServiceScopeFactory scopeFactory;
 		private readonly Task processTask;
 
 		private readonly string RamsesVersion;
 
-		public RamsesBackingData(LocalDb db)
+		public RamsesBackingData(IServiceScopeFactory scopeFactory)
 		{
-			this.db = db;
 			var ver = typeof(Analyzer).Assembly.GetName().Version!;
 			RamsesVersion = $"{ver.Major}.{ver.Minor}";
 			processTask = Process();
+			this.scopeFactory = scopeFactory;
 		}
 
 		private async Task Process()
@@ -63,13 +64,15 @@ namespace SplamyWeb.Components
 
 		private async Task<RamsesEntry?> GetInternal(ProcessEntry request)
 		{
-			var entry = (from entries in db.Context.RamsesEntries
-						 where entries.Id == request.MapId
-						 select entries)
-						 .Include(e => e.Maps)
-						 .FirstOrDefault();
+			using var scope = scopeFactory.CreateScope();
+			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-			//var entry = ramsesTable.FindById(key);
+			var entry = await (from entries in db.RamsesEntries
+							   where entries.Id == request.MapId
+							   select entries)
+						 .Include(e => e.Maps)
+						 .FirstOrDefaultAsync();
+
 			if (entry != null && entry.Version == RamsesVersion)
 				return entry;
 
@@ -107,8 +110,8 @@ namespace SplamyWeb.Components
 
 			Log.Info("RaMSeS Key:{0} Download:{1} Process{2}", request.Key, timeToDownload, timeToProcess);
 
-			await db.Context.RamsesEntries.AddAsync(entry);
-			await db.Context.SaveChangesAsync();
+			await db.RamsesEntries.AddAsync(entry);
+			await db.SaveChangesAsync();
 
 			return entry;
 		}

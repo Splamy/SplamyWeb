@@ -1,6 +1,8 @@
-using LiteDB;
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using SplamyWeb.Db;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -9,9 +11,8 @@ namespace SplamyWeb.Components
 	public class TabBackingData
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		private readonly LocalDb db;
-		private readonly ILiteCollection<TabStatsEntry> tabStatsTable;
-
+		private readonly IServiceScopeFactory scopeFactory;
+		private readonly IMapper mapper;
 		private const int MaxRunningBots = 10_000;
 		private const int MaxDaysCalculation = 2; // Aim to send stats once per day. So 10 days should be the maximum for values calculation
 		private static readonly TimeSpan MaxTotalUptime = TimeSpan.FromDays(MaxDaysCalculation);
@@ -24,25 +25,27 @@ namespace SplamyWeb.Components
 		public TimeSpan PlaybackTime { get; set; }
 		public CachedDayStats[] CachedDayStats { get; set; } = Array.Empty<CachedDayStats>();
 
-		public TabBackingData(LocalDb db, TimerService timer)
+		public TabBackingData(IServiceScopeFactory scopeFactory, IMapper mapper, TimerService timer)
 		{
-			this.db = db;
-			tabStatsTable = db.TabStatsTable;
+			this.scopeFactory = scopeFactory;
+			this.mapper = mapper;
 			timer.Register(UpdateAggregates);
 		}
 
-		public void Add(TabStatsData obj)
+		public async Task Add(TabStatsData obj)
 		{
 			if (!VaidateTabStats(obj))
 				return;
 
 			Log.Info("Stats: {@stats}", obj);
 
-			tabStatsTable.Insert(new TabStatsEntry
-			{
-				Time = DateTime.UtcNow,
-				Data = obj,
-			});
+			var dto = mapper.Map<TabStatsData, TabStatsEntryDto>(obj);
+			dto.Time = DateTime.UtcNow;
+
+			using var scope = scopeFactory.CreateScope();
+			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+			await db.TabStatsTable.AddAsync(dto);
+			await db.SaveChangesAsync();
 		}
 
 		private bool VaidateTabStats(TabStatsData obj)
@@ -77,94 +80,68 @@ namespace SplamyWeb.Components
 			return true;
 		}
 
-		private Task UpdateAggregates()
+		private async Task UpdateAggregates()
 		{
-			Downloads = db.NightlyTable.Query()
-				.Where(x => x.Project == "ts3ab")
-				.ToEnumerable()
-				.Select(x => x.DownloadCount)
-				.Sum();
+			using var scope = scopeFactory.CreateScope();
+			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-			var oneDayAgo = DateTime.Now - TimeSpan.FromDays(1);
+			//Downloads = db.NightlyTable.Query()
+			//	.Where(x => x.Project == "ts3ab")
+			//	.ToEnumerable()
+			//	.Select(x => x.DownloadCount)
+			//	.Sum();
 
-			RunningInstances = (uint)tabStatsTable.Query()
-				.Where(x => x.Time > oneDayAgo)
-				.Count();
+			//var oneDayAgo = DateTime.Now - TimeSpan.FromDays(1);
 
-			RunningBots = tabStatsTable.Query()
-				.Where(x => x.Time > oneDayAgo)
-				.ToEnumerable()
-				.Select(x => x.Data.RunningBots)
-				.Sum();
+			//RunningInstances = (uint)tabStatsTable.Query()
+			//	.Where(x => x.Time > oneDayAgo)
+			//	.Count();
 
-			PlaybackTime = tabStatsTable.Query()
-				.ToEnumerable()
-				.SelectMany(x => x.Data.SongStats?.Values ?? Enumerable.Empty<TabStatsFactory>())
-				.Select(x => x.Playtime)
-				.Sum();
+			//RunningBots = tabStatsTable.Query()
+			//	.Where(x => x.Time > oneDayAgo)
+			//	.ToEnumerable()
+			//	.Select(x => x.Data.RunningBots)
+			//	.Sum();
+
+			//PlaybackTime = tabStatsTable.Query()
+			//	.ToEnumerable()
+			//	.SelectMany(x => x.Data.SongStats?.Values ?? Enumerable.Empty<TabStatsFactory>())
+			//	.Select(x => x.Playtime)
+			//	.Sum();
 
 			var beforeBug = new DateTime(2020, 3, 17);
-			CachedDayStats = tabStatsTable.Query()
-				.Where(x => x.Time >= beforeBug)
-				.ToEnumerable()
-				.GroupBy(x => RoundToDay(x.Time))
-				.Select(c => new CachedDayStats {
-					Date = c.Key,
-					RunningBots = c.Aggregate(0u, (agg, y) => agg += y.Data.RunningBots ?? 0),
-					RunningInstances = (uint)c.Count(),
-					PlaybackTime = c
-						.SelectMany(x => x.Data.SongStats?.Values ?? Enumerable.Empty<TabStatsFactory>())
-						.Select(x => x.Playtime)
-						.Sum()
-				})
-				.OrderBy(x => x.Date)
-				.ToArray();
 
-			return Task.CompletedTask;
+			//var x = (
+			//	from entry in db.TabStatsTable
+			//	where entry.Time >= beforeBug
+			//	from fact in entry.SongStats
+			//	group new { entry, fact } by entry.Time.Date into agg
+			//	orderby agg.Key
+			//	select new
+			//	{
+			//		Date = agg.Key,
+			//		RunningBots = agg.Sum(x => x.entry.RunningBots),
+			//		RunningInstances = agg.Count(),
+			//		PlaybackTime = agg.Sum(x => x.fact.Playtime.TotalSeconds)
+			//	});
+			CachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
+@"SELECT * FROM
+(
+	SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances
+	FROM tabstats_entry
+	GROUP BY Date
+) e
+INNER JOIN
+(
+	SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""Playtime"") AS PlaybackTime
+	FROM tabstats_entry
+	JOIN tabstats_factory ON ""TabStatsId"" = ""Id""
+	GROUP BY Date
+) f
+USING(Date)
+ORDER BY Date").ToArrayAsync();
+
 		}
-
-		private static DateTime RoundToDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day);
-	}
-
-	public class TabStatsEntry
-	{
-		public long Id { get; set; }
-		public DateTime Time { get; set; }
-		public TabStatsData Data { get; set; }
-
-#pragma warning disable CS8618
-		public TabStatsEntry() { }
-#pragma warning restore CS8618
-	}
-
-	public class TabStatsData
-	{
-		// Meta
-		public string? BotVersion { get; set; }
-		public string? Platform { get; set; }
-		public string? Runtime { get; set; }
-		public uint? RunningBots { get; set; }
-		public TimeSpan? TrackTime { get; set; }
-
-		// StatsData
-		public TimeSpan? TotalUptime { get; set; }
-		public TimeSpan? BotsRuntime { get; set; }
-		public Dictionary<string, TabStatsFactory>? SongStats { get; set; }
-
-		public uint? CommandCalls { get; set; }
-		///<summary>How many actually were started by a user (and not i.e. by event)</summary>
-		public uint? CommandFromUser { get; set; }
-		public uint? CommandFromApi { get; set; }
-	}
-
-	public class TabStatsFactory
-	{
-		public uint? PlayRequests { get; set; }
-		public uint? PlaySucessful { get; set; }
-		///<summary>How many actually were started by a user (and not i.e. from a playlist)</summary>
-		public uint? PlayFromUser { get; set; }
-		public uint? SearchRequests { get; set; }
-		public TimeSpan? Playtime { get; set; }
 	}
 
 	public class CachedDayStats

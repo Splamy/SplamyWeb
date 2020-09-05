@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
@@ -11,6 +12,7 @@ using NLog.Config;
 using NLog.Layouts;
 using NLog.Targets;
 using SplamyWeb.Components;
+using SplamyWeb.Db;
 using System;
 
 namespace SplamyWeb
@@ -56,13 +58,13 @@ namespace SplamyWeb
 				options.AddScheme<BasicAuthenticationHandler>("BasicAuthentication", "Basic");
 			});
 
-			var db = new LocalDb();
-			services.AddSingleton(db);
-			services.AddSingleton<IUserStore<LoginData>>(db);
-			services.AddSingleton<IRoleStore<LoginData>>(db);
-			services.AddSingleton<IUserPasswordStore<LoginData>>(db);
-			services.AddSingleton<IPasswordValidator<LoginData>>(db);
-			services.AddSingleton<IPasswordHasher<LoginData>>(db);
+			services.AddDbContext<SplamyContext>();
+			services.AddSingleton<LocalDb>();
+			services.AddSingleton<IUserStore<LoginData>>(p => p.GetService<LocalDb>());
+			services.AddSingleton<IRoleStore<LoginData>>(p => p.GetService<LocalDb>());
+			services.AddSingleton<IUserPasswordStore<LoginData>>(p => p.GetService<LocalDb>());
+			services.AddSingleton<IPasswordValidator<LoginData>>(p => p.GetService<LocalDb>());
+			services.AddSingleton<IPasswordHasher<LoginData>>(p => p.GetService<LocalDb>());
 
 			services.ConfigureApplicationCookie(options =>
 			{
@@ -80,6 +82,8 @@ namespace SplamyWeb
 				EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
 				ValidationAlgorithm = ValidationAlgorithm.HMACSHA256,
 			});
+
+			services.AddAutoMapper(typeof(Startup));
 
 			services.AddSingleton<TimerService>();
 			services.AddSingleton<IHostedService>(p => p.GetService<TimerService>());
@@ -114,20 +118,17 @@ namespace SplamyWeb
 				applicationLifetime.ApplicationStopping.Register(() => db.CloseDb());
 
 #if DEBUG
+			var mapper = provider.GetService<IMapper>();
+			mapper.ConfigurationProvider.AssertConfigurationIsValid();
+#endif
+
+#if DEBUG
 			app.UseDeveloperExceptionPage();
 #else
 			app.UseExceptionHandler("/Error");
 #endif
 
 			app.UseStatusCodePagesWithReExecute("/Error");
-
-			app.MapWhen(
-				context => context.Request.Path.ToString().EndsWith(".less", StringComparison.Ordinal),
-				appBranch =>
-				{
-					// ... optionally add more middleware to this branch
-					appBranch.UseLessHandler();
-				});
 
 			app.UseAuthentication();
 

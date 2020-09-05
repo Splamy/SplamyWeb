@@ -1,13 +1,11 @@
+using AutoMapper;
 using LiteDB;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Db;
-using SplamyWeb.OldDb;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -18,16 +16,15 @@ namespace SplamyWeb.Components
 	public class LocalDb : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		public SplamyContext Context { get; }
 		public LiteDatabase Database { get; }
 		public ILiteCollection<NightlyEntry> NightlyTable { get; }
 		public ILiteCollection<NightlyMeta> NightlyMetaTable { get; }
 		public ILiteCollection<NightlyProject> NightlyProjectTable { get; }
 		public ILiteCollection<LanguageEntry> LanguageTable { get; }
 		public ILiteCollection<LoginData> LoginTable { get; }
-		private ILiteCollection<OldDb.RamsesEntry> RamsesTable { get; }
-		public ILiteCollection<TabStatsEntry> TabStatsTable { get; }
-		public ILiteCollection<StoreEntry> StoreTable { get; }
+		private ILiteCollection<OldDb.RamsesEntry> RamsesTable { get; } // DONE
+		private ILiteCollection<OldDb.TabStatsEntry> TabStatsTable { get; }
+		private ILiteCollection<StoreEntry> StoreTable { get; } // DONE
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		public LocalDb()
@@ -68,7 +65,7 @@ namespace SplamyWeb.Components
 			RamsesTable = Database.GetCollection<OldDb.RamsesEntry>();
 			RamsesTable.EnsureIndex(x => x.Id, true);
 
-			TabStatsTable = Database.GetCollection<TabStatsEntry>();
+			TabStatsTable = Database.GetCollection<OldDb.TabStatsEntry>();
 			TabStatsTable.EnsureIndex(x => x.Id, true);
 
 			StoreTable = Database.GetCollection<StoreEntry>();
@@ -99,17 +96,20 @@ namespace SplamyWeb.Components
 					LoginTable.Update(e);
 				}
 			}
+		}
 
-			Context = new SplamyContext();
-			if(Context.Database.EnsureCreated()) // TODO Async
+		public async Task Initialize(SplamyContext context, IMapper mapper)
+		{
+			if (await context.Database.EnsureCreatedAsync())
 			{
 				Log.Info("Created DB, updating from old");
-				DbUpgrade.DoRamses(this, RamsesTable);
+				await OldDb.DbUpgrade.DoRamses(context, RamsesTable);
+				await OldDb.DbUpgrade.DoStore(context, StoreTable);
+				await OldDb.DbUpgrade.DoTabStats(context, mapper, TabStatsTable);
 
-				Context.SaveChanges(); // TODO ASYNC
+				await context.SaveChangesAsync();
 			}
 
-			var all = Context.RamsesEntries.Include(x => x.Maps).ToArray();
 		}
 
 		public LoginData? GetUserByToken(string token)
@@ -426,12 +426,6 @@ namespace SplamyWeb.Components
 			UserType.Admin => UserType.Admin,
 			_ => null,
 		};
-	}
-
-	public class StoreEntry
-	{
-		public string Id { get; set; }
-		public string? Value { get; set; }
 	}
 
 #pragma warning restore CS8618

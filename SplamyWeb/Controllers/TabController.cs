@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
+using SplamyWeb.Db;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -35,7 +36,7 @@ namespace SplamyWeb.Controllers
 			catch (JsonException ex) { Log.Debug(ex, "Failed to deserialize ping"); }
 
 			if (obj != null)
-				tab.Add(obj);
+				await tab.Add(obj);
 		}
 
 		[HttpGet("stats/graph")]

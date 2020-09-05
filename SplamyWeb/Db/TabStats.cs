@@ -1,0 +1,95 @@
+using AutoMapper;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+
+namespace SplamyWeb.Db
+{
+	// JSON
+
+	public class TabStatsData
+	{
+		// Meta
+		public string? BotVersion { get; set; }
+		public string? Platform { get; set; }
+		public string? Runtime { get; set; }
+		public uint? RunningBots { get; set; }
+
+		// StatsData
+		public TimeSpan? TotalUptime { get; set; }
+		public TimeSpan? BotsRuntime { get; set; }
+		public Dictionary<string, TabStatsFactory>? SongStats { get; set; }
+
+		public uint? CommandCalls { get; set; }
+		///<summary>How many actually were started by a user (and not i.e. by event)</summary>
+		public uint? CommandFromUser { get; set; }
+		public uint? CommandFromApi { get; set; }
+	}
+
+	public class TabStatsFactory
+	{
+		public uint? PlayRequests { get; set; }
+		public uint? PlaySucessful { get; set; }
+		///<summary>How many actually were started by a user (and not i.e. from a playlist)</summary>
+		public uint? PlayFromUser { get; set; }
+		public uint? SearchRequests { get; set; }
+		public TimeSpan? Playtime { get; set; }
+	}
+
+	// DB
+
+	[Table("tabstats_entry")]
+	public class TabStatsEntryDto
+	{
+		[Key]
+		public long Id { get; set; }
+		public DateTime Time { get; set; }
+
+		// Meta
+		public string? BotVersion { get; set; }
+		public string? Platform { get; set; }
+		public string? Runtime { get; set; }
+		public long RunningBots { get; set; }
+
+		// StatsData
+		public TimeSpan TotalUptime { get; set; }
+		public TimeSpan BotsRuntime { get; set; }
+		public List<TabStatsFactoryDto> SongStats { get; set; } = new List<TabStatsFactoryDto>();
+
+		public long CommandCalls { get; set; }
+		///<summary>How many actually were started by a user (and not i.e. by event)</summary>
+		public long CommandFromUser { get; set; }
+		public long CommandFromApi { get; set; }
+	}
+
+	[Table("tabstats_factory")]
+	public class TabStatsFactoryDto
+	{
+		public long TabStatsId { get; set; }
+		public TabStatsEntryDto TabStatsEntry { get; set; }
+		public string FactoryName { get; set; }
+
+		public long PlayRequests { get; set; }
+		public long PlaySucessful { get; set; }
+		///<summary>How many actually were started by a user (and not i.e. from a playlist)</summary>
+		public long PlayFromUser { get; set; }
+		public long SearchRequests { get; set; }
+		public TimeSpan Playtime { get; set; }
+	}
+
+	public class TabStatsProfile : Profile
+	{
+		public TabStatsProfile()
+		{
+			CreateMap<TabStatsData, TabStatsEntryDto>(MemberList.Source);
+			CreateMap<KeyValuePair<string, TabStatsFactory>, TabStatsFactoryDto>(MemberList.Source)
+				.IncludeMembers(src => src.Value)
+				.ForMember(dest => dest.FactoryName, opt => opt.MapFrom(src => src.Key));
+			CreateMap<TabStatsFactory, TabStatsFactoryDto>(MemberList.Source); // Flatten
+		}
+	}
+}

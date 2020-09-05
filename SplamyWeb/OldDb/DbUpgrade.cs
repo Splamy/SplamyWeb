@@ -1,23 +1,24 @@
+using AutoMapper;
 using LiteDB;
 using RateMapSeveritySaber;
 using SplamyWeb.Components;
+using SplamyWeb.Db;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SplamyWeb.OldDb
 {
 	public static class DbUpgrade
 	{
-		public static void DoRamses(LocalDb db, ILiteCollection<RamsesEntry> ramsesTable)
+		public static async Task DoRamses(SplamyContext context, ILiteCollection<RamsesEntry> ramsesTable)
 		{
-			var context = db.Context;
+			var oldTable = ramsesTable.FindAll().ToArray();
+			var newTable = new List<Db.RamsesEntry>();
 
-			// Ramses
-			var oldRamses = ramsesTable.FindAll().ToArray();
-			var newRamses = new List<Db.RamsesEntry>();
-
-			foreach (var old in oldRamses)
+			foreach (var old in oldTable)
 			{
 				byte diffIndex = 0;
 
@@ -29,13 +30,43 @@ namespace SplamyWeb.OldDb
 					x.MaxDifficulty,
 					x.AvgDifficulty,
 					x.Graph)));
-				newRamses.Add(entry);
+				newTable.Add(entry);
 			}
 
-			newRamses.RemoveAll(e => e.Maps.GroupBy(x => x.Characteristic).Count() > 1);
+			newTable.RemoveAll(e => e.Maps.GroupBy(x => x.Characteristic).Count() > 1);
 
-			newRamses.Sort((a, b) => (int)(a.Id - b.Id));
-			context.RamsesEntries.AddRange(newRamses);
+			newTable.Sort((a, b) => (int)(a.Id - b.Id));
+			await context.RamsesEntries.AddRangeAsync(newTable);
+		}
+
+		public static async Task DoStore(SplamyContext context, ILiteCollection<StoreEntry> storeTable)
+		{
+			var oldTable = storeTable.FindAll().ToArray();
+			var newTable = new List<StoreEntry>();
+
+			foreach (var old in oldTable)
+			{
+				newTable.Add(new StoreEntry(old.Id, old.Value));
+			}
+
+			await context.StoreTable.AddRangeAsync(newTable);
+		}
+
+		public static async Task DoTabStats(SplamyContext context, IMapper mapper, ILiteCollection<TabStatsEntry> tabStats)
+		{
+			var oldTable = tabStats.FindAll().ToArray();
+			var newTable = new List<TabStatsEntryDto>();
+
+			var beforeBug = new DateTime(2020, 3, 17);
+			foreach (var old in oldTable)
+			{
+				if (old.Time <= beforeBug) continue;
+				var dto = mapper.Map<TabStatsData, TabStatsEntryDto>(old.Data);
+				dto.Time = old.Time;
+				newTable.Add(dto);
+			}
+
+			await context.TabStatsTable.AddRangeAsync(newTable);
 		}
 	}
 }
