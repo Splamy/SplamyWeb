@@ -109,38 +109,18 @@ namespace SplamyWeb.Components
 			//	.Select(x => x.Playtime)
 			//	.Sum();
 
-			var beforeBug = new DateTime(2020, 3, 17);
-
-			//var x = (
-			//	from entry in db.TabStatsTable
-			//	where entry.Time >= beforeBug
-			//	from fact in entry.SongStats
-			//	group new { entry, fact } by entry.Time.Date into agg
-			//	orderby agg.Key
-			//	select new
-			//	{
-			//		Date = agg.Key,
-			//		RunningBots = agg.Sum(x => x.entry.RunningBots),
-			//		RunningInstances = agg.Count(),
-			//		PlaybackTime = agg.Sum(x => x.fact.Playtime.TotalSeconds)
-			//	});
 			CachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
-@"SELECT * FROM
+@"SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances, sum(f.""PlaybackTime"") as PlaybackTime
+FROM tabstats_entry
+LEFT OUTER JOIN
 (
-	SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances
-	FROM tabstats_entry
-	GROUP BY Date
-) e
-INNER JOIN
-(
-	SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""Playtime"") AS PlaybackTime
-	FROM tabstats_entry
-	JOIN tabstats_factory ON ""TabStatsId"" = ""Id""
-	GROUP BY Date
+	SELECT SUM(""Playtime"") AS ""PlaybackTime"", tf.""TabStatsId""
+	FROM tabstats_factory tf
+	GROUP BY tf.""TabStatsId""
 ) f
-USING(Date)
+ON f.""TabStatsId"" = tabstats_entry.""Id""
+GROUP BY Date
 ORDER BY Date").ToArrayAsync();
-
 		}
 	}
 

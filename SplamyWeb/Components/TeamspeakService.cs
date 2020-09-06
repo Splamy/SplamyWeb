@@ -377,7 +377,7 @@ namespace SplamyWeb.Components
 				{
 					Content = content,
 				};
-				request.Headers.Authorization = new AuthenticationHeaderValue("Basic", store.GithubAuth);
+				request.Headers.Authorization = new AuthenticationHeaderValue("Basic", await store.GetGithubAuth());
 				using var response = await Util.httpClient.SendAsync(request);
 				response.EnsureSuccessStatusCode();
 				return true;

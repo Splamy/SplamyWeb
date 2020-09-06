@@ -10,6 +10,7 @@ namespace SplamyWeb.Db
 		//public DbSet<RamsesMap> RamsesMaps { get; set; }
 		public DbSet<StoreEntry> StoreTable { get; set; }
 		public DbSet<TabStatsEntryDto> TabStatsTable { get; set; }
+		public DbSet<LoginData> User { get; set; }
 
 		public SplamyContext(DbContextOptions options) : base(options)
 		{
@@ -40,7 +41,8 @@ namespace SplamyWeb.Db
 				.WithMany(x => x.SongStats)
 				.HasForeignKey(e => e.TabStatsId);
 
-			modelBuilder.Entity<CachedDayStats>().HasNoKey();
+			// TODO NET 5 see https://stackoverflow.com/questions/60076606/net-core-3-x-keyless-entity-types-avoid-table-creation
+			modelBuilder.Entity<CachedDayStats>().HasNoKey().ToView(null);
 		}
 	}
 }

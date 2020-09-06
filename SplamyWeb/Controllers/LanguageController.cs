@@ -90,7 +90,7 @@ namespace SplamyWeb.Controllers
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
-			var requestM = TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
+			var requestM = await TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
 			using var resultM = await httpClient.SendAsync(requestM);
 			if (!resultM.IsSuccessStatusCode)
 				return UnprocessableEntity("Error from transifex");
@@ -102,7 +102,7 @@ namespace SplamyWeb.Controllers
 			await Task.WhenAll(languages.Select(async lang =>
 			{
 				var language = lang.language_code;
-				var request = TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language}/?file");
+				var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language}/?file");
 
 				using var result = await httpClient.SendAsync(request);
 				if (!result.IsSuccessStatusCode)
@@ -203,11 +203,12 @@ namespace SplamyWeb.Controllers
 			return null;
 		}
 
-		private HttpRequestMessage TransifexRequest(HttpMethod method, string link)
+		private async ValueTask<HttpRequestMessage> TransifexRequest(HttpMethod method, string link)
 		{
 			var request = new HttpRequestMessage(method, link);
+			var auth = await store.GetTransifexAuth();
 			request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-				Convert.ToBase64String(Encoding.UTF8.GetBytes($"api:{store.TransifexAuth}")));
+				Convert.ToBase64String(Encoding.UTF8.GetBytes($"api:{auth}")));
 			return request;
 		}
 

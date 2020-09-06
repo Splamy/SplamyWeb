@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using SplamyWeb.Components;
 using System.Linq;
 using System.Collections.Generic;
+using SplamyWeb.Db;
 
 namespace SplamyWeb.Pages
 {

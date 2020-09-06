@@ -60,11 +60,11 @@ namespace SplamyWeb
 
 			services.AddDbContext<SplamyContext>();
 			services.AddSingleton<LocalDb>();
-			services.AddSingleton<IUserStore<LoginData>>(p => p.GetService<LocalDb>());
-			services.AddSingleton<IRoleStore<LoginData>>(p => p.GetService<LocalDb>());
-			services.AddSingleton<IUserPasswordStore<LoginData>>(p => p.GetService<LocalDb>());
-			services.AddSingleton<IPasswordValidator<LoginData>>(p => p.GetService<LocalDb>());
-			services.AddSingleton<IPasswordHasher<LoginData>>(p => p.GetService<LocalDb>());
+			services.AddScoped<IUserStore<LoginData>, UserManager>();
+			services.AddScoped<IRoleStore<LoginData>, UserManager>();
+			services.AddScoped<IUserPasswordStore<LoginData>, UserManager>();
+			services.AddScoped<IPasswordValidator<LoginData>, UserManager>();
+			services.AddScoped<IPasswordHasher<LoginData>, UserManager>();
 
 			services.ConfigureApplicationCookie(options =>
 			{
@@ -88,7 +88,7 @@ namespace SplamyWeb
 			services.AddSingleton<TimerService>();
 			services.AddSingleton<IHostedService>(p => p.GetService<TimerService>());
 
-			services.AddSingleton<StoreService>();
+			services.AddScoped<StoreService>();
 			services.AddSingleton<TabBackingData>();
 			services.AddSingleton<SpamBackingData>();
 			services.AddSingleton<RamsesBackingData>();

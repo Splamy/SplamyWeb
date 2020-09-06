@@ -68,5 +68,16 @@ namespace SplamyWeb.OldDb
 
 			await context.TabStatsTable.AddRangeAsync(newTable);
 		}
+
+		public static async Task DoUserLogin(SplamyContext context, IMapper mapper, ILiteCollection<LoginData> loginTable)
+		{
+			var oldTable = loginTable
+				.FindAll()
+				.Select(x => mapper.Map<LoginData, Db.LoginData>(x))
+				.Select(x => { x.Id = 0; return x; })
+				.ToList();
+
+			await context.User.AddRangeAsync(oldTable);
+		}
 	}
 }

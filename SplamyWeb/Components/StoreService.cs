@@ -39,9 +39,9 @@ namespace SplamyWeb.Components
 		}
 
 		private const string KeyTransifexAuth = "transifex_auth";
-		public string? TransifexAuth { get => Get(KeyTransifexAuth); set => Set(KeyTransifexAuth, value); }
+		public async ValueTask<string?> GetTransifexAuth() => Get(KeyTransifexAuth);
 
 		private const string KeyGithubAuth = "github_auth";
-		public string? GithubAuth { get => Get(KeyGithubAuth); set => Set(KeyGithubAuth, value); }
+		public async ValueTask<string?> GetGithubAuth() => Get(KeyGithubAuth);
 	}
 }
