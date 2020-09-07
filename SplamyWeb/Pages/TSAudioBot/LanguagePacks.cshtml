@@ -21,7 +21,7 @@
 		<th>Date</th>
 		<th>Link</th>
 	</tr>
-	@foreach (var lang in this.Model.GetLanguages())
+	@await foreach (var lang in this.Model.GetLanguages())
 	{
 		<tr>
 			<td>@lang.GetCulture().DisplayName</td>

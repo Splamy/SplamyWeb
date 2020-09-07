@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Db;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
@@ -13,11 +12,11 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	public class UserManager : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
+	public class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 	{
 		private readonly SplamyContext context;
 
-		public UserManager(SplamyContext context)
+		public UserStore(SplamyContext context)
 		{
 			this.context = context;
 		}
@@ -28,7 +27,7 @@ namespace SplamyWeb.Components
 				return null;
 			return await (from user in context.User
 						  where user.Token == token
-						  select user).FirstOrDefaultAsync();
+						  select user).SingleOrDefaultAsync();
 		}
 
 		private static string RandomToken(int length = 64)
@@ -84,7 +83,7 @@ namespace SplamyWeb.Components
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			user.Name = userName;
-			context.User.Update(user);
+			await context.SaveChangesAsync();
 		}
 
 		public async Task<string> GetNormalizedUserNameAsync(LoginData user, CancellationToken cancellationToken)
@@ -97,7 +96,7 @@ namespace SplamyWeb.Components
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			user.NameNormalized = normalizedName;
-			context.User.Update(user);
+			await context.SaveChangesAsync();
 		}
 
 		public async Task<IdentityResult> CreateAsync(LoginData role, CancellationToken cancellationToken)
@@ -106,15 +105,18 @@ namespace SplamyWeb.Components
 			try
 			{
 				await context.User.AddAsync(role);
+				await context.SaveChangesAsync();
 				return IdentityResult.Success;
 			}
 			catch { return IdentityResult.Failed(new IdentityError { Code = "UserAlreadyExists", Description = "Could not create because user already exists" }); }
 		}
 
+		// TODO ??? find out what this method actually does
 		public async Task<IdentityResult> UpdateAsync(LoginData role, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			context.User.Update(role);
+			await context.SaveChangesAsync();
 			return IdentityResult.Success;
 			//: IdentityResult.Failed(new IdentityError { Code = "UserNotFound", Description = "The user to update could not be found" });
 		}
@@ -123,6 +125,7 @@ namespace SplamyWeb.Components
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			context.Remove(role.Id);
+			await context.SaveChangesAsync();
 			return IdentityResult.Success;
 			//: IdentityResult.Failed(new IdentityError { Code = "UserNotFound", Description = "The user to delete could not be found" });
 		}
@@ -143,6 +146,7 @@ namespace SplamyWeb.Components
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			role.Rank = Enum.Parse<UserType>(roleName);
+			await context.SaveChangesAsync();
 		}
 
 		public async Task<string> GetNormalizedRoleNameAsync(LoginData role, CancellationToken cancellationToken)
@@ -155,7 +159,7 @@ namespace SplamyWeb.Components
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			role.Rank = Enum.Parse<UserType>(normalizedName, true);
-			context.User.Update(role);
+			await context.SaveChangesAsync();
 		}
 
 		public async Task<LoginData> FindByIdAsync(string roleId, CancellationToken cancellationToken)
@@ -165,9 +169,10 @@ namespace SplamyWeb.Components
 			var irole = int.Parse(roleId, CultureInfo.InvariantCulture);
 			return await (from user in context.User
 						  where user.Id == irole
-						  select user).FirstOrDefaultAsync();
+						  select user).SingleOrDefaultAsync();
 		}
 
+		// TODO split up role <-> user
 		public async Task<LoginData> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -180,7 +185,7 @@ namespace SplamyWeb.Components
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			user.Password = Convert.FromBase64String(passwordHash);
-			context.User.Update(user);
+			await context.SaveChangesAsync();
 		}
 
 		public async Task<string> GetPasswordHashAsync(LoginData user, CancellationToken cancellationToken)

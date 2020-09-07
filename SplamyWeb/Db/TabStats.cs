@@ -3,9 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace SplamyWeb.Db
 {
@@ -43,7 +40,7 @@ namespace SplamyWeb.Db
 	// DB
 
 	[Table("tabstats_entry")]
-	public class TabStatsEntryDto
+	public class TabStatsPingDto
 	{
 		[Key]
 		public long Id { get; set; }
@@ -70,7 +67,7 @@ namespace SplamyWeb.Db
 	public class TabStatsFactoryDto
 	{
 		public long TabStatsId { get; set; }
-		public TabStatsEntryDto TabStatsEntry { get; set; }
+		public TabStatsPingDto TabStatsEntry { get; set; }
 		public string FactoryName { get; set; }
 
 		public long PlayRequests { get; set; }
@@ -85,7 +82,7 @@ namespace SplamyWeb.Db
 	{
 		public TabStatsProfile()
 		{
-			CreateMap<TabStatsData, TabStatsEntryDto>(MemberList.Source);
+			CreateMap<TabStatsData, TabStatsPingDto>(MemberList.Source);
 			CreateMap<KeyValuePair<string, TabStatsFactory>, TabStatsFactoryDto>(MemberList.Source)
 				.IncludeMembers(src => src.Value)
 				.ForMember(dest => dest.FactoryName, opt => opt.MapFrom(src => src.Key));

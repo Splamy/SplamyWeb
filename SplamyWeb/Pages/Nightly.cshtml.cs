@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
 using System.Collections.Generic;
@@ -11,10 +12,10 @@ namespace SplamyWeb.Pages
 	public class NightlyModel : PageModel
 	{
 		private readonly UserManager<LoginData> userManager;
-		private readonly LocalDb db;
+		private readonly SplamyContext db;
 		private readonly StoreService store;
 
-		public NightlyModel(UserManager<LoginData> userManager, LocalDb db, StoreService store)
+		public NightlyModel(UserManager<LoginData> userManager, SplamyContext db, StoreService store)
 		{
 			this.userManager = userManager;
 			this.db = db;
@@ -27,36 +28,73 @@ namespace SplamyWeb.Pages
 			return user?.Rank >= UserType.Admin;
 		}
 
-		public IEnumerable<NightlyProject> GetNightlyProjects()
-		{
-			return db.NightlyProjectTable.FindAll();
-		}
-
-		public string? TryFetchNotification(string project)
+		public ValueTask<string?> TryFetchNotification(string project)
 		{
 			return store.Get("notify_project_" + project);
 		}
 
-		public IEnumerable<(NightlyEntry entry, bool active)> GetActives(string project, bool includeInactive)
+		public IAsyncEnumerable<ProjectInfo> GetNightlyProjects(bool includeInactive)
 		{
 			if (includeInactive)
 			{
-				return from entry in db.NightlyTable.Find(x => x.Project == project)
-					   orderby entry.UploadTime
-					   select (entry, db.NightlyMetaTable.FindById(NightlyMeta.GetId(project, entry.Branch))?.Active == entry.Commit);
+				return (
+					from nProject in db.NightlyProjects
+					orderby nProject.ProjectName
+					select new ProjectInfo
+					{
+						Project = nProject,
+						Builds =
+							from build in db.NightlyBuilds
+							where build.Project == nProject.Project
+							orderby build.UploadTime
+							select new BuildInfo { Build = build, Active = build.NightlyBranch.Active == build.Commit }
+					}
+				).AsAsyncEnumerable();
 			}
 			else
 			{
-				return from meta in db.NightlyMetaTable.Find(x => x.Project == project)
-					   select db.NightlyTable.FindById(meta.ToEntryId()) into entry
-					   where entry != null
-					   orderby entry.Branch
-					   select (entry, true);
+				return (
+					from nProject in db.NightlyProjects
+					orderby nProject.ProjectName
+					select new ProjectInfo
+					{
+						Project = nProject,
+						Builds =
+							from build in db.NightlyBuilds
+							where build.Project == nProject.Project && build.NightlyBranch.Active == build.Commit
+							orderby build.Branch
+							select new BuildInfo { Build = build, Active = true }
+					}
+				).AsAsyncEnumerable();
 			}
 		}
 
 		public void OnGet()
 		{
+		}
+	}
+
+	public class ProjectInfo
+	{
+		public NightlyProject Project { get; set; }
+		public IEnumerable<BuildInfo> Builds { get; set; }
+
+		public void Deconstruct(out NightlyProject project, out IEnumerable<BuildInfo> builds)
+		{
+			project = Project;
+			builds = Builds;
+		}
+	}
+
+	public class BuildInfo
+	{
+		public NightlyBuild Build { get; set; }
+		public bool Active { get; set; }
+
+		public void Deconstruct(out NightlyBuild build, out bool active)
+		{
+			build = Build;
+			active = Active;
 		}
 	}
 }

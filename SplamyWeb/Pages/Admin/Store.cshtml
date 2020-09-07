@@ -59,7 +59,7 @@
 	</thead>
 	<tbody>
 
-		@foreach (var kvp in this.Model.Store.GetAll())
+		@foreach (var kvp in await this.Model.Store.GetAll())
 		{
 			<tr>
 				<td>

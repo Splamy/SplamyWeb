@@ -1,8 +1,11 @@
+using CliWrap;
+using CliWrap.Buffered;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
+using SplamyWeb.Db;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -11,7 +14,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Mime;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using static SplamyWeb.Util;
 
@@ -20,12 +22,12 @@ namespace SplamyWeb.Controllers
 	[Route("api/[controller]")]
 	public class LanguageController : Controller
 	{
-		private static readonly string languageBasePath = Path.Combine(LocalDb.DataPath, "language");
+		private static readonly string languageBasePath = Path.Combine(OldDb.LocalDb.DataPath, "language");
 
-		private readonly LocalDb db;
+		private readonly SplamyContext db;
 		private readonly StoreService store;
 
-		public LanguageController(LocalDb db, StoreService store)
+		public LanguageController(SplamyContext db, StoreService store)
 		{
 			this.db = db;
 			this.store = store;
@@ -63,7 +65,7 @@ namespace SplamyWeb.Controllers
 
 		[HttpGet("project/{project}/language/{language}/dll")]
 		[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Text.Plain)]
-		public IActionResult GetLanguageFile(string project, string language)
+		public async Task<IActionResult> GetLanguageFile(string project, string language)
 		{
 			if (!IsSave(project) || !IsSave(language))
 				return BadRequest("Invalid path");
@@ -73,13 +75,13 @@ namespace SplamyWeb.Controllers
 			try { culture = CultureInfo.GetCultureInfo(language); }
 			catch { return NotFound("Culture not found"); }
 
-			var langEntry = GetLanguageEntry(project, culture);
+			var langEntry = await GetLanguageEntry(project, culture);
 			var fullPath = new FileInfo(Path.Combine(languageBasePath, project, culture.Name, "strings.dll"));
 			if (langEntry == null || !fullPath.Exists)
 				return NotFound("The language was not found");
 
 			langEntry.DownloadCount++;
-			db.LanguageTable.Upsert(langEntry);
+			await db.SaveChangesAsync();
 
 			return PhysicalFile(fullPath.FullName, MediaTypeNames.Application.Octet, "strings.dll");
 		}
@@ -119,84 +121,70 @@ namespace SplamyWeb.Controllers
 				await stream.CopyToAsync(demoDataStream);
 			}));
 
-			return RebuildLanguageFiles(project);
+			return await RebuildLanguageFiles(project);
 		}
 
 		[HttpPost("project/{project}/rebuild")]
-		public IActionResult RebuildLanguageFiles(string project)
+		public async Task<IActionResult> RebuildLanguageFiles(string project)
 		{
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
-			var report = new List<BuildReport>();
-
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 
-			db.LanguageTable.DeleteMany("1 = 1");
+			await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE nightly_lang");
 
-			foreach (var langFile in GetLanguageListDir(project))
+			var report = await Task.WhenAll(GetLanguageListDir(project).Select(async langFile =>
 			{
 				string language;
 				try { language = CultureInfo.GetCultureInfo(langFile).Name; }
-				catch { continue; }
+				catch { return new BuildReport(langFile, false, "Lang not found"); }
 
 				var languagePath = Path.Combine(projectPath, language);
 				if (!System.IO.File.Exists(Path.Combine(languagePath, "strings.resx")))
-					continue;
+					return new BuildReport(language, false, "strings.resx not found");
 
-				var result = ProcessFile(
+				var result = await ProcessFile(
 					"resgen",
 					"strings.resx",
 					language, languagePath,
 					"Failed to transform resx file");
-				if (result != null) { report.Add(result); continue; }
+				if (result != null) { return result; }
 
-				result = ProcessFile(
+				result = await ProcessFile(
 					"al",
 					$"-target:lib -embed:strings.resources,TS3AudioBot.Localization.strings.{language}.resources -culture:{language} -out:TS3AudioBot.resources.dll",
 					language, languagePath,
 					"Failed to compile satellite assembly");
-				if (result != null) { report.Add(result); continue; }
+				if (result != null) { return result; }
 
 				System.IO.File.Copy(Path.Combine(languagePath, "TS3AudioBot.resources.dll"), Path.Combine(languagePath, "strings.dll"), true);
 
-				var entryId = ToId(project, language);
-				var langEntry = db.LanguageTable.FindById(entryId);
-				if (langEntry == null)
+				db.LanguageEntries.Add(new LanguageEntry
 				{
-					langEntry = new LanguageEntry
-					{
-						Id = entryId,
-						Language = language,
-						Project = project,
-					};
-				}
+					Language = language,
+					Project = project,
+					UploadTime = DateTime.UtcNow
+				});
 
-				langEntry.UploadTime = DateTime.UtcNow;
-				db.LanguageTable.Upsert(langEntry);
+				return new BuildReport(language, true);
+			}));
 
-				report.Add(new BuildReport(language, true));
-			}
-
+			await db.SaveChangesAsync();
 			return Ok(report);
 		}
 
-		private static BuildReport? ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
+		private static async Task<BuildReport?> ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
 		{
-			using var proc = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = bin,
-					Arguments = arg,
-					WorkingDirectory = languagePath,
-				}
-			};
-			proc.Start();
-			proc.WaitForExit(10000);
+			// TODO 10 sec timout
+			var buildRes = await Cli.Wrap(bin)
+				.WithArguments(arg)
+				.WithWorkingDirectory(languagePath)
+				.WithValidation(CommandResultValidation.None)
+				.ExecuteBufferedAsync();
 
-			if (proc.ExitCode != 0)
+			if (buildRes.ExitCode != 0)
 			{
 				return new BuildReport(language, false, errMsg);
 			}
@@ -212,13 +200,13 @@ namespace SplamyWeb.Controllers
 			return request;
 		}
 
-		private LanguageEntry GetLanguageEntry(string project, CultureInfo culture)
+		private async Task<LanguageEntry?> GetLanguageEntry(string project, CultureInfo culture)
 		{
-			var id = ToId(project, culture.Name);
-			return db.LanguageTable.FindById(id);
+			return await (
+				from lang in db.LanguageEntries
+				where lang.Project == project && lang.Language == culture.Name
+				select lang).SingleOrDefaultAsync();
 		}
-
-		public static string ToId(string project, string language) => $"{project}.{language}";
 	}
 
 #pragma warning disable IDE1006, CS8618 // Naming Styles

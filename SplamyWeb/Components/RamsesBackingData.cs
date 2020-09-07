@@ -1,16 +1,12 @@
 using LiteDB;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RateMapSeveritySaber;
 using SplamyWeb.Db;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO.Compression;
 using System.Linq;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -38,7 +34,7 @@ namespace SplamyWeb.Components
 			while (true)
 			{
 				var req = await _bufferBlock.ReceiveAsync();
-				RamsesEntry? res;
+				RamsesSong? res;
 				try
 				{
 					res = await GetInternal(req);
@@ -47,13 +43,13 @@ namespace SplamyWeb.Components
 				{
 					Log.Warn(ex, "Failed to process song: {0}", ex.Message);
 
-					res = new RamsesEntry(req.MapId, RamsesVersion);
+					res = new RamsesSong(req.MapId, RamsesVersion);
 				}
 				req.Task.SetResult(res);
 			}
 		}
 
-		public async Task<RamsesEntry?> Get(string key)
+		public async Task<RamsesSong?> Get(string key)
 		{
 			var mapId = GetMapIdFromKey(key);
 			if (mapId == null) return null;
@@ -62,16 +58,16 @@ namespace SplamyWeb.Components
 			return await req.Task.Task;
 		}
 
-		private async Task<RamsesEntry?> GetInternal(ProcessEntry request)
+		private async Task<RamsesSong?> GetInternal(ProcessEntry request)
 		{
 			using var scope = scopeFactory.CreateScope();
 			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-			var entry = await (from entries in db.RamsesEntries
+			var entry = await (from entries in db.RamsesSongs
 							   where entries.Id == request.MapId
 							   select entries)
 						 .Include(e => e.Maps)
-						 .FirstOrDefaultAsync();
+						 .SingleOrDefaultAsync();
 
 			if (entry != null && entry.Version == RamsesVersion)
 				return entry;
@@ -84,7 +80,7 @@ namespace SplamyWeb.Components
 			var timeToDownload = sw.Elapsed;
 
 			sw.Restart();
-			entry = new RamsesEntry(request.MapId, RamsesVersion);
+			entry = new RamsesSong(request.MapId, RamsesVersion);
 			entry.Maps.AddRange(maps.Where(map => map.Characteristic == MapCharacteristic.Standard).Select(map =>
 			{
 				SongScore score;
@@ -110,7 +106,7 @@ namespace SplamyWeb.Components
 
 			Log.Info("RaMSeS Key:{0} Download:{1} Process{2}", request.Key, timeToDownload, timeToProcess);
 
-			await db.RamsesEntries.AddAsync(entry);
+			await db.RamsesSongs.AddAsync(entry);
 			await db.SaveChangesAsync();
 
 			return entry;
@@ -123,13 +119,13 @@ namespace SplamyWeb.Components
 		{
 			public string Key { get; }
 			public long MapId { get; }
-			public TaskCompletionSource<RamsesEntry?> Task { get; }
+			public TaskCompletionSource<RamsesSong?> Task { get; }
 
 			public ProcessEntry(string key, long mapId)
 			{
 				Key = key;
 				MapId = mapId;
-				Task = new TaskCompletionSource<RamsesEntry?>();
+				Task = new TaskCompletionSource<RamsesSong?>();
 			}
 		}
 	}

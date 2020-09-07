@@ -1,21 +1,26 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using SplamyWeb.Components;
+using Microsoft.EntityFrameworkCore;
+using SplamyWeb.Db;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SplamyWeb
 {
 	public class TabLanguagePacksModel : PageModel
 	{
-		private readonly LocalDb db;
+		private readonly SplamyContext db;
 
-		public TabLanguagePacksModel(LocalDb db)
+		public TabLanguagePacksModel(SplamyContext db)
 		{
 			this.db = db;
 		}
 
-		public IEnumerable<LanguageEntry> GetLanguages()
+		public IAsyncEnumerable<LanguageEntry> GetLanguages()
 		{
-			return db.LanguageTable.Find(x => x.Project == "ts3ab");
+			return (
+				from lang in db.LanguageEntries
+				where lang.Project == "ts3ab"
+				select lang).AsAsyncEnumerable();
 		}
 	}
 }

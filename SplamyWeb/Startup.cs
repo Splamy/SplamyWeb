@@ -59,12 +59,12 @@ namespace SplamyWeb
 			});
 
 			services.AddDbContext<SplamyContext>();
-			services.AddSingleton<LocalDb>();
-			services.AddScoped<IUserStore<LoginData>, UserManager>();
-			services.AddScoped<IRoleStore<LoginData>, UserManager>();
-			services.AddScoped<IUserPasswordStore<LoginData>, UserManager>();
-			services.AddScoped<IPasswordValidator<LoginData>, UserManager>();
-			services.AddScoped<IPasswordHasher<LoginData>, UserManager>();
+			services.AddSingleton<OldDb.LocalDb>();
+			services.AddScoped<IUserStore<LoginData>, UserStore>();
+			services.AddScoped<IRoleStore<LoginData>, UserStore>();
+			services.AddScoped<IUserPasswordStore<LoginData>, UserStore>();
+			services.AddScoped<IPasswordValidator<LoginData>, UserStore>();
+			services.AddScoped<IPasswordHasher<LoginData>, UserStore>();
 
 			services.ConfigureApplicationCookie(options =>
 			{
@@ -102,8 +102,8 @@ namespace SplamyWeb
 			Util.NLogMemory.Layout = layout;
 			var nullTarget = new NullTarget();
 			config.AddRule(LogLevel.Trace, LogLevel.Off, nullTarget, "SplamyWeb.Components.BasicAuthenticationHandler", final: true);
-			config.AddRule(LogLevel.Info, LogLevel.Fatal, consoleTarget, "SplamyWeb.*");
-			config.AddRule(LogLevel.Info, LogLevel.Fatal, Util.NLogMemory, "SplamyWeb.*");
+			config.AddRule(LogLevel.Debug, LogLevel.Fatal, consoleTarget, "SplamyWeb.*");
+			config.AddRule(LogLevel.Debug, LogLevel.Fatal, Util.NLogMemory, "SplamyWeb.*");
 
 			LogManager.Configuration = config;
 		}
@@ -113,7 +113,7 @@ namespace SplamyWeb
 		{
 			provider.GetService<TeamspeakService>();
 			provider.GetService<TabBackingData>();
-			var db = provider.GetService<LocalDb>();
+			var db = provider.GetService<OldDb.LocalDb>();
 			if (db != null)
 				applicationLifetime.ApplicationStopping.Register(() => db.CloseDb());
 

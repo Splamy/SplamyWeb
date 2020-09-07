@@ -1,22 +1,19 @@
 using AutoMapper;
 using LiteDB;
-using SplamyWeb.OldDb;
-using System;
-using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace SplamyWeb.Components
+namespace SplamyWeb.OldDb
 {
 	public class LocalDb
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		public LiteDatabase Database { get; }
-		public ILiteCollection<NightlyEntry> NightlyTable { get; }
-		public ILiteCollection<NightlyMeta> NightlyMetaTable { get; }
-		public ILiteCollection<NightlyProject> NightlyProjectTable { get; }
-		public ILiteCollection<LanguageEntry> LanguageTable { get; }
-		public ILiteCollection<LoginData> LoginTable { get; }
+		private ILiteCollection<NightlyEntry> NightlyTable { get; } // DONE
+		private ILiteCollection<NightlyMeta> NightlyMetaTable { get; } // DONE
+		private ILiteCollection<NightlyProject> NightlyProjectTable { get; } // DONE
+		private ILiteCollection<LanguageEntry> LanguageTable { get; } // DONE
+		private ILiteCollection<LoginData> LoginTable { get; } // DONE
 		private ILiteCollection<RamsesEntry> RamsesTable { get; } // DONE
 		private ILiteCollection<TabStatsEntry> TabStatsTable { get; } // DONE
 		private ILiteCollection<Db.StoreEntry> StoreTable { get; } // DONE
@@ -86,7 +83,7 @@ namespace SplamyWeb.Components
 
 		public async Task Initialize(Db.SplamyContext context, IMapper mapper)
 		{
-			//await context.Database.EnsureDeletedAsync();
+			await context.Database.EnsureDeletedAsync();
 			if (await context.Database.EnsureCreatedAsync())
 			{
 				Log.Info("Created DB, updating from old");
@@ -94,6 +91,11 @@ namespace SplamyWeb.Components
 				await DbUpgrade.DoStore(context, StoreTable);
 				await DbUpgrade.DoTabStats(context, mapper, TabStatsTable);
 				await DbUpgrade.DoUserLogin(context, mapper, LoginTable);
+				await DbUpgrade.DoNightly(context, mapper,
+					NightlyTable,
+					NightlyMetaTable,
+					NightlyProjectTable,
+					LanguageTable);
 
 				await context.SaveChangesAsync();
 			}
@@ -108,63 +110,4 @@ namespace SplamyWeb.Components
 			Database.Dispose();
 		}
 	}
-
-#pragma warning disable CS8618
-
-	public class NightlyProject
-	{
-		public string Id { get; set; } // Something like "ts3ab", "ts3hook"
-		public string ProjectName { get; set; }
-		public string CommitUrl { get; set; } // https://github.com/Splamy/TS3AudioBot/commit/{0}
-	}
-
-	public class NightlyEntry
-	{
-		public string Id => GetId(Project, Branch, Commit);
-		public string Project { get; set; }
-		public string Branch { get; set; }
-		public string Version { get; set; }
-		public string Commit { get; set; }
-
-		public bool ZipContent { get; set; }
-		public string FileName { get; set; }
-		public DateTime UploadTime { get; set; }
-		public uint DownloadCount { get; set; }
-
-		public object Strip() => new
-		{
-			Project,
-			Branch,
-			Version,
-			Commit,
-		};
-
-		public static string GetId(string project, string branch, string commit) => $"{project}.{branch}.{commit}";
-	}
-
-	public class NightlyMeta
-	{
-		public string Id { get => GetId(Project, Branch); }
-		public string Project { get; set; }
-		public string Branch { get; set; }
-		public string Active { get; set; }
-
-		public string ToEntryId() => NightlyEntry.GetId(Project, Branch, Active);
-
-		public static string GetId(string project, string branch) => $"{project}.{branch}";
-	}
-
-	public class LanguageEntry
-	{
-		public string Id { get; set; }
-		public string Project { get; set; }
-		public string Language { get; set; }
-
-		public DateTime UploadTime { get; set; }
-		public int DownloadCount { get; set; }
-
-		public CultureInfo GetCulture() => CultureInfo.GetCultureInfo(Language);
-	}
-
-#pragma warning restore CS8618
 }

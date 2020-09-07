@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
+using System.Threading.Tasks;
 
 namespace SplamyWeb.Controllers
 {
@@ -17,12 +18,12 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpGet("value/{key}")]
-		public string? Get(string key) => store.Get(key);
+		public async Task<string?> Get(string key) => await store.Get(key);
 
 		[HttpDelete("value/{key}")]
-		public void Delete(string key) => store.Delete(key);
+		public async Task Delete(string key) => await store.Delete(key);
 
 		[HttpPut("value/{key}")]
-		public void Put(string key, [FromQuery]string? value) => store.Set(key, value);
+		public async Task Put(string key, [FromQuery] string? value) => await store.Set(key, value);
 	}
 }

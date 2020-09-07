@@ -7,9 +7,11 @@ using System.Text.Json.Serialization;
 
 namespace SplamyWeb.Db
 {
-	[Table("ramses_entry")]
+	// TODO user automapper
+
+	[Table("ramses_song")]
 	[DebuggerDisplay("{Id}")]
-	public class RamsesEntry
+	public class RamsesSong
 	{
 		/// <summary>Hexadecimal beatsaver map id.</summary>
 		[Key]
@@ -24,7 +26,7 @@ namespace SplamyWeb.Db
 		[JsonIgnore]
 		public byte[]? RawMap { get; set; }
 
-		public RamsesEntry(long id, string version, byte[]? rawMap = null)
+		public RamsesSong(long id, string version, byte[]? rawMap = null)
 		{
 			Id = id;
 			Version = version;
@@ -40,7 +42,7 @@ namespace SplamyWeb.Db
 		[JsonIgnore]
 		public long RamsesId { get; set; }
 		[JsonIgnore]
-		public RamsesEntry RamsesEntry { get; set; }
+		public RamsesSong RamsesEntry { get; set; }
 		/// <summary>Index in the _difficultyBeatmapSets array</summary>
 		[JsonIgnore]
 		public MapCharacteristic Characteristic { get; set; }
@@ -57,7 +59,7 @@ namespace SplamyWeb.Db
 		/// <summary>Internal mode name (Standard, 90°, 360°,...)</summary>
 		[NotMapped]
 		[JsonPropertyName("characteristic")]
-		public string CharacteristicName => Characteristic.ToString(); // TODO use util
+		public string CharacteristicName => BSMapUtil.CharacteristicToName(Characteristic);
 
 		[JsonPropertyName("maxDifficulty")]
 		public float MaxDifficulty { get; set; }

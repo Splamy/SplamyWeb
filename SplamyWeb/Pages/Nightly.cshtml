@@ -8,13 +8,13 @@
 	ViewData["Header"] = "Nightly Builds";
 	Layout = "~/Pages/_Layout.cshtml";
 }
-@foreach (var project in Model.GetNightlyProjects())
+@{var isExtended = await Model.IsExtented(); }
+@await foreach (var (project, builds) in Model.GetNightlyProjects(isExtended))
 {
 	<div class="box">
-		<h2 id="@project.Id" class="is-size-4">@(project.ProjectName ?? "<unnamed>"):</h2>
-		@{var notification = Model.TryFetchNotification(project.Id); }
+		<h2 id="@project.Project" class="is-size-4">@(project.ProjectName ?? "<unnamed>"):</h2>
+		@{var notification = await Model.TryFetchNotification(project.Project); }
 		@Html.Raw(notification)
-		@{var isExtended = await Model.IsExtented(); }
 		<table class="table" style="width:100%;">
 			<tr>
 				<th>Branch</th>
@@ -28,7 +28,7 @@
 					<th>Options</th>
 				}
 			</tr>
-			@foreach (var (entry, active) in Model.GetActives(project.Id, isExtended))
+			@foreach (var (entry, active) in builds)
 			{
 				<tr>
 					<td>@entry.Branch</td>
@@ -48,7 +48,7 @@
 					<td>
 						@if (active)
 						{
-							<a href="~/api/nightly/@project.Id/@entry.Branch/download"
+							<a href="~/api/nightly/@project.Project/@entry.Branch/download"
 							   download="@entry.FileName"
 							   class="button is-primary is-rounded is-small">
 								Download
@@ -62,7 +62,7 @@
 							@if (active)
 							{
 								<button class="button is-primary is-tool is-small compact"
-										onclick="ask_delete_nightly('@project.Id', '@entry.Branch')">
+										onclick="ask_delete_nightly('@project.Project', '@entry.Branch')">
 									<span class="icon">
 										<i class="mdi mdi-close mdi-24px"></i>
 									</span>

@@ -1,8 +1,6 @@
-using LiteDB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SplamyWeb.Db;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +9,7 @@ namespace SplamyWeb.Components
 {
 	public class StoreService
 	{
+		private (Dictionary<string, string?> dict, List<StoreEntry> list)? _cache;
 		private readonly IServiceScopeFactory scopeFactory;
 
 		public StoreService(IServiceScopeFactory scopeFactory)
@@ -18,30 +17,53 @@ namespace SplamyWeb.Components
 			this.scopeFactory = scopeFactory;
 		}
 
-		public IEnumerable<StoreEntry> GetAll() => DbQuery(storeTable => { return storeTable.ToList(); });
-		public string? Get(string key) => DbQuery(storeTable => { return storeTable.FirstOrDefault(x => x.Id == key)?.Value; });
-		public void Delete(string key) => DbAction(storeTable => { storeTable.Remove(new StoreEntry(key, null)); });
-		public void Set(string key, string? value) => DbAction(storeTable => { storeTable.Upsert(new StoreEntry(key, value)).Run(); });
-
-		private T DbQuery<T>(Func<DbSet<StoreEntry>, T> action)
+		private async ValueTask<(Dictionary<string, string?> dict, List<StoreEntry> list)> GetAllInternal()
 		{
-			using var scope = scopeFactory.CreateScope();
-			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-			return action(db.StoreTable);
+			if (!_cache.HasValue)
+			{
+				using var scope = scopeFactory.CreateScope();
+				var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+				var list = await db.StoreTable.ToListAsync();
+				var dict = list.ToDictionary(x => x.Id, x => x.Value);
+				_cache = (dict, list);
+			}
+			return _cache.Value;
 		}
 
-		private void DbAction(Action<DbSet<StoreEntry>> action)
+		public async Task<IEnumerable<StoreEntry>> GetAll()
 		{
+			var (_, list) = await GetAllInternal();
+			return list;
+		}
+
+		public async ValueTask<string?> Get(string key)
+		{
+			var (dict, _) = await GetAllInternal();
+			return dict.TryGetValue(key, out var value) ? value : null;
+		}
+
+		public async Task Delete(string key)
+		{
+			_cache = null;
 			using var scope = scopeFactory.CreateScope();
 			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-			action(db.StoreTable);
-			db.SaveChanges();
+			db.Remove(new StoreEntry(key, null));
+			await db.SaveChangesAsync();
+		}
+
+		public async Task Set(string key, string? value)
+		{
+			_cache = null;
+			using var scope = scopeFactory.CreateScope();
+			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+			db.StoreTable.Upsert(new StoreEntry(key, value)).Run();
+			await db.SaveChangesAsync();
 		}
 
 		private const string KeyTransifexAuth = "transifex_auth";
-		public async ValueTask<string?> GetTransifexAuth() => Get(KeyTransifexAuth);
+		public ValueTask<string?> GetTransifexAuth() => Get(KeyTransifexAuth);
 
 		private const string KeyGithubAuth = "github_auth";
-		public async ValueTask<string?> GetGithubAuth() => Get(KeyGithubAuth);
+		public ValueTask<string?> GetGithubAuth() => Get(KeyGithubAuth);
 	}
 }

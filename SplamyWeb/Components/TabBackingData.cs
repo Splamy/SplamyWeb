@@ -39,12 +39,12 @@ namespace SplamyWeb.Components
 
 			Log.Info("Stats: {@stats}", obj);
 
-			var dto = mapper.Map<TabStatsData, TabStatsEntryDto>(obj);
+			var dto = mapper.Map<TabStatsData, TabStatsPingDto>(obj);
 			dto.Time = DateTime.UtcNow;
 
 			using var scope = scopeFactory.CreateScope();
 			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-			await db.TabStatsTable.AddAsync(dto);
+			await db.TabStatsPings.AddAsync(dto);
 			await db.SaveChangesAsync();
 		}
 
@@ -85,29 +85,25 @@ namespace SplamyWeb.Components
 			using var scope = scopeFactory.CreateScope();
 			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-			//Downloads = db.NightlyTable.Query()
-			//	.Where(x => x.Project == "ts3ab")
-			//	.ToEnumerable()
-			//	.Select(x => x.DownloadCount)
-			//	.Sum();
+			Downloads = (uint)await db.NightlyBuilds
+				.Where(x => x.Project == "ts3ab")
+				.Select(x => x.DownloadCount)
+				.SumAsync();
 
-			//var oneDayAgo = DateTime.Now - TimeSpan.FromDays(1);
+			var oneDayAgo = DateTime.Now - TimeSpan.FromDays(1);
 
-			//RunningInstances = (uint)tabStatsTable.Query()
-			//	.Where(x => x.Time > oneDayAgo)
-			//	.Count();
+			RunningInstances = (uint)await db.TabStatsPings
+				.Where(x => x.Time > oneDayAgo)
+				.CountAsync();
 
-			//RunningBots = tabStatsTable.Query()
-			//	.Where(x => x.Time > oneDayAgo)
-			//	.ToEnumerable()
-			//	.Select(x => x.Data.RunningBots)
-			//	.Sum();
+			RunningBots = (uint)await db.TabStatsPings
+				.Where(x => x.Time > oneDayAgo)
+				.Select(x => x.RunningBots)
+				.SumAsync();
 
-			//PlaybackTime = tabStatsTable.Query()
-			//	.ToEnumerable()
-			//	.SelectMany(x => x.Data.SongStats?.Values ?? Enumerable.Empty<TabStatsFactory>())
-			//	.Select(x => x.Playtime)
-			//	.Sum();
+			PlaybackTime = (await db.Set<PlaytimeDto>().FromSqlRaw(
+@"SELECT SUM(""Playtime"") as ""Playtime""
+FROM tabstats_factory").SingleOrDefaultAsync())?.Playtime ?? TimeSpan.Zero;
 
 			CachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
 @"SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances, sum(f.""PlaybackTime"") as PlaybackTime
@@ -130,5 +126,10 @@ ORDER BY Date").ToArrayAsync();
 		public uint RunningInstances { get; set; }
 		public uint RunningBots { get; set; }
 		public TimeSpan PlaybackTime { get; set; }
+	}
+
+	public class PlaytimeDto
+	{
+		public TimeSpan Playtime { get; set; }
 	}
 }

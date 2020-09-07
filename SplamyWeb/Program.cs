@@ -1,13 +1,12 @@
 using AutoMapper;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
-using SplamyWeb.Components;
 using SplamyWeb.Db;
+using SplamyWeb.OldDb;
 using System.Threading.Tasks;
 
 namespace SplamyWeb
@@ -27,7 +26,7 @@ namespace SplamyWeb
 				var db = scope.ServiceProvider.GetRequiredService<LocalDb>();
 
 				await db.Initialize(context, mapper);
-				
+
 
 				//Do the migration asynchronously
 				//await myDbContext.Database.MigrateAsync();
