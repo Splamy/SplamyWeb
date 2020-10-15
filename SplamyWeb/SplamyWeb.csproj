@@ -68,12 +68,12 @@
 		<TypeScriptToolsVersion>3.9</TypeScriptToolsVersion>
 		<TypeScriptTarget>es2018</TypeScriptTarget>
 		<TypeScriptJSXEmit>None</TypeScriptJSXEmit>
-		<TypeScriptModuleKind>es6</TypeScriptModuleKind>
+		<TypeScriptModuleKind>amd</TypeScriptModuleKind>
 		<TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
 		<TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
 		<TypeScriptRemoveComments>False</TypeScriptRemoveComments>
 		<TypeScriptOutFile>wwwroot/ts/script.js</TypeScriptOutFile>
-		<TypeScriptOutDir />
+		<!--<TypeScriptOutDir>wwwroot/ts/</TypeScriptOutDir>-->
 		<TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
 		<TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
 		<TypeScriptSourceMap>True</TypeScriptSourceMap>
