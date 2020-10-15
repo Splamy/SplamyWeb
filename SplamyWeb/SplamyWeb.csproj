@@ -17,7 +17,7 @@
 		<PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="3.1.0" />
 		<!--<PackageReference Include="LiteDB" Version="5.0.9" />-->
 		<Reference Include="LiteDB">
-			<HintPath>..\..\LiteDB\LiteDB\bin\Debug\netstandard2.0\LiteDB.dll</HintPath>
+			<HintPath>LiteDB.dll</HintPath>
 		</Reference>
 		
 		<PackageReference Include="Markdig" Version="0.21.1" />
@@ -62,6 +62,12 @@
 
 	<ItemGroup>
 	  <Folder Include="wwwroot\img\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="LiteDB.dll">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 	<PropertyGroup>
