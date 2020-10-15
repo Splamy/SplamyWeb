@@ -83,7 +83,7 @@ namespace SplamyWeb.OldDb
 
 		public async Task Initialize(Db.SplamyContext context, IMapper mapper)
 		{
-			await context.Database.EnsureDeletedAsync();
+			//await context.Database.EnsureDeletedAsync();
 			if (await context.Database.EnsureCreatedAsync())
 			{
 				Log.Info("Created DB, updating from old");

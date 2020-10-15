@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SplamyWeb.Components;
 
@@ -19,9 +20,11 @@ namespace SplamyWeb.Db
 
 		// https://docs.microsoft.com/en-us/ef/core/miscellaneous/logging?tabs=v3
 		public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
+		private string? connectionString;
 
-		public SplamyContext(DbContextOptions options) : base(options)
+		public SplamyContext(DbContextOptions options, IConfiguration conf) : base(options)
 		{
+			connectionString = conf.GetConnectionString("DefaultConnection");
 			//Log.Info("Created context");
 		}
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
@@ -32,7 +35,7 @@ namespace SplamyWeb.Db
 			//.UseLoggerFactory(MyLoggerFactory)
 			.EnableSensitiveDataLogging()
 #endif
-			.UseNpgsql("Host=localhost;Database=splamy_db;Username=postgres;Password=postgres")
+			.UseNpgsql(connectionString)
 			;
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
