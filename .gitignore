@@ -9,6 +9,7 @@
 #data
 data/
 appsettings.json
+launchsettings.json
 *.exe
 
 # User-specific files
