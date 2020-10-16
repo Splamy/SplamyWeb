@@ -10,6 +10,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Compile Remove="data/**/*" />
+		<Content Remove="data/**/*" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="AutoMapper" Version="10.1.0" />
 		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.0" />
 		<PackageReference Include="CliWrap" Version="3.2.2" />
@@ -20,8 +25,8 @@
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="3.1.9" Condition="'$(Configuration)' == 'Debug'" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.9" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.9">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.9" />
 		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.4" />
@@ -40,11 +45,6 @@
 		<DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.0" />
 	</ItemGroup>
 
-	<Target Name="BinUtilContent" AfterTargets="AfterBuild">
-		<Copy SourceFiles="BinUtil\ResGen.exe" DestinationFolder="$(OutDir)" />
-		<Copy SourceFiles="BinUtil\al.exe" DestinationFolder="$(OutDir)" />
-	</Target>
-
 	<ItemGroup>
 		<None Include="compilerconfig.json" />
 		<_ContentIncludedByDefault Remove="compilerconfig.json" />
@@ -62,7 +62,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="wwwroot\img\" />
+		<Folder Include="wwwroot\img\" />
 	</ItemGroup>
 
 	<PropertyGroup>
@@ -81,5 +81,4 @@
 		<TypeScriptMapRoot />
 		<TypeScriptSourceRoot />
 	</PropertyGroup>
-
 </Project>

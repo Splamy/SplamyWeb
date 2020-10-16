@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -36,32 +36,18 @@ namespace SplamyWeb.Controllers
 
 		[HttpGet("project/{project}/languages")]
 		[Produces(MediaTypeNames.Application.Json)]
-		public IActionResult GetLanguageList(string project)
+		public async Task<IActionResult> GetLanguageList(string project)
 		{
 			if (!IsSave(project))
 				return BadRequest("Invalid project");
 
 			project = project.ToLowerInvariant();
 
-			var fullPath = new DirectoryInfo(Path.Combine(languageBasePath, project));
-			if (!fullPath.Exists)
-				return NotFound("The language was not found");
+			var projectData = await db.NightlyProjects.Include(p => p.Languages).SingleOrDefaultAsync(p => p.Project == project);
+			if (projectData is null)
+				return BadRequest("Project not found");
 
-			return Ok(GetLanguageListDir(project));
-		}
-
-		private static IEnumerable<string> GetLanguageListDir(string project)
-		{
-			if (!IsSave(project))
-				return Enumerable.Empty<string>();
-
-			project = project.ToLowerInvariant();
-
-			var fullPath = new DirectoryInfo(Path.Combine(languageBasePath, project));
-			if (!fullPath.Exists)
-				return Enumerable.Empty<string>();
-
-			return fullPath.GetDirectories().Select(d => d.Name);
+			return Ok(projectData.Languages.Select(lang => lang.Language));
 		}
 
 		[HttpGet("project/{project}/language/{language}/dll")]
@@ -77,7 +63,8 @@ namespace SplamyWeb.Controllers
 			catch { return NotFound("Culture not found"); }
 
 			var langEntry = await GetLanguageEntry(project, culture);
-			var fullPath = new FileInfo(Path.Combine(languageBasePath, project, culture.Name, "strings.dll"));
+			// TODO change when other projects are added
+			var fullPath = new FileInfo(Path.Combine(languageBasePath, project, culture.Name, "TS3AudioBot.resources.dll"));
 			if (langEntry == null || !fullPath.Exists)
 				return NotFound("The language was not found");
 
@@ -88,134 +75,124 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPost("project/{project}/update")]
-		public async Task<IActionResult> UpdateLanguageFilesAsync(string project)
-		{
-			if (!IsSave(project))
-				return BadRequest("Invalid project");
-
-			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
-			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
-
-			var projectData = await db.NightlyProjects.SingleOrDefaultAsync(p => p.Project == project);
-			if (projectData is null)
-				return BadRequest("Project not found");
-
-			Log.Info("Requested language update");
-			var requestM = await TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
-			using var resultM = await httpClient.SendAsync(requestM);
-			if (!resultM.IsSuccessStatusCode)
-				return UnprocessableEntity("Error from transifex");
-			var languages = await resultM.Content.ReadFromJsonAsync<TransifexLanguage[]>(JsonDefault);
-
-			var projectPath = Path.Combine(languageBasePath, project);
-			Directory.CreateDirectory(projectPath);
-
-			Log.Info("Fetching all localization files from transifex");
-			await Task.WhenAll(languages.Select(async lang =>
-			{
-				var language = lang.language_code;
-				var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language}/?file");
-
-				using var result = await httpClient.SendAsync(request);
-				if (!result.IsSuccessStatusCode)
-					return;
-
-				try { language = CultureInfo.GetCultureInfo(language.Replace("_", "-", StringComparison.Ordinal)).Name; }
-				catch { return; }
-
-				var languagePath = Path.Combine(projectPath, language);
-				Directory.CreateDirectory(languagePath);
-
-				using var demoDataStream = System.IO.File.Open(Path.Combine(languagePath, "strings.resx"), FileMode.Create, FileAccess.Write);
-				using var stream = await result.Content.ReadAsStreamAsync();
-				await stream.CopyToAsync(demoDataStream);
-			}));
-
-			return await RebuildLanguageFiles(project);
-		}
+		public Task<IActionResult> UpdateLanguageFilesAsync(string project) => RebuildInternal(project, downloadFiles: true);
 
 		[HttpPost("project/{project}/rebuild")]
-		public async Task<IActionResult> RebuildLanguageFiles(string project)
+		public Task<IActionResult> RebuildLanguageFiles(string project) => RebuildInternal(project, downloadFiles: false);
+
+		private async Task<IActionResult> RebuildInternal(string project, bool downloadFiles)
 		{
+			if (project != "ts3ab")
+				return BadRequest("Project not supported");
+
 			if (!IsSave(project))
 				return BadRequest("Invalid project");
+
+			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
+			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
 			var projectData = await db.NightlyProjects.SingleOrDefaultAsync(p => p.Project == project);
 			if (projectData is null)
 				return BadRequest("Project not found");
 
-			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
-			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
-
-			Log.Info("Requested language rebuild");
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 
-			await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE nightly_lang");
-
-			var report = await Task.WhenAll(GetLanguageListDir(project).Select(async langFile =>
+			if (downloadFiles)
 			{
-				string language;
-				try { language = CultureInfo.GetCultureInfo(langFile).Name; }
-				catch { return new BuildReport(langFile, false, "Lang not found"); }
+				Log.Info("Requested language update");
+				var requestM = await TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
+				using var resultM = await httpClient.SendAsync(requestM);
+				if (!resultM.IsSuccessStatusCode)
+					return UnprocessableEntity("Error from transifex");
+				var languages = await resultM.Content.ReadFromJsonAsync<TransifexLanguage[]>(JsonDefault);
 
-				var languagePath = Path.Combine(projectPath, language);
-				if (!System.IO.File.Exists(Path.Combine(languagePath, "strings.resx")))
-					return new BuildReport(language, false, "strings.resx not found");
+				await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE nightly_lang");
 
-				var result = await ProcessFile(
-					"resgen",
-					"strings.resx",
-					language, languagePath,
-					"Failed to transform resx file");
-				if (result != null) { return result; }
-
-				result = await ProcessFile(
-					"al",
-					$"-target:lib -embed:strings.resources,TS3AudioBot.Localization.strings.{language}.resources -culture:{language} -out:TS3AudioBot.resources.dll",
-					language, languagePath,
-					"Failed to compile satellite assembly");
-				if (result != null) { return result; }
-
-				System.IO.File.Copy(Path.Combine(languagePath, "TS3AudioBot.resources.dll"), Path.Combine(languagePath, "strings.dll"), true);
-
-				db.LanguageEntries.Add(new LanguageEntry
+				Log.Info("Fetching all localization files from transifex");
+				await Task.WhenAll(languages.Select(async lang =>
 				{
-					Language = language,
-					Project = project,
-					UploadTime = DateTime.UtcNow
-				});
+					string language;
+					try { language = CultureInfo.GetCultureInfo(lang.language_code.Replace("_", "-", StringComparison.Ordinal)).Name; }
+					catch { return; }
 
-				return new BuildReport(language, true);
-			}));
+					var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{lang.language_code}/?file");
+					using var result = await httpClient.SendAsync(request);
+					if (!result.IsSuccessStatusCode)
+						return;
 
-			await db.SaveChangesAsync();
-			return Ok(report);
-		}
+					using var demoDataStream = System.IO.File.Open(Path.Combine(projectPath, $"strings.{language}.resx"), FileMode.Create, FileAccess.Write);
+					using var stream = await result.Content.ReadAsStreamAsync();
+					await stream.CopyToAsync(demoDataStream);
 
-		private static async Task<BuildReport?> ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
-		{
+					db.LanguageEntries.Add(new LanguageEntry
+					{
+						Language = language,
+						Project = project,
+						UploadTime = DateTime.UtcNow
+					});
+				}));
+
+				await db.SaveChangesAsync();
+			}
+
+			Log.Info("Requested language rebuild");
+
+			var buildCsproj = await store.Get($"lang_build_{project}");
+			if (buildCsproj is null)
+				return StatusCode((int)HttpStatusCode.InternalServerError, "No build config for nighly data");
+
+			var csprojFile = Path.Combine(projectPath, "build.csproj");
+			if (System.IO.File.Exists(csprojFile))
+				System.IO.File.Delete(csprojFile);
+			System.IO.File.WriteAllText(csprojFile, buildCsproj, Encoding.UTF8);
+
+			BufferedCommandResult buildRes;
 			try
 			{
 				// TODO 10 sec timout
-				var buildRes = await Cli.Wrap(bin)
-					.WithArguments(arg)
-					.WithWorkingDirectory(languagePath)
+				buildRes = await Cli.Wrap("dotnet")
+					.WithArguments("build -c Release")
+					.WithWorkingDirectory(projectPath)
 					.WithValidation(CommandResultValidation.None)
 					.ExecuteBufferedAsync();
 
 				if (buildRes.ExitCode != 0)
 				{
-					return new BuildReport(language, false, errMsg);
+					return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to build: " + buildRes.StandardOutput);
 				}
 			}
 			catch (Exception ex)
 			{
-				return new BuildReport(language, false, $"{errMsg}\nReason: {ex.Message}");
+				return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to build (process error): " + ex.Message);
 			}
 
-			return null;
+			var languageEntries = await db.LanguageEntries.ToArrayAsync();
+			foreach (var dir in languageEntries)
+			{
+				if (!Directory.Exists(dir.Language))
+				{
+					db.LanguageEntries.Remove(dir);
+				}
+			}
+
+			await db.SaveChangesAsync();
+			return Ok(buildRes.StandardOutput);
 		}
+
+		/*
+		 * Example:
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<RootNamespace>TS3AudioBot.Localization</RootNamespace>
+		<AssemblyName>TS3AudioBot</AssemblyName>
+		<OutputPath>.</OutputPath>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+	</PropertyGroup>
+</Project>
+		 */
 
 		private async ValueTask<HttpRequestMessage> TransifexRequest(HttpMethod method, string link)
 		{
@@ -236,20 +213,6 @@ namespace SplamyWeb.Controllers
 	}
 
 #pragma warning disable IDE1006, CS8618 // Naming Styles
-	internal class BuildReport
-	{
-		public string language { get; set; }
-		public bool ok { get; set; }
-		public string? message { get; set; }
-
-		public BuildReport(string language, bool ok, string? message = null)
-		{
-			this.language = language;
-			this.ok = ok;
-			this.message = message;
-		}
-	}
-
 	internal class TransifexLanguage
 	{
 		//public object coordinators { get; set; }
