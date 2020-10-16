@@ -60,6 +60,15 @@
 	  <Folder Include="wwwroot\img\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Update="BinUtil\al.exe">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="BinUtil\ResGen.exe">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
 	<PropertyGroup>
 		<TypeScriptToolsVersion>3.9</TypeScriptToolsVersion>
 		<TypeScriptTarget>es2018</TypeScriptTarget>

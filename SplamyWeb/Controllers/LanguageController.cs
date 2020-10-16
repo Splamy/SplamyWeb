@@ -195,17 +195,25 @@ namespace SplamyWeb.Controllers
 
 		private static async Task<BuildReport?> ProcessFile(string bin, string arg, string language, string languagePath, string errMsg)
 		{
-			// TODO 10 sec timout
-			var buildRes = await Cli.Wrap(bin)
-				.WithArguments(arg)
-				.WithWorkingDirectory(languagePath)
-				.WithValidation(CommandResultValidation.None)
-				.ExecuteBufferedAsync();
-
-			if (buildRes.ExitCode != 0)
+			try
 			{
-				return new BuildReport(language, false, errMsg);
+				// TODO 10 sec timout
+				var buildRes = await Cli.Wrap(bin)
+					.WithArguments(arg)
+					.WithWorkingDirectory(languagePath)
+					.WithValidation(CommandResultValidation.None)
+					.ExecuteBufferedAsync();
+
+				if (buildRes.ExitCode != 0)
+				{
+					return new BuildReport(language, false, errMsg);
+				}
 			}
+			catch (Exception ex)
+			{
+				return new BuildReport(language, false, $"{errMsg}\nReason: {ex.Message}");
+			}
+
 			return null;
 		}
 

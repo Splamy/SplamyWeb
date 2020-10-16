@@ -9,7 +9,6 @@
 #data
 data/
 appsettings.json
-*.exe
 
 # User-specific files
 *.suo
