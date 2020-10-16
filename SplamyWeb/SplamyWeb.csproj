@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
 		<TargetFramework>netcoreapp3.1</TargetFramework>
@@ -40,6 +40,11 @@
 		<DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.0" />
 	</ItemGroup>
 
+	<Target Name="BinUtilContent" AfterTargets="AfterBuild">
+		<Copy SourceFiles="BinUtil\ResGen.exe" DestinationFolder="$(OutDir)" />
+		<Copy SourceFiles="BinUtil\al.exe" DestinationFolder="$(OutDir)" />
+	</Target>
+
 	<ItemGroup>
 		<None Include="compilerconfig.json" />
 		<_ContentIncludedByDefault Remove="compilerconfig.json" />
@@ -58,15 +63,6 @@
 
 	<ItemGroup>
 	  <Folder Include="wwwroot\img\" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Update="BinUtil\al.exe">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </None>
-	  <None Update="BinUtil\ResGen.exe">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </None>
 	</ItemGroup>
 
 	<PropertyGroup>
