@@ -1,6 +1,7 @@
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using ProtoBuf;
 using System;
 using System.Collections.Generic;
@@ -35,15 +36,14 @@ namespace SplamyWeb.Components
 		private string? cachedFileSha;
 		private long LastBadgeUpdate = 0;
 		private readonly CsvConfiguration CsvConfig = new CsvConfiguration(CultureInfo.InvariantCulture);
+		private readonly IServiceScopeFactory scopeFactory;
 
-		private readonly StoreService store;
-
-		public TeamspeakService(TimerService timer, StoreService store)
+		public TeamspeakService(IServiceScopeFactory scopeFactory, TimerService timer)
 		{
 			timer.Register(UpdateVersionsAsync);
 			timer.Register(UpdateBadgesAsync);
 			timer.Register(KeepNicknamesValidAsync);
-			this.store = store;
+			this.scopeFactory = scopeFactory;
 		}
 
 		public static async Task<(bool safe, bool affectsVersion)> CheckSafeToAccept(string url)
@@ -368,9 +368,11 @@ namespace SplamyWeb.Components
 
 		private async Task<bool> PutJson<T>(string action, T data) where T : class
 		{
+			using var scope = scopeFactory.CreateScope();
+			var store = scope.ServiceProvider.GetRequiredService<StoreService>();
+
 			try
 			{
-
 				var json = JsonSerializer.Serialize(data, Util.JsonDefault);
 				var content = new StringContent(json, Encoding.UTF8, "application/json");
 				var request = new HttpRequestMessage(HttpMethod.Put, ProjectUrlBase + action)
