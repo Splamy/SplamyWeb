@@ -20,7 +20,7 @@ namespace SplamyWeb.Db
 
 		// https://docs.microsoft.com/en-us/ef/core/miscellaneous/logging?tabs=v3
 		public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
-		private string? connectionString;
+		private readonly string? connectionString;
 
 		public SplamyContext(DbContextOptions options, IConfiguration conf) : base(options)
 		{

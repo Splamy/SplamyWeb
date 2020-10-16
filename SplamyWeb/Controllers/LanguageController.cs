@@ -113,7 +113,11 @@ namespace SplamyWeb.Controllers
 				await Task.WhenAll(languages.Select(async lang =>
 				{
 					string language;
-					try { language = CultureInfo.GetCultureInfo(lang.language_code.Replace("_", "-", StringComparison.Ordinal)).Name; }
+					try {
+						language = CultureInfo.GetCultureInfo(lang.language_code.Replace("_", "-", StringComparison.Ordinal)).Name;
+						if (string.Equals(language, "BS-BA", StringComparison.OrdinalIgnoreCase))
+							language = "bs";
+					}
 					catch { return; }
 
 					var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{lang.language_code}/?file");
@@ -170,8 +174,9 @@ namespace SplamyWeb.Controllers
 			var languageEntries = await db.LanguageEntries.ToArrayAsync();
 			foreach (var dir in languageEntries)
 			{
-				if (!Directory.Exists(dir.Language))
+				if (!Directory.Exists(Path.Combine(projectPath, dir.Language)))
 				{
+					Log.Warn("Unknown language: {0}", dir.Language);
 					db.LanguageEntries.Remove(dir);
 				}
 			}
