@@ -22,7 +22,7 @@ namespace SplamyWeb.Controllers
 	[Route("api/[controller]")]
 	public class LanguageController : Controller
 	{
-		private static readonly string languageBasePath = Path.Combine(OldDb.LocalDb.DataPath, "language");
+		private static readonly string languageBasePath = Path.Combine(Util.DataPath, "language");
 
 		private readonly SplamyContext db;
 		private readonly StoreService store;

@@ -1,4 +1,3 @@
-using LiteDB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RateMapSeveritySaber;

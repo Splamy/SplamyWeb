@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -13,6 +14,7 @@ namespace SplamyWeb
 		public const string AuthScheme = "BasicAuthentication,Identity.Application";
 
 		public static readonly HttpClient httpClient = new HttpClient();
+		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		static Util()
 		{

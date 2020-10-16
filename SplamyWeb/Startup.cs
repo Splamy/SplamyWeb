@@ -59,7 +59,6 @@ namespace SplamyWeb
 			});
 
 			services.AddDbContext<SplamyContext>();
-			services.AddSingleton<OldDb.LocalDb>();
 			services.AddScoped<IUserStore<LoginData>, UserStore>();
 			services.AddScoped<IRoleStore<LoginData>, UserStore>();
 			services.AddScoped<IUserPasswordStore<LoginData>, UserStore>();
@@ -113,9 +112,7 @@ namespace SplamyWeb
 		{
 			provider.GetService<TeamspeakService>();
 			provider.GetService<TabBackingData>();
-			var db = provider.GetService<OldDb.LocalDb>();
-			if (db != null)
-				applicationLifetime.ApplicationStopping.Register(() => db.CloseDb());
+			//applicationLifetime.ApplicationStopping.Register(() => { });
 
 #if DEBUG
 			var mapper = provider.GetService<IMapper>();

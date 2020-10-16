@@ -28,7 +28,7 @@ namespace SplamyWeb.Controllers
 			this.db = db;
 		}
 
-		private readonly string nightlyPath = Path.Combine(OldDb.LocalDb.DataPath, "nightly");
+		private readonly string nightlyPath = Path.Combine(Util.DataPath, "nightly");
 
 		[HttpGet("{project}/{branch}/download")]
 		[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]

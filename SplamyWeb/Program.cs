@@ -1,12 +1,9 @@
-using AutoMapper;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
-using SplamyWeb.Db;
-using SplamyWeb.OldDb;
 using System.Threading.Tasks;
 
 namespace SplamyWeb
@@ -20,15 +17,7 @@ namespace SplamyWeb
 			// Create a new scope
 			using (var scope = webHost.Services.CreateScope())
 			{
-				// Get the DbContext instance
-				var mapper = scope.ServiceProvider.GetRequiredService<IMapper>();
-				var context = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-				var db = scope.ServiceProvider.GetRequiredService<LocalDb>();
-
-				await db.Initialize(context, mapper);
-
-
-				//Do the migration asynchronously
+				//Here's the place for automated db upgrades
 				//await myDbContext.Database.MigrateAsync();
 			}
 
