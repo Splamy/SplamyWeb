@@ -22,6 +22,7 @@ namespace SplamyWeb.Controllers
 	[Route("api/[controller]")]
 	public class LanguageController : Controller
 	{
+		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private static readonly string languageBasePath = Path.Combine(Util.DataPath, "language");
 
 		private readonly SplamyContext db;
@@ -38,7 +39,7 @@ namespace SplamyWeb.Controllers
 		public IActionResult GetLanguageList(string project)
 		{
 			if (!IsSave(project))
-				return BadRequest("Invalid path");
+				return BadRequest("Invalid project");
 
 			project = project.ToLowerInvariant();
 
@@ -68,7 +69,7 @@ namespace SplamyWeb.Controllers
 		public async Task<IActionResult> GetLanguageFile(string project, string language)
 		{
 			if (!IsSave(project) || !IsSave(language))
-				return BadRequest("Invalid path");
+				return BadRequest("Invalid project or language");
 
 			project = project.ToLowerInvariant();
 			CultureInfo culture;
@@ -89,9 +90,17 @@ namespace SplamyWeb.Controllers
 		[HttpPost("project/{project}/update")]
 		public async Task<IActionResult> UpdateLanguageFilesAsync(string project)
 		{
+			if (!IsSave(project))
+				return BadRequest("Invalid project");
+
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
+			var projectData = await db.NightlyProjects.SingleOrDefaultAsync(p => p.Project == project);
+			if (projectData is null)
+				return BadRequest("Project not found");
+
+			Log.Info("Requested language update");
 			var requestM = await TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
 			using var resultM = await httpClient.SendAsync(requestM);
 			if (!resultM.IsSuccessStatusCode)
@@ -101,6 +110,7 @@ namespace SplamyWeb.Controllers
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 
+			Log.Info("Fetching all localization files from transifex");
 			await Task.WhenAll(languages.Select(async lang =>
 			{
 				var language = lang.language_code;
@@ -127,9 +137,17 @@ namespace SplamyWeb.Controllers
 		[HttpPost("project/{project}/rebuild")]
 		public async Task<IActionResult> RebuildLanguageFiles(string project)
 		{
+			if (!IsSave(project))
+				return BadRequest("Invalid project");
+
+			var projectData = await db.NightlyProjects.SingleOrDefaultAsync(p => p.Project == project);
+			if (projectData is null)
+				return BadRequest("Project not found");
+
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 			// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
+			Log.Info("Requested language rebuild");
 			var projectPath = Path.Combine(languageBasePath, project);
 			Directory.CreateDirectory(projectPath);
 

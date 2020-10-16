@@ -1,5 +1,5 @@
 async function ask_delete_nightly(project: string, branch: string) {
-	let answer = await swal(`Delete ${project}/${branch} ?`, {
+	const answer = await swal(`Delete ${project}/${branch} ?`, {
 		dangerMode: true,
 		button: {
 			text: "Delete",
@@ -8,7 +8,7 @@ async function ask_delete_nightly(project: string, branch: string) {
 	});
 	if (answer) {
 		try {
-			var response = await fetch(`api/nightly/${project}/${branch}`, {
+			const response = await fetch(`api/nightly/${project}/${branch}`, {
 				method: "DELETE",
 				credentials: "include",
 				redirect: "follow",
