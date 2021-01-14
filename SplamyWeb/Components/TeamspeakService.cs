@@ -24,18 +24,18 @@ namespace SplamyWeb.Components
 
 		private static readonly string[] CheckedNicknames = new[] { "loc", "splamy" };
 
-		private static readonly Regex diffMatch = new Regex("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
-		private static readonly Regex versionClean = new Regex(@"[^a-zA-Z0-9\+=/]");
+		private static readonly Regex diffMatch = new("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
+		private static readonly Regex versionClean = new(@"[^a-zA-Z0-9\+=/]");
 		public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
 
 		private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
 		private const string CsvHeader = "version,platform,hash\n";
 
-		private readonly object cacheLock = new object();
-		private HashSet<VersionSign> cachedVersions = new HashSet<VersionSign>();
+		private readonly object cacheLock = new();
+		private HashSet<VersionSign> cachedVersions = new();
 		private string? cachedFileSha;
 		private long LastBadgeUpdate = 0;
-		private readonly CsvConfiguration CsvConfig = new CsvConfiguration(CultureInfo.InvariantCulture);
+		private readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
 		private readonly IServiceScopeFactory scopeFactory;
 
 		public TeamspeakService(IServiceScopeFactory scopeFactory, TimerService timer)

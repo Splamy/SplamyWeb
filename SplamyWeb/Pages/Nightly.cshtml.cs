@@ -43,11 +43,11 @@ namespace SplamyWeb.Pages
 					select new ProjectInfo
 					{
 						Project = nProject,
-						Builds =
+						Builds = (
 							from build in db.NightlyBuilds
 							where build.Project == nProject.Project
 							orderby build.UploadTime
-							select new BuildInfo { Build = build, Active = build.NightlyBranch.Active == build.Commit }
+							select new BuildInfo { Build = build, Active = build.NightlyBranch.Active == build.Commit }).ToList()
 					}
 				).AsAsyncEnumerable();
 			}
@@ -59,11 +59,11 @@ namespace SplamyWeb.Pages
 					select new ProjectInfo
 					{
 						Project = nProject,
-						Builds =
+						Builds = (
 							from build in db.NightlyBuilds
 							where build.Project == nProject.Project && build.NightlyBranch.Active == build.Commit
 							orderby build.Branch
-							select new BuildInfo { Build = build, Active = true }
+							select new BuildInfo { Build = build, Active = true }).ToList()
 					}
 				).AsAsyncEnumerable();
 			}
@@ -74,12 +74,13 @@ namespace SplamyWeb.Pages
 		}
 	}
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 	public class ProjectInfo
 	{
 		public NightlyProject Project { get; set; }
-		public IEnumerable<BuildInfo> Builds { get; set; }
+		public IList<BuildInfo> Builds { get; set; }
 
-		public void Deconstruct(out NightlyProject project, out IEnumerable<BuildInfo> builds)
+		public void Deconstruct(out NightlyProject project, out IList<BuildInfo> builds)
 		{
 			project = Project;
 			builds = Builds;
@@ -97,4 +98,5 @@ namespace SplamyWeb.Pages
 			active = Active;
 		}
 	}
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 }

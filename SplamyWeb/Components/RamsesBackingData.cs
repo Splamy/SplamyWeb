@@ -14,9 +14,8 @@ namespace SplamyWeb.Components
 	public class RamsesBackingData
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		private readonly BufferBlock<ProcessEntry> _bufferBlock = new BufferBlock<ProcessEntry>();
+		private readonly BufferBlock<ProcessEntry> _bufferBlock = new();
 		private readonly IServiceScopeFactory scopeFactory;
-		private readonly Task processTask;
 
 		private readonly string RamsesVersion;
 
@@ -24,7 +23,7 @@ namespace SplamyWeb.Components
 		{
 			var ver = typeof(Analyzer).Assembly.GetName().Version!;
 			RamsesVersion = $"{ver.Major}.{ver.Minor}";
-			processTask = Process();
+			_ = Process();
 			this.scopeFactory = scopeFactory;
 		}
 

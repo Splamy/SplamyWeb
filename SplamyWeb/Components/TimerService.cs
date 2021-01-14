@@ -6,21 +6,27 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	public class TimerService : IHostedService, IDisposable
+	public sealed class TimerService : IHostedService, IDisposable
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private Timer? timer;
 
-		private readonly ConcurrentBag<Func<Task>> tick = new ConcurrentBag<Func<Task>>();
+		private readonly ConcurrentBag<Func<Task>> tick = new();
 
-		public async Task StartAsync(CancellationToken cancellationToken)
+		public Task StartAsync(CancellationToken cancellationToken)
 		{
 			Log.Info("HTask service is starting.");
 
-			// Wait a second for other services to register first
-			await Task.Delay(1000);
+			async void StartTimerDelayed()
+			{
+				// Wait a second for other services to register first
+				await Task.Delay(1000, cancellationToken);
 
-			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+				timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+			}
+			StartTimerDelayed();
+
+			return Task.CompletedTask;
 		}
 
 		public void Register(Func<Task> func)

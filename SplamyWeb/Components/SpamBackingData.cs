@@ -8,7 +8,7 @@ namespace SplamyWeb.Components
 {
 	public class SpamBackingData
 	{
-		private readonly Dictionary<IPAddress, SpamCacheEntry> spamCache = new Dictionary<IPAddress, SpamCacheEntry>();
+		private readonly Dictionary<IPAddress, SpamCacheEntry> spamCache = new();
 
 		private const int MaxIpRequests = 1_000;
 		private static readonly TimeSpan ResetIpRequestsAfter = TimeSpan.FromHours(1);

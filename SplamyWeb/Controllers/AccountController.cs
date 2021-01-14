@@ -67,6 +67,6 @@ namespace SplamyWeb.Controllers
 			return RedirectToPage("/Index");
 		}
 
-		private string ToErrs(IdentityResult res) => string.Join(",", res.Errors.Select(e => e.Code));
+		private static string ToErrs(IdentityResult res) => string.Join(",", res.Errors.Select(e => e.Code));
 	}
 }

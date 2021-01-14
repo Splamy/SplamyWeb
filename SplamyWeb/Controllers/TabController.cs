@@ -25,7 +25,8 @@ namespace SplamyWeb.Controllers
 		[Consumes("application/json")]
 		public async Task PostPing()
 		{
-			if (!spam.Check(Request.HttpContext.Connection.RemoteIpAddress))
+			var remoteIp = Request.HttpContext.Connection.RemoteIpAddress;
+			if (remoteIp is null || !spam.Check(remoteIp))
 				return;
 
 			TabStatsData? obj = null;

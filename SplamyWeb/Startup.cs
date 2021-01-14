@@ -85,7 +85,7 @@ namespace SplamyWeb
 			services.AddAutoMapper(typeof(Startup));
 
 			services.AddSingleton<TimerService>();
-			services.AddSingleton<IHostedService>(p => p.GetService<TimerService>());
+			services.AddSingleton<IHostedService>(p => p.GetRequiredService<TimerService>());
 
 			services.AddScoped<StoreService>();
 			services.AddSingleton<TabBackingData>();
@@ -115,7 +115,7 @@ namespace SplamyWeb
 			//applicationLifetime.ApplicationStopping.Register(() => { });
 
 #if DEBUG
-			var mapper = provider.GetService<IMapper>();
+			var mapper = provider.GetRequiredService<IMapper>();
 			mapper.ConfigurationProvider.AssertConfigurationIsValid();
 #endif
 

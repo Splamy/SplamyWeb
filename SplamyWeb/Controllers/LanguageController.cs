@@ -106,6 +106,8 @@ namespace SplamyWeb.Controllers
 				if (!resultM.IsSuccessStatusCode)
 					return UnprocessableEntity("Error from transifex");
 				var languages = await resultM.Content.ReadFromJsonAsync<TransifexLanguage[]>(JsonDefault);
+				if (languages is null)
+					return Problem("Could not get languages");
 
 				await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE nightly_lang");
 

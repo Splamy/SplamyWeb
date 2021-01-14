@@ -22,7 +22,7 @@ namespace SplamyWeb.Db
 		[JsonPropertyName("ramsesVersion")]
 		public string Version { get; set; }
 		[JsonPropertyName("maps")]
-		public List<RamsesMap> Maps { get; set; } = new List<RamsesMap>();
+		public List<RamsesMap> Maps { get; set; } = new();
 		[JsonIgnore]
 		public byte[]? RawMap { get; set; }
 

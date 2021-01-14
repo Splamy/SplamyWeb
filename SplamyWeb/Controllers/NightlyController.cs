@@ -169,10 +169,14 @@ namespace SplamyWeb.Controllers
 			nBuild.Version = version;
 			nBuild.Commit = commit;
 
+
 			var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, nBuild.FileName));
-			if (Directory.Exists(fullPath.DirectoryName))
-				Directory.Delete(fullPath.DirectoryName, true);
-			Directory.CreateDirectory(fullPath.DirectoryName);
+			var dir = fullPath.Directory;
+			if (dir is null)
+				return Problem("Could not create directory");
+			if (dir.Exists)
+				dir.Delete(true);
+			dir.Create();
 			using (var demoDataStream = fullPath.OpenWrite())
 			{
 				await HttpContext.Request.Body.CopyToAsync(demoDataStream);

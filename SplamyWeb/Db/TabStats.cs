@@ -55,7 +55,7 @@ namespace SplamyWeb.Db
 		// StatsData
 		public TimeSpan TotalUptime { get; set; }
 		public TimeSpan BotsRuntime { get; set; }
-		public List<TabStatsFactoryDto> SongStats { get; set; } = new List<TabStatsFactoryDto>();
+		public List<TabStatsFactoryDto> SongStats { get; set; } = new();
 
 		public long CommandCalls { get; set; }
 		///<summary>How many actually were started by a user (and not i.e. by event)</summary>
@@ -67,8 +67,8 @@ namespace SplamyWeb.Db
 	public class TabStatsFactoryDto
 	{
 		public long TabStatsId { get; set; }
-		public TabStatsPingDto TabStatsEntry { get; set; }
-		public string FactoryName { get; set; }
+		public TabStatsPingDto TabStatsEntry { get; set; } = null!;
+		public string FactoryName { get; set; } = null!;
 
 		public long PlayRequests { get; set; }
 		public long PlaySucessful { get; set; }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -13,23 +12,23 @@ namespace SplamyWeb
 	{
 		public const string AuthScheme = "BasicAuthentication,Identity.Application";
 
-		public static readonly HttpClient httpClient = new HttpClient();
+		public static readonly HttpClient httpClient = new();
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 
 		static Util()
 		{
 			httpClient.DefaultRequestHeaders.UserAgent.Clear();
-			httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SplamyWeb", "1.0.0"));
+			httpClient.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
 		}
 
-		public static NLog.Targets.MemoryTarget NLogMemory = new NLog.Targets.MemoryTarget()
+		public static readonly NLog.Targets.MemoryTarget NLogMemory = new()
 		{
 			Layout = "${longdate} | ${level} | ${message}",
 		};
 
-		private static readonly Regex saveRegex = new Regex(@"^[\w-_]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
+		private static readonly Regex saveRegex = new(@"^[\w-_]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
 
-		public static JsonSerializerOptions JsonDefault = new JsonSerializerOptions()
+		public static readonly JsonSerializerOptions JsonDefault = new()
 		{
 			Converters = { new TimeSpanConverter() },
 		};
@@ -63,7 +62,10 @@ namespace SplamyWeb
 	{
 		public override TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 		{
-			return TimeSpan.Parse(reader.GetString());
+			var str = reader.GetString();
+			if (string.IsNullOrEmpty(str))
+				throw new FormatException("Expected timespan string but got nothing");
+			return TimeSpan.Parse(str);
 		}
 
 		public override void Write(Utf8JsonWriter writer, TimeSpan value, JsonSerializerOptions options)

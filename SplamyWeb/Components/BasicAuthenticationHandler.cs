@@ -33,12 +33,14 @@ namespace SplamyWeb.Components
 		protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 		{
 			if (!Request.Headers.ContainsKey("Authorization"))
-				return AuthenticateResult.Fail("Missing Authorization Header");
+				return AuthenticateResult.Fail("Missing Authorization header");
 
 			LoginData? user = null;
 			try
 			{
 				var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
+				if (authHeader.Parameter is null)
+					return AuthenticateResult.Fail("Missing or empty Authorization header");
 				var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
 				var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':');
 				var username = credentials[0];
@@ -52,7 +54,7 @@ namespace SplamyWeb.Components
 			}
 			catch
 			{
-				return AuthenticateResult.Fail("Invalid Authorization Header");
+				return AuthenticateResult.Fail("Invalid Authorization header");
 			}
 
 			if (user is null)

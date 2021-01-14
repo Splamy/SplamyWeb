@@ -48,7 +48,7 @@ namespace SplamyWeb.Components
 			await db.SaveChangesAsync();
 		}
 
-		private bool VaidateTabStats(TabStatsData obj)
+		private static bool VaidateTabStats(TabStatsData obj)
 		{
 			if (
 				obj.Platform is null &&
