@@ -46,5 +46,12 @@ namespace SplamyWeb.Controllers
 		{
 			return Ok(tab.CachedDayStats);
 		}
+
+		[HttpPost("stats/update")]
+		[Produces("application/json")]
+		public async Task UpdateGraphData()
+		{
+			await tab.UpdateAggregates();
+		}
 	}
 }

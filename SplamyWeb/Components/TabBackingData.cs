@@ -80,7 +80,7 @@ namespace SplamyWeb.Components
 			return true;
 		}
 
-		private async Task UpdateAggregates()
+		public async Task UpdateAggregates()
 		{
 			using var scope = scopeFactory.CreateScope();
 			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();

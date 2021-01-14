@@ -91,9 +91,7 @@ namespace SplamyWeb
 			services.AddSingleton<TabBackingData>();
 			services.AddSingleton<SpamBackingData>();
 			services.AddSingleton<RamsesBackingData>();
-#if !DEBUG
 			services.AddSingleton<TeamspeakService>();
-#endif
 
 			var layout = Layout.FromString("${pad:padding=5:inner=${level:uppercase=true}} ${message} ${exception:format=ToString}");
 			var config = new LoggingConfiguration();

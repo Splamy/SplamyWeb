@@ -40,9 +40,11 @@ namespace SplamyWeb.Components
 
 		public TeamspeakService(IServiceScopeFactory scopeFactory, TimerService timer)
 		{
+#if !DEBUG
 			timer.Register(UpdateVersionsAsync);
 			timer.Register(UpdateBadgesAsync);
 			timer.Register(KeepNicknamesValidAsync);
+#endif
 			this.scopeFactory = scopeFactory;
 		}
 
