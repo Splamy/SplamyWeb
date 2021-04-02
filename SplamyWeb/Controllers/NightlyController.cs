@@ -163,12 +163,11 @@ namespace SplamyWeb.Controllers
 				where nb.NightlyBranch.Project == project && nb.Branch == branch && nb.Commit == commit
 				select nb)
 				.SingleOrDefaultAsync();
-			nBuild ??= (await db.NightlyBuilds.AddAsync(new NightlyBuild { Branch = branch, ZipContent = false, })).Entity;
+
+			nBuild ??= (await db.NightlyBuilds.AddAsync(new NightlyBuild { Project = project, Branch = branch, Commit = commit, ZipContent = false, })).Entity;
 			nBuild.UploadTime = DateTime.UtcNow;
 			nBuild.FileName = fileName ?? defaultName;
 			nBuild.Version = version;
-			nBuild.Commit = commit;
-
 
 			var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, nBuild.FileName));
 			var dir = fullPath.Directory;
