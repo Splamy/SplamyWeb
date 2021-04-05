@@ -6,6 +6,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,13 +19,15 @@ namespace SplamyWeb.Controllers
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private readonly StoreService store;
 		private readonly string build_qint_env = Path.Combine(Util.DataPath, "build_qint_env");
-		private static CancellationTokenSource? currentBuild = null;
+		private static BuildTask? currentBuild = null;
 		public const string CiContext = "splamy-ci";
 		public const string CiDescription = "Nightly build by Splamyserver";
 		public const string CiStatusSuccess = "success";
 		public const string CiStatusPending = "pending";
 		public const string CiStatusError = "error";
 		public const string CiStatusFailure = "failure";
+		public const string CiUrlBase = "https://splamy.de/api/qint/log/";
+		public static readonly Regex fileCleanRegex = new(@"[^\w\d]", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript);
 
 		public QintController(StoreService store)
 		{
@@ -32,7 +35,7 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpPost("push")]
-		public void Push([FromBody] GhPushEvent ev)
+		public async Task Push([FromBody] GhPushEvent ev)
 		{
 			//var expect_secret = await store.Get("build_qint_webhook_secret");
 			//if (ev?.hook?.config?.secret != expect_secret) return;
@@ -44,59 +47,76 @@ namespace SplamyWeb.Controllers
 			var commit = ev?.after;
 			if (commit is null) { Log.Info("No commit in webhook?"); return; }
 
-			var current_cts = new CancellationTokenSource();
-			var old_cts = Interlocked.Exchange(ref currentBuild, current_cts);
-			if (old_cts != null)
+			var createBuild = new BuildTask();
+			var oldBuild = Interlocked.Exchange(ref currentBuild, createBuild);
+			if (oldBuild != null)
 			{
-				old_cts.Cancel();
+				oldBuild.Cts.Cancel();
+				await oldBuild.Complete.Task;
 			}
 
-			Run(commit, current_cts);
+			Run(commit, createBuild);
 		}
 
-		public async void Run(string commit, CancellationTokenSource cts)
+		public async void Run(string commit, BuildTask build)
 		{
-			using var _ = cts;
+			var logFileName = fileCleanRegex.Replace($"{commit}{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", "");
+			var ciBuildUrl = $"{CiUrlBase}/{logFileName}";
 
 			try
 			{
-				await PushJson(new StateBody(CiStatusPending, CiContext, CiDescription), commit, cts.Token);
+				using var cts = build.Cts;
+				await PushJson(new StateBody(CiStatusPending, CiContext, CiDescription, ciBuildUrl), commit, cts.Token);
 
 				System.IO.File.WriteAllLines(build_qint_env, new[] {
-					$"QINT_SHA={commit}"
+					$"QINT_SHA={commit}",
+					$"QINT_LOG_FILE={logFileName}",
 				});
 
-				//await Cli.Wrap("systemctl")
-				//	.WithArguments("start buildqint")
-				//	.ExecuteAsync(cts.Token);
-				await Cli.Wrap("bash")
-					.WithArguments("/home/splamy/buildqint/build_qint.sh")
-					.WithWorkingDirectory("/home/splamy/buildqint")
+				await Cli.Wrap("systemctl")
+					.WithArguments("start buildqint")
 					.ExecuteAsync(cts.Token);
 
-				// TODO read output ?
-
-				await PushJson(new StateBody(CiStatusSuccess, CiContext, CiDescription), commit);
+				await PushJson(new StateBody(CiStatusSuccess, CiContext, CiDescription, ciBuildUrl), commit);
 			}
 			catch (OperationCanceledException)
 			{
-				// TODO stop systemctl
+				await Cli.Wrap("systemctl")
+					.WithArguments("kill buildqint")
+					.WithValidation(CommandResultValidation.None)
+					.ExecuteAsync();
 
-				await PushJson(new StateBody(CiStatusFailure, CiContext, "Cancelled"), commit);
+				await PushJson(new StateBody(CiStatusFailure, CiContext, "Cancelled", ciBuildUrl), commit);
 			}
 			catch (Exception ex)
 			{
 				Log.Error("Build {0} failed: {1}", commit, ex.Message);
-				await PushJson(new StateBody(CiStatusFailure, CiContext, "Failed"), commit);
+				await PushJson(new StateBody(CiStatusFailure, CiContext, "Failed", ciBuildUrl), commit);
 			}
-
-			Interlocked.CompareExchange(ref currentBuild, null, cts);
+			finally
+			{
+				Interlocked.CompareExchange(ref currentBuild, null, build);
+				build.Complete.TrySetResult();
+			}
 		}
 
-		[HttpPost("test_set_status")]
-		public async Task TestStatus([FromQuery] string sha, [FromQuery] string status)
+		[HttpGet("log/{build}")]
+		public IActionResult GetLog(string build)
 		{
-			_ = await PushJson(new StateBody(status, CiContext, CiDescription), sha);
+			var logFileName = fileCleanRegex.Replace(build, "");
+			if (logFileName.Contains(".") || logFileName.Contains("/") || logFileName.Contains("\\"))
+			{
+				Log.Fatal("This shouldn't happen");
+				return Forbid();
+			}
+
+			return File($"/var/lib/buildqint/{logFileName}", "text/plain");
+		}
+
+		[HttpGet("download")]
+		public IActionResult GetBinary()
+		{
+			return File($"/var/lib/buildqint/out/Qint.zip", "application/x-zip");
 		}
 
 		private async Task<bool> PushJson(StateBody data, string sha, CancellationToken ct = default)
@@ -126,6 +146,7 @@ namespace SplamyWeb.Controllers
 		}
 	}
 
+#pragma warning disable IDE1006 // Naming Styles
 	public class GhPushEvent
 	{
 		// The pushed ref
@@ -140,5 +161,12 @@ namespace SplamyWeb.Controllers
 		public string? full_name { get; set; }
 	}
 
-	public record StateBody(string state, string context, string description);
+	public record StateBody(string state, string context, string description, string? target_url);
+
+	public class BuildTask
+	{
+		public TaskCompletionSource Complete { get; } = new TaskCompletionSource();
+		public CancellationTokenSource Cts { get; } = new CancellationTokenSource();
+	}
+#pragma warning restore IDE1006 // Naming Styles
 }
