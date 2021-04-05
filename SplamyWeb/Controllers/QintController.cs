@@ -116,7 +116,7 @@ namespace SplamyWeb.Controllers
 		[HttpGet("download")]
 		public IActionResult GetBinary()
 		{
-			return PhysicalFile($"/var/lib/buildqint/out/Qint.zip", "application/x-zip");
+			return PhysicalFile($"/var/lib/buildqint/out/Qint.zip", "application/x-zip", "Qint.zip");
 		}
 
 		private async Task<bool> PushJson(StateBody data, string sha, CancellationToken ct = default)
