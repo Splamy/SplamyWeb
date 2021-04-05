@@ -110,13 +110,13 @@ namespace SplamyWeb.Controllers
 				return Forbid();
 			}
 
-			return File($"/var/lib/buildqint/log/{logFileName}", "text/plain");
+			return PhysicalFile($"/var/lib/buildqint/log/{logFileName}", "text/plain");
 		}
 
 		[HttpGet("download")]
 		public IActionResult GetBinary()
 		{
-			return File($"/var/lib/buildqint/out/Qint.zip", "application/x-zip");
+			return PhysicalFile($"/var/lib/buildqint/out/Qint.zip", "application/x-zip");
 		}
 
 		private async Task<bool> PushJson(StateBody data, string sha, CancellationToken ct = default)
