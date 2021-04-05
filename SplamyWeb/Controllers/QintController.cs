@@ -73,16 +73,16 @@ namespace SplamyWeb.Controllers
 					$"QINT_LOG_FILE={logFileName}",
 				});
 
-				await Cli.Wrap("systemctl")
-					.WithArguments("start buildqint")
+				await Cli.Wrap("sudo")
+					.WithArguments("systemctl start buildqint")
 					.ExecuteAsync(cts.Token);
 
 				await PushJson(new StateBody(CiStatusSuccess, CiContext, CiDescription, ciBuildUrl), commit);
 			}
 			catch (OperationCanceledException)
 			{
-				await Cli.Wrap("systemctl")
-					.WithArguments("kill buildqint")
+				await Cli.Wrap("sudo")
+					.WithArguments("systemctl kill buildqint")
 					.WithValidation(CommandResultValidation.None)
 					.ExecuteAsync();
 
