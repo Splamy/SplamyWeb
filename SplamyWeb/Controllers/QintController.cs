@@ -110,7 +110,7 @@ namespace SplamyWeb.Controllers
 				return Forbid();
 			}
 
-			return File($"/var/lib/buildqint/{logFileName}", "text/plain");
+			return File($"/var/lib/buildqint/log/{logFileName}", "text/plain");
 		}
 
 		[HttpGet("download")]
