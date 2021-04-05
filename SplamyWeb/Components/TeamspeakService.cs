@@ -12,7 +12,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -375,8 +374,7 @@ namespace SplamyWeb.Components
 
 			try
 			{
-				var json = JsonSerializer.Serialize(data, Util.JsonDefault);
-				var content = new StringContent(json, Encoding.UTF8, "application/json");
+				var content = JsonContent.Create(data, MediaTypeHeaderValue.Parse("application/json"), Util.JsonDefault);
 				var request = new HttpRequestMessage(HttpMethod.Put, ProjectUrlBase + action)
 				{
 					Content = content,
