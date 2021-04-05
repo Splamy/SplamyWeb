@@ -61,7 +61,7 @@ namespace SplamyWeb.Controllers
 		public async void Run(string commit, BuildTask build)
 		{
 			var logFileName = fileCleanRegex.Replace($"{commit}{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", "");
-			var ciBuildUrl = $"{CiUrlBase}/{logFileName}";
+			var ciBuildUrl = $"{CiUrlBase}{logFileName}";
 
 			try
 			{
