@@ -87,7 +87,7 @@ namespace SplamyWeb.Controllers
 			catch (Exception ex)
 			{
 				Log.Error("Build {0} failed: {1}", commit, ex.Message);
-				await PushJson(new StateBody(CiStatusFailure, CiContext, "Failed: " + ex.Message), commit);
+				await PushJson(new StateBody(CiStatusFailure, CiContext, "Failed"), commit);
 			}
 
 			Interlocked.CompareExchange(ref currentBuild, null, cts);
