@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
 using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -41,7 +42,8 @@ namespace SplamyWeb.Controllers
 			//if (ev?.hook?.config?.secret != expect_secret) return;
 
 			// TODO renable after testing
-			// if (ev?.@ref != "refs/heads/master") { Log.Info("Invalid branch"); return; }
+			var buildBranch = await store.Get("build_qint_branch");
+			if (buildBranch != null && !buildBranch.Split(",", StringSplitOptions.TrimEntries).Contains(ev?.@ref)) { Log.Info("Invalid branch"); return; }
 
 			if (ev?.repository?.full_name != "ReSpeak/Qint") { Log.Info("Invalid project"); return; }
 			var commit = ev?.after;
