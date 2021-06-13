@@ -23,6 +23,9 @@ namespace SplamyWeb.Db
 		public string Version { get; set; }
 		[JsonPropertyName("maps")]
 		public List<RamsesMap> Maps { get; set; } = new();
+		[JsonPropertyName("error")]
+		[NotMapped]
+		public string? Error { get; set; }
 		[JsonIgnore]
 		public byte[]? RawMap { get; set; }
 

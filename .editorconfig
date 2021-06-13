@@ -10,6 +10,15 @@ indent_style = tab
 indent_size = tab
 tab_width = 4
 trim_trailing_whitespace = true
+dotnet_diagnostic.CA1036.severity=warning
+dotnet_diagnostic.CA1310.severity=warning
+dotnet_diagnostic.CA1805.severity=warning
+dotnet_diagnostic.CA2009.severity=warning
+dotnet_diagnostic.CA2011.severity=warning
+dotnet_diagnostic.CA2012.severity=warning
+dotnet_diagnostic.CA5360.severity=suggestion
 
 [*.cs]
 csharp_indent_switch_labels = false
+dotnet_diagnostic.CA1309.severity=warning
+dotnet_diagnostic.CA2016.severity=warning

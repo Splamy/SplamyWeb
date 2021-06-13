@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -14,6 +15,7 @@ namespace SplamyWeb
 
 		public static readonly HttpClient httpClient = new();
 		public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
+		public static readonly Encoding Utf8Encoding = new UTF8Encoding(false, false);
 
 		static Util()
 		{

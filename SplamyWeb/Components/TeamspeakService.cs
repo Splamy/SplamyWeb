@@ -21,8 +21,6 @@ namespace SplamyWeb.Components
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
-		private static readonly string[] CheckedNicknames = new[] { "loc", "splamy" };
-
 		private static readonly Regex diffMatch = new("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
 		private static readonly Regex versionClean = new(@"[^a-zA-Z0-9\+=/]");
 		public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
@@ -33,7 +31,7 @@ namespace SplamyWeb.Components
 		private readonly object cacheLock = new();
 		private HashSet<VersionSign> cachedVersions = new();
 		private string? cachedFileSha;
-		private long LastBadgeUpdate = 0;
+		private long LastBadgeUpdate = -1;
 		private readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
 		private readonly IServiceScopeFactory scopeFactory;
 
@@ -440,7 +438,14 @@ namespace SplamyWeb.Components
 
 		private async Task KeepNicknamesValidAsync()
 		{
-			foreach (var name in CheckedNicknames)
+			using var scope = scopeFactory.CreateScope();
+			var store = scope.ServiceProvider.GetRequiredService<StoreService>();
+
+			var nickList = await store.Get("check_nicknames");
+			if (string.IsNullOrEmpty(nickList)) return;
+			var checkNicknames = nickList.Split(new char[] { ',', ';', ' ' }, StringSplitOptions.TrimEntries);
+
+			foreach (var name in checkNicknames)
 			{
 				try
 				{
@@ -489,7 +494,7 @@ namespace SplamyWeb.Components
 		public long BuildNumber { get; }
 		public string Platform { get; }
 
-		private static readonly Regex buildMatch = new Regex(@"\[Build: (\d+)\]", RegexOptions.Compiled | RegexOptions.ECMAScript);
+		private static readonly Regex buildMatch = new(@"\[Build: (\d+)\]", RegexOptions.Compiled | RegexOptions.ECMAScript);
 
 		public VersionSign(string build, string platform, string sign)
 		{

@@ -5,16 +5,18 @@ using SplamyWeb.Db;
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Threading.Channels;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 
 namespace SplamyWeb.Components
 {
 	public class RamsesBackingData
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		private readonly BufferBlock<ProcessEntry> _bufferBlock = new();
+		private readonly Channel<ProcessEntry> _bufferBlockChannel = Channel.CreateBounded<ProcessEntry>(1024);
 		private readonly IServiceScopeFactory scopeFactory;
 
 		private readonly string RamsesVersion;
@@ -23,15 +25,14 @@ namespace SplamyWeb.Components
 		{
 			var ver = typeof(Analyzer).Assembly.GetName().Version!;
 			RamsesVersion = $"{ver.Major}.{ver.Minor}";
-			_ = Process();
 			this.scopeFactory = scopeFactory;
+			_ = Process();
 		}
 
 		private async Task Process()
 		{
-			while (true)
+			await foreach (var req in _bufferBlockChannel.Reader.ReadAllAsync())
 			{
-				var req = await _bufferBlock.ReceiveAsync();
 				RamsesSong? res;
 				try
 				{
@@ -41,7 +42,7 @@ namespace SplamyWeb.Components
 				{
 					Log.Warn(ex, "Failed to process song: {0}", ex.Message);
 
-					res = new RamsesSong(req.MapId, RamsesVersion);
+					res = new RamsesSong(req.MapId, RamsesVersion) { Error = ex.Message };
 				}
 				req.Task.SetResult(res);
 			}
@@ -52,7 +53,8 @@ namespace SplamyWeb.Components
 			var mapId = GetMapIdFromKey(key);
 			if (mapId == null) return null;
 			var req = new ProcessEntry(key, mapId.Value);
-			await _bufferBlock.SendAsync(req);
+			if (!_bufferBlockChannel.Writer.TryWrite(req))
+				return null; // Queue is full
 			return await req.Task.Task;
 		}
 
@@ -70,15 +72,39 @@ namespace SplamyWeb.Components
 			if (entry != null && entry.Version == RamsesVersion)
 				return entry;
 
-			var sw = Stopwatch.StartNew();
-			using var data = await Util.httpClient.GetAsync($"https://beatsaver.com/api/download/key/{request.Key}");
-			data.EnsureSuccessStatusCode();
-			using var stream = await data.Content.ReadAsStreamAsync();
-			var maps = BSMapIO.ReadZip(stream);
-			var timeToDownload = sw.Elapsed;
+			ZipArchive zip;
+			TimeSpan timeDownload = TimeSpan.Zero;
+			TimeSpan timePackOrUnpack = TimeSpan.Zero;
+			TimeSpan timeProcess = TimeSpan.Zero;
 
-			sw.Restart();
-			entry = new RamsesSong(request.MapId, RamsesVersion);
+			if (entry is null || entry.RawMap is null)
+			{
+				var swDownload = Stopwatch.StartNew();
+				using var response = await Util.httpClient.GetAsync($"https://beatsaver.com/api/download/key/{request.Key}");
+				response.EnsureSuccessStatusCode();
+				var data = await response.Content.ReadAsByteArrayAsync();
+				timeDownload = swDownload.Elapsed;
+
+				zip = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
+				if (entry is null)
+				{
+					entry = new RamsesSong(request.MapId, RamsesVersion);
+					await db.RamsesSongs.AddAsync(entry);
+				}
+				var swPackOrUnpack = Stopwatch.StartNew();
+				entry.RawMap = PackMap(zip);
+				timePackOrUnpack = swPackOrUnpack.Elapsed;
+			}
+			else
+			{
+				var swPackOrUnpack = Stopwatch.StartNew();
+				zip = UnpackMap(entry.RawMap);
+				timePackOrUnpack = swPackOrUnpack.Elapsed;
+			}
+
+			var swProcess = Stopwatch.StartNew();
+			var maps = BSMapIO.ReadZip(zip);
+			entry.Maps.Clear();
 			entry.Maps.AddRange(maps.Where(map => map.Characteristic == MapCharacteristic.Standard).Select(map =>
 			{
 				SongScore score;
@@ -100,18 +126,17 @@ namespace SplamyWeb.Components
 					score.Average,
 					score.Graph.Select(x => x.TotalDifficulty()).ToArray());
 			}));
-			var timeToProcess = sw.Elapsed;
+			timeProcess = swProcess.Elapsed;
 
-			Log.Info("RaMSeS Key:{0} Download:{1} Process{2}", request.Key, timeToDownload, timeToProcess);
+			Log.Info("RaMSeS Key:{0} Download:{1} (Un)Pack:{2} Process:{3} Cachesize:{4}", request.Key, timeDownload, timePackOrUnpack, timeProcess, entry.RawMap?.Length);
 
-			await db.RamsesSongs.AddAsync(entry);
 			await db.SaveChangesAsync();
 
 			return entry;
 		}
 
 		private static long? GetMapIdFromKey(string key)
-			=> long.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var mapId) ? (long?)mapId : null;
+			=> long.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var mapId) ? mapId : null;
 
 		class ProcessEntry
 		{
@@ -125,6 +150,60 @@ namespace SplamyWeb.Components
 				MapId = mapId;
 				Task = new TaskCompletionSource<RamsesSong?>();
 			}
+		}
+
+		private static byte[]? PackMap(ZipArchive sourceZip)
+		{
+			var sourceFiles = BSMapIO.ZipProvider(sourceZip);
+			var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
+
+			using var mem = new MemoryStream();
+			using (var zip = new ZipArchive(mem, ZipArchiveMode.Create, true, Util.Utf8Encoding))
+			{
+				void TryCopyFile(string file)
+				{
+					var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
+					using var writer = entry.Open();
+					using var fs = sourceFiles(file);
+					if (fs is null) return;
+					fs.CopyTo(writer);
+				}
+
+				TryCopyFile("info.dat");
+				TryCopyFile("info.json");
+
+				foreach (var set in jsonInfo.DifficultyBeatmapSets)
+					foreach (var maps in set.DifficultyBeatmaps)
+						TryCopyFile(maps.BeatmapFilename);
+			}
+			mem.Seek(0, SeekOrigin.Begin);
+
+			var output = new MemoryStream();
+			using (var compressor = new BrotliStream(output, CompressionMode.Compress, true))
+			{
+				mem.CopyTo(compressor);
+			}
+			output.Seek(0, SeekOrigin.Begin);
+
+			if (output.Length > 1_000_000)
+			{
+				Log.Warn("Compressed Map is >1MB (={0}B)", output.Length);
+				return null;
+			}
+
+			return output.ToArray();
+		}
+
+		private static ZipArchive UnpackMap(byte[] data)
+		{
+			var output = new MemoryStream();
+			using (var input = new MemoryStream(data))
+			using (var decompressor = new BrotliStream(input, CompressionMode.Decompress))
+			{
+				decompressor.CopyTo(output);
+			}
+			output.Seek(0, SeekOrigin.Begin);
+			return new ZipArchive(output, ZipArchiveMode.Read);
 		}
 	}
 }

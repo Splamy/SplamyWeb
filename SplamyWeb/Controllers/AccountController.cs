@@ -40,19 +40,31 @@ namespace SplamyWeb.Controllers
 			[FromForm] string? pass,
 			[FromForm] string? pass_old)
 		{
-			var user = await userManager.GetUserAsync(User);
-			if (id != user.Id && !user.CanEditOtherUser())
+			var currentUser = await userManager.GetUserAsync(User);
+			LoginData editedUser;
+			if (id == currentUser.Id)
 			{
-				return Forbid();
+				editedUser = currentUser;
 			}
 			else
 			{
+				if (!currentUser.CanEditOtherUser())
+					return Forbid();
 				// Admin feature
+				editedUser = await userManager.FindByIdAsync(id.ToString());
+				if (editedUser is null)
+					return NotFound("User to edit not found");
+			}
+
+			if (!string.IsNullOrWhiteSpace(name))
+			{
+				editedUser.SetName(name);
+				await userManager.UpdateAsync(editedUser);
 			}
 
 			if (!string.IsNullOrWhiteSpace(pass))
 			{
-				var result = await userManager.ChangePasswordAsync(user, pass_old ?? "", pass);
+				var result = await userManager.ChangePasswordAsync(editedUser, pass_old ?? "", pass);
 				if (!result.Succeeded)
 					return RedirectToPage("/User", new { changepw = ToErrs(result) });
 			}

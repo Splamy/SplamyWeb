@@ -20,7 +20,7 @@ namespace SplamyWeb.Controllers
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private readonly StoreService store;
 		private readonly string build_qint_env = Path.Combine(Util.DataPath, "build_qint_env");
-		private static BuildTask? currentBuild = null;
+		private static BuildTask? currentBuild;
 		public const string CiContext = "splamy-ci";
 		public const string CiDescription = "Nightly build by Splamyserver";
 		public const string CiStatusSuccess = "success";
