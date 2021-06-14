@@ -40,7 +40,7 @@ namespace SplamyWeb.Components
 				}
 				catch (Exception ex)
 				{
-					Log.Warn(ex, "Failed to process song: {0}", ex.Message);
+					Log.Warn(ex, "Failed to process song '{0}': {1}", req.MapId.ToString("X"), ex.Message);
 
 					res = new RamsesSong(req.MapId, RamsesVersion) { Error = ex.Message };
 				}
