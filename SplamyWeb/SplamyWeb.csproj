@@ -34,7 +34,7 @@
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.7" />
 		<PackageReference Include="protobuf-net" Version="3.0.101" />
 		<PackageReference Include="Splamy.Ed25519.Toolkit" Version="1.0.3" />
-		<PackageReference Include="Splamy.RateMapSeveritySaber" Version="1.0.8" />
+		<PackageReference Include="Splamy.RateMapSeveritySaber" Version="1.0.9" />
 		<PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
 	</ItemGroup>
 
