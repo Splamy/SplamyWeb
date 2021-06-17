@@ -19,8 +19,9 @@ using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers
 {
+	[ApiController]
 	[Route("api/[controller]")]
-	public class LanguageController : Controller
+	public class LanguageController : ControllerBase
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 		private static readonly string languageBasePath = Path.Combine(Util.DataPath, "language");

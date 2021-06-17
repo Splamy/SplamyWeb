@@ -10,12 +10,5 @@ namespace SplamyWeb.Pages
 		public void OnGet()
 		{
 		}
-
-		public IEnumerable<string> GetLogs()
-		{
-			if (!int.TryParse(Request.Query["off"], out var from))
-				from = 0;
-			return Util.NLogMemory.Logs.Reverse().Skip(from).Take(50);
-		}
 	}
 }

@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Controllers
 {
-	[Route("api/[controller]")]
 	[ApiController]
 	[Authorize]
+	[Route("api/[controller]")]
 	public class StoreController : ControllerBase
 	{
 		private readonly StoreService store;

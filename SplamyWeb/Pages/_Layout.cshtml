@@ -6,10 +6,7 @@
 	<link rel="stylesheet" href="~/lib/MaterialDesign-Webfont/css/materialdesignicons.min.css">
 	<link rel="stylesheet" href="~/css/style.css">
 	@*<link rel="stylesheet" href="~/css/style.less">*@
-	<script src="~/ts/script.js"></script>
-	<script src="~/lib/sweetalert/sweetalert.min.js"></script>
-	<script src="~/lib/moment.js/moment.min.js"></script>
-	<script src="~/lib/Chart.js/Chart.min.js"></script>
+	@RenderSection("scripts", required: false)
 </head>
 <body>
 	<nav>
@@ -33,7 +30,7 @@
 			</div>
 		</div>
 		<a class="navl" href="~/Impress">Impress &amp; Privacy</a>
-		@if (User.Identity.Name != null)
+		@if (User.Identity?.Name != null)
 		{
 			<a class="navl" href="~/Blog">Blog</a>
 			@*<span class="icon is-medium"><i class="mdi mdi-24px mdi-calendar-text"></i></span>*@

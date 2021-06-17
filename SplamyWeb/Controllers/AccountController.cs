@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Controllers
 {
-	[Route("[controller]")]
 	[Authorize]
-	public class AccountController : Controller
+	[Route("[controller]")]
+	public class AccountController : ControllerBase
 	{
 		private readonly UserManager<LoginData> userManager;
 		private readonly SignInManager<LoginData> signInManager;
@@ -22,8 +22,8 @@ namespace SplamyWeb.Controllers
 			this.signInManager = signInManager;
 		}
 
-		[HttpPost("Login")]
 		[AllowAnonymous]
+		[HttpPost("Login")]
 		public async Task<IActionResult> LoginAsync([FromForm] string name, [FromForm] string pass, [FromForm] bool remember)
 		{
 			var result = await signInManager.PasswordSignInAsync(name, pass, remember, false);

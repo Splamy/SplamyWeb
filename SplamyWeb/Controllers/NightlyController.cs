@@ -11,9 +11,10 @@ using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers
 {
-	[Route("api/[controller]")]
+	[ApiController]
 	[Authorize(AuthenticationSchemes = AuthScheme)] // , Roles = "Admin"
-	public class NightlyController : Controller
+	[Route("api/[controller]")]
+	public class NightlyController : ControllerBase
 	{
 		private readonly SplamyContext db;
 		private static readonly string[] AcceptedContentTypes =
@@ -30,9 +31,9 @@ namespace SplamyWeb.Controllers
 
 		private readonly string nightlyPath = Path.Combine(Util.DataPath, "nightly");
 
-		[HttpGet("{project}/{branch}/download")]
-		[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]
 		[AllowAnonymous]
+		[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]
+		[HttpGet("{project}/{branch}/download")]
 		public async Task<IActionResult> GetDownload(string project, string branch)
 		{
 			project = project.ToLowerInvariant();
@@ -57,8 +58,8 @@ namespace SplamyWeb.Controllers
 			return PhysicalFile(path, MediaTypeNames.Application.Octet, entry.FileName);
 		}
 
-		[HttpGet("{project}/{branch}")]
 		[AllowAnonymous]
+		[HttpGet("{project}/{branch}")]
 		public async Task<IActionResult> GetInfo(string project, string branch)
 		{
 			project = project.ToLowerInvariant();
@@ -70,8 +71,8 @@ namespace SplamyWeb.Controllers
 			return Ok(entry.Strip());
 		}
 
-		[HttpGet("{project}")]
 		[AllowAnonymous]
+		[HttpGet("{project}")]
 		public async Task<IActionResult> ProjectInfo(string project)
 		{
 			project = project.ToLowerInvariant();

@@ -53,29 +53,16 @@
 	  </Reference>
 	</ItemGroup>-->
 
-	<ItemGroup>
-		<TypeScriptCompile Include="wwwroot\ts\decl.d.ts" />
-		<TypeScriptCompile Include="wwwroot\ts\nightly.ts" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="wwwroot\img\" />
-	</ItemGroup>
-
 	<PropertyGroup>
-		<TypeScriptToolsVersion>4.2</TypeScriptToolsVersion>
-		<TypeScriptTarget>es2018</TypeScriptTarget>
-		<TypeScriptJSXEmit>None</TypeScriptJSXEmit>
-		<TypeScriptModuleKind>amd</TypeScriptModuleKind>
-		<TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
-		<TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
-		<TypeScriptRemoveComments>False</TypeScriptRemoveComments>
-		<TypeScriptOutFile>wwwroot/ts/script.js</TypeScriptOutFile>
-		<!--<TypeScriptOutDir>wwwroot/ts/</TypeScriptOutDir>-->
-		<TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
-		<TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
-		<TypeScriptSourceMap>True</TypeScriptSourceMap>
-		<TypeScriptMapRoot />
-		<TypeScriptSourceRoot />
+		<!-- Makes the TypeScript compilation task a no-op -->
+		<TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
 	</PropertyGroup>
+
+
+	<ItemGroup>
+		<Compile Remove="Scripts/**/*" />
+		<Folder Include="wwwroot\img\" />
+		<Folder Include="wwwroot\js\" />
+	</ItemGroup>
+
 </Project>

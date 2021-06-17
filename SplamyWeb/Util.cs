@@ -23,11 +23,6 @@ namespace SplamyWeb
 			httpClient.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
 		}
 
-		public static readonly NLog.Targets.MemoryTarget NLogMemory = new()
-		{
-			Layout = "${longdate} | ${level} | ${message}",
-		};
-
 		private static readonly Regex saveRegex = new(@"^[\w-_]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
 
 		public static readonly JsonSerializerOptions JsonDefault = new()

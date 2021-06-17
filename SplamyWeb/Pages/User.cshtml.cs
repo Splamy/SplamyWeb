@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Linq;
 using System.Collections.Generic;
 using SplamyWeb.Db;
+using System.Threading.Tasks;
 
 namespace SplamyWeb.Pages
 {
@@ -20,7 +21,7 @@ namespace SplamyWeb.Pages
 			LoginData = null!;
 		}
 
-		public async void OnGet()
+		public async Task OnGetAsync()
 		{
 			LoginData = await userManager.GetUserAsync(User);
 		}

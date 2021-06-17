@@ -4,8 +4,9 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Controllers
 {
+	[ApiController]
 	[Route("api/[controller]")]
-	public class RamsesController : Controller
+	public class RamsesController : ControllerBase
 	{
 		private readonly RamsesBackingData ramses;
 

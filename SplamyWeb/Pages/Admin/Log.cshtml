@@ -5,9 +5,12 @@
 	Layout = "~/Pages/_Layout.cshtml";
 }
 
-<ol>
-	@foreach (var entry in this.Model.GetLogs())
-	{
-		<li>@entry</li>
-	}
-</ol>
+<div id="log_table"></div>
+
+<script>
+	Log.init();
+</script>
+
+@section scripts {
+	<script src="~/js/Log.js"></script>
+}

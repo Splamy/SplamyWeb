@@ -1,12 +1,13 @@
-async function ask_delete_nightly(project: string, branch: string) {
+import 'sweetalert';
+import { SweetAlert } from 'sweetalert/typings/core';
+declare const swal: SweetAlert;
+
+export async function askDeleteNightly(project: string, branch: string) {
 	const answer = await swal(`Delete ${project}/${branch} ?`, {
 		dangerMode: true,
-		button: {
-			text: "Delete",
-			closeModal: false,
-		},
+		buttons: ["Cancel", "Delete"],
 	});
-	if (answer) {
+	if (answer === true) {
 		try {
 			const response = await fetch(`api/nightly/${project}/${branch}`, {
 				method: "DELETE",

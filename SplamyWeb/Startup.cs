@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
@@ -30,7 +29,7 @@ namespace SplamyWeb
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services.AddMemoryCache();
-
+			services.AddSignalR();
 			services
 				.AddMvc(options =>
 				{
@@ -71,7 +70,7 @@ namespace SplamyWeb
 				options.Cookie.HttpOnly = false;
 				options.ExpireTimeSpan = TimeSpan.FromDays(30);
 				options.LoginPath = "/User";
-				options.LogoutPath = "/User"; // TODO
+				options.LogoutPath = "/Account/Logout";
 				options.AccessDeniedPath = "/User"; // TODO
 				options.SlidingExpiration = true;
 			});
@@ -92,15 +91,15 @@ namespace SplamyWeb
 			services.AddSingleton<SpamBackingData>();
 			services.AddSingleton<RamsesBackingData>();
 			services.AddSingleton<TeamspeakService>();
+			services.AddSingleton<LogNotifierService>();
 
-			var layout = Layout.FromString("${pad:padding=5:inner=${level:uppercase=true}} ${message} ${exception:format=ToString}");
 			var config = new LoggingConfiguration();
-			var consoleTarget = new ConsoleTarget { Layout = layout };
-			Util.NLogMemory.Layout = layout;
+			var consoleTarget = new ConsoleTarget { Layout = ServerLog.DefaultLayout };
 			var nullTarget = new NullTarget();
 			config.AddRule(LogLevel.Trace, LogLevel.Off, nullTarget, "SplamyWeb.Components.BasicAuthenticationHandler", final: true);
 			config.AddRule(LogLevel.Debug, LogLevel.Fatal, consoleTarget, "SplamyWeb.*");
-			config.AddRule(LogLevel.Debug, LogLevel.Fatal, Util.NLogMemory, "SplamyWeb.*");
+			config.AddRule(LogLevel.Debug, LogLevel.Fatal, ServerLog.NLogMemory, "SplamyWeb.*");
+			config.AddRule(LogLevel.Debug, LogLevel.Fatal, ServerLog.NLogEvent, "SplamyWeb.*");
 
 			LogManager.Configuration = config;
 		}
@@ -110,10 +109,11 @@ namespace SplamyWeb
 		{
 			provider.GetService<TeamspeakService>();
 			provider.GetService<TabBackingData>();
+			provider.GetService<LogNotifierService>();
 			//applicationLifetime.ApplicationStopping.Register(() => { });
 
 #if DEBUG
-			var mapper = provider.GetRequiredService<IMapper>();
+			var mapper = provider.GetRequiredService<AutoMapper.IMapper>();
 			mapper.ConfigurationProvider.AssertConfigurationIsValid();
 #endif
 
@@ -125,11 +125,20 @@ namespace SplamyWeb
 
 			app.UseStatusCodePagesWithReExecute("/Error");
 
-			app.UseAuthentication();
-
-			app.UseMvc();
 
 			app.UseStaticFiles();
+
+			app.UseRouting();
+
+			app.UseAuthentication();
+			app.UseAuthorization();
+
+			app.UseEndpoints(endpoints =>
+			{
+				endpoints.MapControllers();
+				endpoints.MapRazorPages();
+				endpoints.MapHub<LogNotifier>("/livelog");
+			});
 		}
 	}
 }

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Controllers
 {
-	[Route("api/[controller]")]
 	[ApiController]
+	[Route("api/[controller]")]
 	public class TabController : ControllerBase
 	{
 		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();

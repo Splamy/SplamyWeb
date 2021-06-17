@@ -62,7 +62,7 @@
 							@if (active)
 							{
 								<button class="button is-primary is-tool is-small compact"
-										onclick="ask_delete_nightly('@project.Project', '@entry.Branch')">
+										onclick="Nightly.askDeleteNightly('@project.Project', '@entry.Branch')">
 									<span class="icon">
 										<i class="mdi mdi-close mdi-24px"></i>
 									</span>
@@ -74,4 +74,9 @@
 			}
 		</table>
 	</div>
+}
+
+@section scripts
+{
+	<script src="~/js/Nightly.js"></script>
 }

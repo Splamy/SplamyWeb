@@ -3,10 +3,6 @@
 	"defaultProvider": "cdnjs",
 	"libraries": [
 		{
-			"library": "sweetalert@2.1.2",
-			"destination": "wwwroot/lib/sweetalert/"
-		},
-		{
 			"library": "MaterialDesign-Webfont@4.9.95",
 			"destination": "wwwroot/lib/MaterialDesign-Webfont/"
 		},

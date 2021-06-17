@@ -6,7 +6,7 @@
 	Layout = "~/Pages/_Layout.cshtml";
 }
 
-@if (User.Identity.Name == null)
+@if (User.Identity?.Name == null)
 {
 	<div class="container" style="max-width:800px;">
 		@foreach (var err in Html.ViewData.Model.ErrorLogin())
