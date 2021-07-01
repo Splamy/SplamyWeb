@@ -1,8 +1,10 @@
+using JsonBinMin;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RateMapSeveritySaber;
 using SplamyWeb.Db;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -72,7 +74,7 @@ namespace SplamyWeb.Components
 			if (entry != null && entry.Version == RamsesVersion)
 				return entry;
 
-			ZipArchive zip;
+			BSMapIO.FileProvider fileProvider;
 			TimeSpan timeDownload = TimeSpan.Zero;
 			TimeSpan timePackOrUnpack = TimeSpan.Zero;
 			TimeSpan timeProcess = TimeSpan.Zero;
@@ -85,7 +87,7 @@ namespace SplamyWeb.Components
 				var data = await response.Content.ReadAsByteArrayAsync();
 				timeDownload = swDownload.Elapsed;
 
-				zip = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
+				var zip = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
 				if (entry is null)
 				{
 					entry = new RamsesSong(request.MapId, RamsesVersion);
@@ -94,16 +96,17 @@ namespace SplamyWeb.Components
 				var swPackOrUnpack = Stopwatch.StartNew();
 				entry.RawMap = PackMap(zip);
 				timePackOrUnpack = swPackOrUnpack.Elapsed;
+				fileProvider = BSMapIO.ZipProvider(zip);
 			}
 			else
 			{
 				var swPackOrUnpack = Stopwatch.StartNew();
-				zip = UnpackMap(entry.RawMap);
+				fileProvider = UnpackMap(entry.RawMap);
 				timePackOrUnpack = swPackOrUnpack.Elapsed;
 			}
 
 			var swProcess = Stopwatch.StartNew();
-			var maps = BSMapIO.ReadZip(zip);
+			var maps = BSMapIO.Read(fileProvider);
 			entry.Maps.Clear();
 			entry.Maps.AddRange(maps.Where(map => map.Characteristic == MapCharacteristic.Standard).Select(map =>
 			{
@@ -157,33 +160,45 @@ namespace SplamyWeb.Components
 			var sourceFiles = BSMapIO.ZipProvider(sourceZip);
 			var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
 
+			var jbm = new JBMConverter(new() { UseFloats = UseFloats.None });
+
 			using var mem = new MemoryStream();
 			using (var zip = new ZipArchive(mem, ZipArchiveMode.Create, true, Util.Utf8Encoding))
 			{
-				void TryCopyFile(string file)
+				var mapDict = new Dictionary<string, byte[]>();
+
+				void AddToCompressionDict(string file)
 				{
-					var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
-					using var writer = entry.Open();
+					using var mem = new MemoryStream();
 					using var fs = sourceFiles(file);
 					if (fs is null) return;
-					fs.CopyTo(writer);
+					fs.CopyTo(mem);
+					var fileData = mem.ToArray();
+					mapDict.Add(file, fileData);
+					jbm.AddToDictionary(fileData);
 				}
 
-				TryCopyFile("info.dat");
-				TryCopyFile("info.json");
+				AddToCompressionDict("info.dat");
+				AddToCompressionDict("info.json");
 
 				foreach (var set in jsonInfo.DifficultyBeatmapSets)
 					foreach (var maps in set.DifficultyBeatmaps)
-						TryCopyFile(maps.BeatmapFilename);
+						AddToCompressionDict(maps.BeatmapFilename);
+
+				foreach (var (file, fileData) in mapDict)
+				{
+					var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
+					using var writer = entry.Open();
+					writer.Write(jbm.CompressEntity(fileData));
+				}
 			}
-			mem.Seek(0, SeekOrigin.Begin);
+			mem.Position = 0;
 
 			var output = new MemoryStream();
 			using (var compressor = new BrotliStream(output, CompressionMode.Compress, true))
 			{
 				mem.CopyTo(compressor);
 			}
-			output.Seek(0, SeekOrigin.Begin);
 
 			if (output.Length > 1_000_000)
 			{
@@ -194,7 +209,7 @@ namespace SplamyWeb.Components
 			return output.ToArray();
 		}
 
-		private static ZipArchive UnpackMap(byte[] data)
+		private static BSMapIO.FileProvider UnpackMap(byte[] data)
 		{
 			var output = new MemoryStream();
 			using (var input = new MemoryStream(data))
@@ -202,8 +217,18 @@ namespace SplamyWeb.Components
 			{
 				decompressor.CopyTo(output);
 			}
-			output.Seek(0, SeekOrigin.Begin);
-			return new ZipArchive(output, ZipArchiveMode.Read);
+			output.Position = 0;
+			var intermediateZip = new ZipArchive(output, ZipArchiveMode.Read);
+			return (string file) =>
+			{
+				var mem = new MemoryStream();
+				using (var stream = intermediateZip.Entries.FirstOrDefault((ZipArchiveEntry e) => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase))?.Open())
+				{
+					if (stream is null) return null;
+					stream.CopyTo(mem);
+				}
+				return JBMConverter.DecompressToStream(mem.ToArray());
+			};
 		}
 	}
 }

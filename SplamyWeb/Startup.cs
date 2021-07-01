@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
-using NLog.Layouts;
 using NLog.Targets;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
@@ -107,9 +106,9 @@ namespace SplamyWeb
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IServiceProvider provider, IHostApplicationLifetime applicationLifetime)
 		{
+			provider.GetService<LogNotifierService>();
 			provider.GetService<TeamspeakService>();
 			provider.GetService<TabBackingData>();
-			provider.GetService<LogNotifierService>();
 			//applicationLifetime.ApplicationStopping.Register(() => { });
 
 #if DEBUG
