@@ -2,6 +2,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import { defineConfig } from 'rollup';
 import svelte from 'rollup-plugin-svelte';
 import typescript from 'rollup-plugin-typescript';
+import commonjs from '@rollup/plugin-commonjs';
 import preprocess from 'svelte-preprocess';
 
 function buildPage(name) {
@@ -31,6 +32,7 @@ function buildPage(name) {
 			}),
 			resolve({ browser: true }),
 			typescript({ tsconfig: './tsconfig.json' }),
+			commonjs({ extensions: ['.js', '.ts'] }),
 		]
 	})
 }
@@ -38,4 +40,5 @@ function buildPage(name) {
 export default [
 	buildPage("Log"),
 	buildPage("Nightly"),
+	buildPage("TabStats"),
 ];

@@ -7,7 +7,11 @@
 		"sourceMap": false,
 		"removeComments": true,
 		"declaration": false,
+		"types": [ "svelte" ],
+		"esModuleInterop": true,
 		"allowJs": true,
-		"types": [ "svelte" ]
+		"checkJs": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true
 	}
 }
