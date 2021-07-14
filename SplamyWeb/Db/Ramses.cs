@@ -3,33 +3,25 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
-using System.Text.Json.Serialization;
 
 namespace SplamyWeb.Db
 {
-	// TODO user automapper
+	// DB
 
 	[Table("ramses_song")]
 	[DebuggerDisplay("{Id}")]
-	public class RamsesSong
+	public class RamsesSongDto
 	{
 		/// <summary>Hexadecimal beatsaver map id.</summary>
-		[Key]
-		[JsonIgnore]
+		[Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
 		public long Id { get; set; }
 
 		/// <summary>Version of the ramses engine this result was generated with.</summary>
-		[JsonPropertyName("ramsesVersion")]
 		public string Version { get; set; }
-		[JsonPropertyName("maps")]
-		public List<RamsesMap> Maps { get; set; } = new();
-		[JsonPropertyName("error")]
-		[NotMapped]
-		public string? Error { get; set; }
-		[JsonIgnore]
+		public List<RamsesMapDto> Maps { get; set; } = new();
 		public byte[]? RawMap { get; set; }
 
-		public RamsesSong(long id, string version, byte[]? rawMap = null)
+		public RamsesSongDto(long id, string version, byte[]? rawMap = null)
 		{
 			Id = id;
 			Version = version;
@@ -38,49 +30,32 @@ namespace SplamyWeb.Db
 	}
 
 	[Table("ramses_map")]
-	public class RamsesMap
+	public class RamsesMapDto
 	{
 		// Notes:
 		// Characteristic+Difficulty is not unique!
-		[JsonIgnore]
 		public long RamsesId { get; set; }
-		[JsonIgnore]
-		public RamsesSong RamsesEntry { get; set; }
+		public RamsesSongDto RamsesEntry { get; set; }
 		/// <summary>Index in the _difficultyBeatmapSets array</summary>
-		[JsonIgnore]
 		public MapCharacteristic Characteristic { get; set; }
 		/// <summary>Index in the _difficultyBeatmaps array</summary>
-		[JsonIgnore]
 		public byte IndexDifficulty { get; set; }
-
-		[JsonIgnore]
+		/// <summary>The indicated Difficulty by BeatSaber value</summary>
 		public byte Difficulty { get; set; }
-		[NotMapped]
-		[JsonPropertyName("difficulty")]
-		public string DifficultyName => BSMapUtil.DifficultyNumberToName(Difficulty);
+		/// <summary>The calculated rating result from RaMSeS in a compressed format</summary>
+		public float Rating { get; set; }
+		/// <summary>The calculated rating result from RaMSeS in a compressed format</summary>
+		public byte[] RatingDetail { get; set; }
 
-		/// <summary>Internal mode name (Standard, 90°, 360°,...)</summary>
-		[NotMapped]
-		[JsonPropertyName("characteristic")]
-		public string CharacteristicName => BSMapUtil.CharacteristicToName(Characteristic);
-
-		[JsonPropertyName("maxDifficulty")]
-		public float MaxDifficulty { get; set; }
-		[JsonPropertyName("avgDifficulty")]
-		public float AvgDifficulty { get; set; }
-		[JsonPropertyName("graph")]
-		public float[] Graph { get; set; }
-
-		public RamsesMap(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float maxDifficulty, float avgDifficulty, float[] graph)
+		public RamsesMapDto(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float rating, byte[] ratingDetail)
 		{
 			RamsesId = 0;
 			RamsesEntry = null!;
 			Characteristic = characteristic;
 			IndexDifficulty = indexDifficulty;
 			Difficulty = difficulty;
-			MaxDifficulty = maxDifficulty;
-			AvgDifficulty = avgDifficulty;
-			Graph = graph;
+			Rating = rating;
+			RatingDetail = ratingDetail;
 		}
 	}
 }

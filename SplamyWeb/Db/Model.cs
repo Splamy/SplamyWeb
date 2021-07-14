@@ -8,7 +8,7 @@ namespace SplamyWeb.Db
 	public class SplamyContext : DbContext
 	{
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-		public DbSet<RamsesSong> RamsesSongs { get; set; }
+		public DbSet<RamsesSongDto> RamsesSongs { get; set; }
 		public DbSet<StoreEntry> StoreTable { get; set; }
 		public DbSet<TabStatsPingDto> TabStatsPings { get; set; }
 		public DbSet<TabStatsFactoryDto> TabStatsFactories { get; set; }
@@ -42,9 +42,9 @@ namespace SplamyWeb.Db
 		{
 			// Ramses ***
 
-			modelBuilder.Entity<RamsesMap>()
+			modelBuilder.Entity<RamsesMapDto>()
 				.HasKey(x => new { x.RamsesId, x.Characteristic, x.IndexDifficulty });
-			modelBuilder.Entity<RamsesMap>()
+			modelBuilder.Entity<RamsesMapDto>()
 				.HasOne(map => map.RamsesEntry)
 				.WithMany(entry => entry.Maps)
 				.HasForeignKey(map => map.RamsesId)

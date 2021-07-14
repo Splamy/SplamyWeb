@@ -6,12 +6,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
+using Microsoft.Extensions.Options;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
+using SplamyWeb.Mock;
 using System;
+using System.Net.Http;
 
 namespace SplamyWeb
 {
@@ -28,6 +28,18 @@ namespace SplamyWeb
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services.AddMemoryCache();
+			if (Configuration.GetValue<bool>("Mock:Web"))
+			{
+				services.AddSingleton<IHttpClientFactory, MockedHttpClientFactory>();
+			}
+			else
+			{
+				services.AddHttpClient(Options.DefaultName, client =>
+				{
+					client.DefaultRequestHeaders.UserAgent.Clear();
+					client.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
+				});
+			}
 			services.AddSignalR();
 			services
 				.AddMvc(options =>
@@ -91,16 +103,6 @@ namespace SplamyWeb
 			services.AddSingleton<RamsesBackingData>();
 			services.AddSingleton<TeamspeakService>();
 			services.AddSingleton<LogNotifierService>();
-
-			var config = new LoggingConfiguration();
-			var consoleTarget = new ConsoleTarget { Layout = ServerLog.DefaultLayout };
-			var nullTarget = new NullTarget();
-			config.AddRule(LogLevel.Trace, LogLevel.Off, nullTarget, "SplamyWeb.Components.BasicAuthenticationHandler", final: true);
-			config.AddRule(LogLevel.Debug, LogLevel.Fatal, consoleTarget, "SplamyWeb.*");
-			config.AddRule(LogLevel.Debug, LogLevel.Fatal, ServerLog.NLogMemory, "SplamyWeb.*");
-			config.AddRule(LogLevel.Debug, LogLevel.Fatal, ServerLog.NLogEvent, "SplamyWeb.*");
-
-			LogManager.Configuration = config;
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

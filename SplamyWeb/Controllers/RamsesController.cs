@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
+using System.Net.Mime;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Controllers
@@ -16,12 +17,13 @@ namespace SplamyWeb.Controllers
 		}
 
 		[HttpGet("{key}")]
+		[Produces(MediaTypeNames.Application.Json)]
 		public async Task<IActionResult> Index(string key)
 		{
 			var entry = await ramses.Get(key);
 			if (entry is null)
-				return Problem("Error Processing");
-			return Ok(entry);
+				return NotFound();
+			return entry;
 		}
 	}
 }

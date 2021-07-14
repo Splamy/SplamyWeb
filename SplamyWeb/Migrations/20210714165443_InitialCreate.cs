@@ -1,0 +1,233 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+namespace SplamyWeb.Migrations
+{
+    public partial class InitialCreate : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
+                name: "kvp_store",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_kvp_store", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "nightly_project",
+                columns: table => new
+                {
+                    Project = table.Column<string>(type: "text", nullable: false),
+                    ProjectName = table.Column<string>(type: "text", nullable: false),
+                    CommitUrl = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_nightly_project", x => x.Project);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ramses_song",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Version = table.Column<string>(type: "text", nullable: false),
+                    RawMap = table.Column<byte[]>(type: "bytea", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ramses_song", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tabstats_entry",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Time = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    BotVersion = table.Column<string>(type: "text", nullable: true),
+                    Platform = table.Column<string>(type: "text", nullable: true),
+                    Runtime = table.Column<string>(type: "text", nullable: true),
+                    RunningBots = table.Column<long>(type: "bigint", nullable: false),
+                    TotalUptime = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    BotsRuntime = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    CommandCalls = table.Column<long>(type: "bigint", nullable: false),
+                    CommandFromUser = table.Column<long>(type: "bigint", nullable: false),
+                    CommandFromApi = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tabstats_entry", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "user",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    NameNormalized = table.Column<string>(type: "text", nullable: false),
+                    Password = table.Column<byte[]>(type: "bytea", nullable: false),
+                    Salt = table.Column<byte[]>(type: "bytea", nullable: false),
+                    Token = table.Column<string>(type: "text", nullable: false),
+                    Rank = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "nightly_branch",
+                columns: table => new
+                {
+                    Project = table.Column<string>(type: "text", nullable: false),
+                    Branch = table.Column<string>(type: "text", nullable: false),
+                    Active = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_nightly_branch", x => new { x.Project, x.Branch });
+                    table.ForeignKey(
+                        name: "FK_nightly_branch_nightly_project_Project",
+                        column: x => x.Project,
+                        principalTable: "nightly_project",
+                        principalColumn: "Project",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "nightly_lang",
+                columns: table => new
+                {
+                    Project = table.Column<string>(type: "text", nullable: false),
+                    Language = table.Column<string>(type: "text", nullable: false),
+                    UploadTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    DownloadCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_nightly_lang", x => new { x.Project, x.Language });
+                    table.ForeignKey(
+                        name: "FK_nightly_lang_nightly_project_Project",
+                        column: x => x.Project,
+                        principalTable: "nightly_project",
+                        principalColumn: "Project",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ramses_map",
+                columns: table => new
+                {
+                    RamsesId = table.Column<long>(type: "bigint", nullable: false),
+                    Characteristic = table.Column<int>(type: "integer", nullable: false),
+                    IndexDifficulty = table.Column<byte>(type: "smallint", nullable: false),
+                    Difficulty = table.Column<byte>(type: "smallint", nullable: false),
+                    MaxDifficulty = table.Column<float>(type: "real", nullable: false),
+                    AvgDifficulty = table.Column<float>(type: "real", nullable: false),
+                    Graph = table.Column<float[]>(type: "real[]", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ramses_map", x => new { x.RamsesId, x.Characteristic, x.IndexDifficulty });
+                    table.ForeignKey(
+                        name: "FK_ramses_map_ramses_song_RamsesId",
+                        column: x => x.RamsesId,
+                        principalTable: "ramses_song",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tabstats_factory",
+                columns: table => new
+                {
+                    TabStatsId = table.Column<long>(type: "bigint", nullable: false),
+                    FactoryName = table.Column<string>(type: "text", nullable: false),
+                    PlayRequests = table.Column<long>(type: "bigint", nullable: false),
+                    PlaySucessful = table.Column<long>(type: "bigint", nullable: false),
+                    PlayFromUser = table.Column<long>(type: "bigint", nullable: false),
+                    SearchRequests = table.Column<long>(type: "bigint", nullable: false),
+                    Playtime = table.Column<TimeSpan>(type: "interval", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tabstats_factory", x => new { x.TabStatsId, x.FactoryName });
+                    table.ForeignKey(
+                        name: "FK_tabstats_factory_tabstats_entry_TabStatsId",
+                        column: x => x.TabStatsId,
+                        principalTable: "tabstats_entry",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "nightly_build",
+                columns: table => new
+                {
+                    Project = table.Column<string>(type: "text", nullable: false),
+                    Branch = table.Column<string>(type: "text", nullable: false),
+                    Commit = table.Column<string>(type: "text", nullable: false),
+                    Version = table.Column<string>(type: "text", nullable: false),
+                    ZipContent = table.Column<bool>(type: "boolean", nullable: false),
+                    FileName = table.Column<string>(type: "text", nullable: false),
+                    UploadTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    DownloadCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_nightly_build", x => new { x.Project, x.Branch, x.Commit });
+                    table.ForeignKey(
+                        name: "FK_nightly_build_nightly_branch_Project_Branch",
+                        columns: x => new { x.Project, x.Branch },
+                        principalTable: "nightly_branch",
+                        principalColumns: new[] { "Project", "Branch" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+        }
+
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "kvp_store");
+
+            migrationBuilder.DropTable(
+                name: "nightly_build");
+
+            migrationBuilder.DropTable(
+                name: "nightly_lang");
+
+            migrationBuilder.DropTable(
+                name: "ramses_map");
+
+            migrationBuilder.DropTable(
+                name: "tabstats_factory");
+
+            migrationBuilder.DropTable(
+                name: "user");
+
+            migrationBuilder.DropTable(
+                name: "nightly_branch");
+
+            migrationBuilder.DropTable(
+                name: "ramses_song");
+
+            migrationBuilder.DropTable(
+                name: "tabstats_entry");
+
+            migrationBuilder.DropTable(
+                name: "nightly_project");
+        }
+    }
+}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Text;
@@ -52,6 +53,22 @@ namespace SplamyWeb
 				if (v != null)
 					sum += v.GetValueOrDefault();
 			return sum;
+		}
+
+		public static bool MatchPrefix(this string str, string prefix, [MaybeNullWhen(false)] out string rest)
+			=> str.MatchPrefix(prefix, StringComparison.Ordinal, out rest);
+		public static bool MatchPrefix(this string str, string prefix, StringComparison comparisonType, [MaybeNullWhen(false)] out string rest)
+		{
+			if (str.StartsWith(prefix, comparisonType))
+			{
+				rest = str.Substring(prefix.Length);
+				return true;
+			}
+			else
+			{
+				rest = default!;
+				return false;
+			}
 		}
 	}
 

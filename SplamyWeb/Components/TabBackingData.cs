@@ -130,6 +130,6 @@ ORDER BY Date").ToArrayAsync();
 
 	public class PlaytimeDto
 	{
-		public TimeSpan Playtime { get; set; }
+		public TimeSpan? Playtime { get; set; }
 	}
 }

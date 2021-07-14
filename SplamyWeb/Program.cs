@@ -1,9 +1,13 @@
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
+using SplamyWeb.Db;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SplamyWeb
@@ -12,13 +16,29 @@ namespace SplamyWeb
 	{
 		public static async Task Main(string[] args)
 		{
+			ServerLog.ConfigueNLog();
+
 			IWebHost webHost = BuildWebHost(args);
 
 			// Create a new scope
 			using (var scope = webHost.Services.CreateScope())
 			{
-				//Here's the place for automated db upgrades
-				//await myDbContext.Database.MigrateAsync();
+				using var context = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+
+				var logger = NLog.LogManager.GetLogger("SplamyWeb.Startup");
+
+				var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToArray();
+
+				//await context.GetInfrastructure().GetRequiredService<IMigrator>().MigrateAsync("20210714165443_InitialCreate");
+				if (pendingMigrations.Length > 0)
+				{
+					logger.Info($"Applying {pendingMigrations.Length} migrations.");
+					await context.Database.MigrateAsync();
+				}
+
+				var lastAppliedMigration = (await context.Database.GetAppliedMigrationsAsync()).Last();
+
+				logger.Info($"Database on schema version: {lastAppliedMigration}");
 			}
 
 			// Run the WebHost, and start accepting requests
@@ -29,7 +49,7 @@ namespace SplamyWeb
 		public static IWebHost BuildWebHost(string[] args) =>
 			WebHost
 				.CreateDefaultBuilder(args)
-				//.UseUrls("http://*:44422")
+				.ChangePortSomewhereElse()
 				.ConfigureLogging(logging =>
 				{
 					logging.ClearProviders();
@@ -38,5 +58,8 @@ namespace SplamyWeb
 				.UseNLog()
 				.UseStartup<Startup>()
 				.Build();
+
+		private static IWebHostBuilder ChangePortSomewhereElse(this IWebHostBuilder webHostBuilder)
+			=> Environment.CurrentDirectory.StartsWith("E", StringComparison.OrdinalIgnoreCase) ? webHostBuilder.UseUrls("http://*:44422") : webHostBuilder;
 	}
 }
