@@ -38,7 +38,7 @@ namespace SplamyWeb.Migrations
                 defaultValue: new byte[0]);
 
 			migrationBuilder.Sql("TRUNCATE TABLE ramses_map;");
-			migrationBuilder.Sql("UPDATE ramses_song SET \"Version\" = '1.0-old';");
+			migrationBuilder.Sql("UPDATE ramses_song SET \"Version\" = '1.0-old', \"RawMap\" = NULL;");
 		}
 
         protected override void Down(MigrationBuilder migrationBuilder)
