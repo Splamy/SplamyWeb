@@ -208,7 +208,7 @@ namespace SplamyWeb.Components
 				{
 					var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
 					using var writer = entry.Open();
-					writer.Write(jbm.CompressEntity(fileData));
+					writer.Write(jbm.EncodeEntity(fileData));
 				}
 			}
 			mem.Position = 0;
@@ -246,7 +246,7 @@ namespace SplamyWeb.Components
 					if (stream is null) return null;
 					stream.CopyTo(mem);
 				}
-				return JBMConverter.DecompressToStream(mem.ToArray());
+				return JBMConverter.DecodeToStream(mem.ToArray());
 			};
 		}
 
@@ -264,23 +264,12 @@ namespace SplamyWeb.Components
 
 		public static byte[] PackScoreObject(RamsesMap map)
 		{
-			var json = JsonSerializer.SerializeToUtf8Bytes(map);
-			var jbm = JBMConverter.Compress(json, new JBMOptions() { UseDict = false, UseFloats = UseFloats.None });
-			var resultBuffer = new byte[BrotliEncoder.GetMaxCompressedLength(jbm.Length)];
-			BrotliEncoder.TryCompress(jbm, resultBuffer, out var written);
-			return resultBuffer[..written];
+			return JBMConverter.EncodeObject(map, new JBMOptions() { UseDict = false, UseFloats = UseFloats.None, Compress = true });
 		}
 
 		public static RamsesMap UnpackScoreObject(byte[] data)
 		{
-			var output = new MemoryStream();
-			using (var input = new MemoryStream(data))
-			using (var decompressor = new BrotliStream(input, CompressionMode.Decompress))
-			{
-				decompressor.CopyTo(output);
-			}
-			var json = JBMConverter.DecompressToBytes(output.ToArray());
-			return JsonSerializer.Deserialize<RamsesMap>(json)!;
+			return JBMConverter.DecodeObject<RamsesMap>(data)!;
 		}
 
 		private static IActionResult ToResult(object content)

@@ -61,7 +61,7 @@ namespace SplamyWeb
 		{
 			if (str.StartsWith(prefix, comparisonType))
 			{
-				rest = str.Substring(prefix.Length);
+				rest = str[prefix.Length..];
 				return true;
 			}
 			else

@@ -61,9 +61,10 @@ namespace SplamyWeb.Db
 				.WithMany(entry => entry.SongStats)
 				.HasForeignKey(factory => factory.TabStatsId);
 
-			// TODO NET 5 see https://stackoverflow.com/questions/60076606/net-core-3-x-keyless-entity-types-avoid-table-creation
-			modelBuilder.Entity<CachedDayStats>().HasNoKey().ToView(null);
-			modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToView(null);
+			// This tells EF to not create a table for this Type (We only want to query with it)
+			// see https://stackoverflow.com/questions/60076606/net-core-3-x-keyless-entity-types-avoid-table-creation
+			modelBuilder.Entity<CachedDayStats>().HasNoKey().ToTable(null);
+			modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToTable(null);
 
 			// *** Nightly
 

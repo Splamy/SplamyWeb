@@ -35,7 +35,7 @@ namespace SplamyWeb.Migrations
                 table: "ramses_map",
                 type: "bytea",
                 nullable: false,
-                defaultValue: new byte[0]);
+                defaultValue: Array.Empty<byte>());
 
 			migrationBuilder.Sql("TRUNCATE TABLE ramses_map;");
 			migrationBuilder.Sql("UPDATE ramses_song SET \"Version\" = '1.0-old', \"RawMap\" = NULL;");
@@ -73,7 +73,7 @@ namespace SplamyWeb.Migrations
                 table: "ramses_map",
                 type: "real[]",
                 nullable: false,
-                defaultValue: new float[0]);
+                defaultValue: Array.Empty<float>());
         }
     }
 }
