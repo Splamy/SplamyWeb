@@ -9,7 +9,7 @@ namespace SplamyWeb.Db
 	// DB
 
 	[Table("ramses_song")]
-	[DebuggerDisplay("{Id}")]
+	[DebuggerDisplay("{Id} @{Version}")]
 	public class RamsesSongDto
 	{
 		/// <summary>Hexadecimal beatsaver map id.</summary>
@@ -30,6 +30,7 @@ namespace SplamyWeb.Db
 	}
 
 	[Table("ramses_map")]
+	[DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 	public class RamsesMapDto
 	{
 		// Notes:
@@ -57,5 +58,7 @@ namespace SplamyWeb.Db
 			Rating = rating;
 			RatingDetail = ratingDetail;
 		}
+
+		private string GetDebuggerDisplay() => $"{RamsesId:X}({RamsesId})|{Characteristic}[{IndexDifficulty}] Diff:{Difficulty} Rate:{Rating}";
 	}
 }

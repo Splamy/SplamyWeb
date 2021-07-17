@@ -14,7 +14,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -300,6 +299,7 @@ namespace SplamyWeb.Components
 		}
 	}
 
+	[DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 	public class RamsesMap
 	{
 		[JsonPropertyName("difficulty")]
@@ -322,6 +322,8 @@ namespace SplamyWeb.Components
 			AvgDifficulty = avgDifficulty;
 			Graph = graph;
 		}
+
+		private string GetDebuggerDisplay() => $"{Characteristic}|{Difficulty}: Max:{MaxDifficulty} Avg:{AvgDifficulty}";
 	}
 
 	public class RamsesError

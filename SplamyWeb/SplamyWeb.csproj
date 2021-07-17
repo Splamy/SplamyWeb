@@ -36,7 +36,7 @@
 		<PackageReference Include="protobuf-net" Version="3.0.101" />
 		<PackageReference Include="Splamy.Ed25519.Toolkit" Version="1.0.3" />
 		<PackageReference Include="Splamy.JsonBinMin" Version="1.2.0" />
-		<PackageReference Include="Splamy.RateMapSeveritySaber" Version="1.0.9" />
+		<PackageReference Include="Splamy.RateMapSeveritySaber" Version="1.0.10" />
 		<PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
 	</ItemGroup>
 
