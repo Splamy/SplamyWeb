@@ -4,6 +4,11 @@ import svelte from 'rollup-plugin-svelte';
 import typescript from 'rollup-plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
 import preprocess from 'svelte-preprocess';
+import scss from "rollup-plugin-scss";
+import copy from "rollup-plugin-copy";
+import postcss from 'rollup-plugin-postcss'
+import CleanCss from "clean-css";
+import fs from 'fs';
 
 function buildPage(name) {
 	return defineConfig({
@@ -37,7 +42,39 @@ function buildPage(name) {
 	})
 }
 
+function buildCss() {
+	return defineConfig({
+		input: "css/roll_css.js",
+		output: {
+			file: `../wwwroot/css/_css.js`,
+			format: "esm",
+		},
+		plugins: [
+			scss({
+				//output: "../wwwroot/css/style.css",
+				output: function (styles, styleNodes) {
+					fs.writeFileSync(`../wwwroot/css/style.css`, styles)
+					const compressed = new CleanCss().minify(styles).styles;
+					fs.writeFileSync(`../wwwroot/css/style.min.css`, compressed)
+				},
+				failOnError: true,
+			}),
+			postcss({
+				extract: true,
+				minimize: true,
+			}),
+			copy({
+				targets: [
+					{ src: "node_modules/@mdi/font/fonts/*", dest: '../wwwroot/fonts' },
+					{ src: "node_modules/@fontsource/fira-mono/files/*", dest: '../wwwroot/css/files' },
+				]
+			})
+		]
+	})
+}
+
 export default [
+	buildCss(),
 	buildPage("Log"),
 	buildPage("Nightly"),
 	buildPage("TabStats"),

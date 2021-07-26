@@ -1,5 +1,7 @@
+@import "@mdi/font/scss/materialdesignicons";
+@import "@fontsource/fira-mono/index";
+
 @import "_bulma";
-@import "font/font";
 
 @mixin unselectable {
 	cursor: pointer;

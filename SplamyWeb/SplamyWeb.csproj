@@ -29,7 +29,6 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="5.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
 		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
-		<PackageReference Include="Microsoft.Web.LibraryManager.Build" Version="2.0.96" />
 		<PackageReference Include="NLog" Version="4.7.10" />
 		<PackageReference Include="NLog.Web.AspNetCore" Version="4.13.0" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.7" />
@@ -59,7 +58,6 @@
 		<!-- Makes the TypeScript compilation task a no-op -->
 		<TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
 	</PropertyGroup>
-
 
 	<ItemGroup>
 		<Compile Remove="Scripts/**/*" />
