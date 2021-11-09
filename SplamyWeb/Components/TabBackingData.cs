@@ -6,106 +6,106 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SplamyWeb.Components
+namespace SplamyWeb.Components;
+
+public class TabBackingData
 {
-	public class TabBackingData
+	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
+	private readonly IServiceScopeFactory scopeFactory;
+	private readonly IMapper mapper;
+	private const int MaxRunningBots = 10_000;
+	private const int MaxDaysCalculation = 2; // Aim to send stats once per day. So 10 days should be the maximum for values calculation
+	private static readonly TimeSpan MaxTotalUptime = TimeSpan.FromDays(MaxDaysCalculation);
+	private const int MaxSongsPerFactory = 60 * 60 * 24 * MaxDaysCalculation;
+
+	// Precaclulated stuff
+	public uint Downloads { get; set; }
+	public uint RunningInstances { get; set; }
+	public uint RunningBots { get; set; }
+	public TimeSpan PlaybackTime { get; set; }
+	public CachedDayStats[] CachedDayStats { get; set; } = Array.Empty<CachedDayStats>();
+
+	public TabBackingData(IServiceScopeFactory scopeFactory, IMapper mapper, TimerService timer)
 	{
-		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-		private readonly IServiceScopeFactory scopeFactory;
-		private readonly IMapper mapper;
-		private const int MaxRunningBots = 10_000;
-		private const int MaxDaysCalculation = 2; // Aim to send stats once per day. So 10 days should be the maximum for values calculation
-		private static readonly TimeSpan MaxTotalUptime = TimeSpan.FromDays(MaxDaysCalculation);
-		private const int MaxSongsPerFactory = 60 * 60 * 24 * MaxDaysCalculation;
+		this.scopeFactory = scopeFactory;
+		this.mapper = mapper;
+		timer.Register(UpdateAggregates);
+	}
 
-		// Precaclulated stuff
-		public uint Downloads { get; set; }
-		public uint RunningInstances { get; set; }
-		public uint RunningBots { get; set; }
-		public TimeSpan PlaybackTime { get; set; }
-		public CachedDayStats[] CachedDayStats { get; set; } = Array.Empty<CachedDayStats>();
+	public async Task Add(TabStatsData obj)
+	{
+		if (!VaidateTabStats(obj))
+			return;
 
-		public TabBackingData(IServiceScopeFactory scopeFactory, IMapper mapper, TimerService timer)
+		Log.Info("Stats: {@stats}", obj);
+
+		var dto = mapper.Map<TabStatsData, TabStatsPingDto>(obj);
+		dto.Time = DateTime.UtcNow;
+
+		using var scope = scopeFactory.CreateScope();
+		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+		await db.TabStatsPings.AddAsync(dto);
+		await db.SaveChangesAsync();
+	}
+
+	private static bool VaidateTabStats(TabStatsData obj)
+	{
+		if (
+			obj.Platform is null &&
+			obj.Runtime is null &&
+			obj.BotVersion is null)
+			return false;
+
+		if (obj.BotVersion == "0.11.0-alpha.50/develop/96162298" || obj.TotalUptime < TimeSpan.FromMinutes(3)) // TODO: Temporary block against wrong configuration
+			return false;
+
+		if (obj.RunningBots > MaxRunningBots)
+			return false;
+
+		if (obj.TotalUptime > MaxTotalUptime)
+			return false;
+
+		if (obj.SongStats != null)
 		{
-			this.scopeFactory = scopeFactory;
-			this.mapper = mapper;
-			timer.Register(UpdateAggregates);
+			if (obj.SongStats.Count > 32)
+				return false;
+
+			if (obj.SongStats.Keys.Any(x => x.Length > 128))
+				return false;
+
+			if (obj.SongStats.Values.Any(x => x.PlayRequests > MaxSongsPerFactory))
+				return false;
 		}
 
-		public async Task Add(TabStatsData obj)
-		{
-			if (!VaidateTabStats(obj))
-				return;
+		return true;
+	}
 
-			Log.Info("Stats: {@stats}", obj);
+	public async Task UpdateAggregates()
+	{
+		using var scope = scopeFactory.CreateScope();
+		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-			var dto = mapper.Map<TabStatsData, TabStatsPingDto>(obj);
-			dto.Time = DateTime.UtcNow;
+		Downloads = (uint)await db.NightlyBuilds
+			.Where(x => x.Project == "ts3ab")
+			.Select(x => x.DownloadCount)
+			.SumAsync();
 
-			using var scope = scopeFactory.CreateScope();
-			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-			await db.TabStatsPings.AddAsync(dto);
-			await db.SaveChangesAsync();
-		}
+		var oneDayAgo = DateTime.Now - TimeSpan.FromDays(1);
 
-		private static bool VaidateTabStats(TabStatsData obj)
-		{
-			if (
-				obj.Platform is null &&
-				obj.Runtime is null &&
-				obj.BotVersion is null)
-				return false;
+		RunningInstances = (uint)await db.TabStatsPings
+			.Where(x => x.Time > oneDayAgo)
+			.CountAsync();
 
-			if (obj.BotVersion == "0.11.0-alpha.50/develop/96162298" || obj.TotalUptime < TimeSpan.FromMinutes(3)) // TODO: Temporary block against wrong configuration
-				return false;
+		RunningBots = (uint)await db.TabStatsPings
+			.Where(x => x.Time > oneDayAgo)
+			.Select(x => x.RunningBots)
+			.SumAsync();
 
-			if (obj.RunningBots > MaxRunningBots)
-				return false;
-
-			if (obj.TotalUptime > MaxTotalUptime)
-				return false;
-
-			if (obj.SongStats != null)
-			{
-				if (obj.SongStats.Count > 32)
-					return false;
-
-				if (obj.SongStats.Keys.Any(x => x.Length > 128))
-					return false;
-
-				if (obj.SongStats.Values.Any(x => x.PlayRequests > MaxSongsPerFactory))
-					return false;
-			}
-
-			return true;
-		}
-
-		public async Task UpdateAggregates()
-		{
-			using var scope = scopeFactory.CreateScope();
-			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-
-			Downloads = (uint)await db.NightlyBuilds
-				.Where(x => x.Project == "ts3ab")
-				.Select(x => x.DownloadCount)
-				.SumAsync();
-
-			var oneDayAgo = DateTime.Now - TimeSpan.FromDays(1);
-
-			RunningInstances = (uint)await db.TabStatsPings
-				.Where(x => x.Time > oneDayAgo)
-				.CountAsync();
-
-			RunningBots = (uint)await db.TabStatsPings
-				.Where(x => x.Time > oneDayAgo)
-				.Select(x => x.RunningBots)
-				.SumAsync();
-
-			PlaybackTime = (await db.Set<PlaytimeDto>().FromSqlRaw(
+		PlaybackTime = (await db.Set<PlaytimeDto>().FromSqlRaw(
 @"SELECT SUM(""Playtime"") as ""Playtime""
 FROM tabstats_factory").SingleOrDefaultAsync())?.Playtime ?? TimeSpan.Zero;
 
-			CachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
+		CachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
 @"SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances, sum(f.""PlaybackTime"") as PlaybackTime
 FROM tabstats_entry
 LEFT OUTER JOIN
@@ -117,19 +117,18 @@ LEFT OUTER JOIN
 ON f.""TabStatsId"" = tabstats_entry.""Id""
 GROUP BY Date
 ORDER BY Date").ToArrayAsync();
-		}
 	}
+}
 
-	public class CachedDayStats
-	{
-		public DateTime Date { get; set; }
-		public uint RunningInstances { get; set; }
-		public uint RunningBots { get; set; }
-		public TimeSpan PlaybackTime { get; set; }
-	}
+public class CachedDayStats
+{
+	public DateTime Date { get; set; }
+	public uint RunningInstances { get; set; }
+	public uint RunningBots { get; set; }
+	public TimeSpan PlaybackTime { get; set; }
+}
 
-	public class PlaytimeDto
-	{
-		public TimeSpan? Playtime { get; set; }
-	}
+public class PlaytimeDto
+{
+	public TimeSpan? Playtime { get; set; }
 }

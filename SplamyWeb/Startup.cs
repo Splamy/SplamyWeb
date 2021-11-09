@@ -13,133 +13,132 @@ using SplamyWeb.Mock;
 using System;
 using System.Net.Http;
 
-namespace SplamyWeb
+namespace SplamyWeb;
+
+public class Startup
 {
-	public class Startup
+	public Startup(IConfiguration configuration)
 	{
-		public Startup(IConfiguration configuration)
+		Configuration = configuration;
+	}
+
+	public IConfiguration Configuration { get; }
+
+	// This method gets called by the runtime. Use this method to add services to the container.
+	public void ConfigureServices(IServiceCollection services)
+	{
+		services.AddMemoryCache();
+		if (Configuration.GetValue<bool>("Mock:Web"))
 		{
-			Configuration = configuration;
+			services.AddSingleton<IHttpClientFactory, MockedHttpClientFactory>();
 		}
-
-		public IConfiguration Configuration { get; }
-
-		// This method gets called by the runtime. Use this method to add services to the container.
-		public void ConfigureServices(IServiceCollection services)
+		else
 		{
-			services.AddMemoryCache();
-			if (Configuration.GetValue<bool>("Mock:Web"))
+			services.AddHttpClient(Options.DefaultName, client =>
 			{
-				services.AddSingleton<IHttpClientFactory, MockedHttpClientFactory>();
-			}
-			else
+				client.DefaultRequestHeaders.UserAgent.Clear();
+				client.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
+			});
+		}
+		services.AddSignalR();
+		services
+			.AddMvc(options =>
 			{
-				services.AddHttpClient(Options.DefaultName, client =>
-				{
-					client.DefaultRequestHeaders.UserAgent.Clear();
-					client.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
-				});
-			}
-			services.AddSignalR();
-			services
-				.AddMvc(options =>
-				{
-					options.EnableEndpointRouting = false;
-				})
-				.AddRazorPagesOptions(options =>
-				{
-					options.Conventions.AuthorizeFolder("/Admin");
-				})
+				options.EnableEndpointRouting = false;
+			})
+			.AddRazorPagesOptions(options =>
+			{
+				options.Conventions.AuthorizeFolder("/Admin");
+			})
 #if DEBUG
 				.AddRazorRuntimeCompilation()
 #endif
 			;
 
-			services.AddIdentity<LoginData, LoginData>(options =>
-			{
-				options.Password.RequireDigit = false;
-				options.Password.RequireUppercase = false;
-				options.Password.RequiredUniqueChars = 3;
-				options.Password.RequireNonAlphanumeric = false;
-			}).AddDefaultTokenProviders();
+		services.AddIdentity<LoginData, LoginData>(options =>
+		{
+			options.Password.RequireDigit = false;
+			options.Password.RequireUppercase = false;
+			options.Password.RequiredUniqueChars = 3;
+			options.Password.RequireNonAlphanumeric = false;
+		}).AddDefaultTokenProviders();
 
-			services.AddAuthentication(options =>
-			{
-				options.AddScheme<BasicAuthenticationHandler>("BasicAuthentication", "Basic");
-			});
+		services.AddAuthentication(options =>
+		{
+			options.AddScheme<BasicAuthenticationHandler>("BasicAuthentication", "Basic");
+		});
 
-			services.AddDbContext<SplamyContext>();
-			services.AddScoped<IUserStore<LoginData>, UserStore>();
-			services.AddScoped<IRoleStore<LoginData>, UserStore>();
-			services.AddScoped<IUserPasswordStore<LoginData>, UserStore>();
-			services.AddScoped<IPasswordValidator<LoginData>, UserStore>();
-			services.AddScoped<IPasswordHasher<LoginData>, UserStore>();
+		services.AddDbContext<SplamyContext>();
+		services.AddScoped<IUserStore<LoginData>, UserStore>();
+		services.AddScoped<IRoleStore<LoginData>, UserStore>();
+		services.AddScoped<IUserPasswordStore<LoginData>, UserStore>();
+		services.AddScoped<IPasswordValidator<LoginData>, UserStore>();
+		services.AddScoped<IPasswordHasher<LoginData>, UserStore>();
 
-			services.ConfigureApplicationCookie(options =>
-			{
+		services.ConfigureApplicationCookie(options =>
+		{
 				// Cookie settings
 				options.Cookie.HttpOnly = false;
-				options.ExpireTimeSpan = TimeSpan.FromDays(30);
-				options.LoginPath = "/User";
-				options.LogoutPath = "/Account/Logout";
-				options.AccessDeniedPath = "/User"; // TODO
+			options.ExpireTimeSpan = TimeSpan.FromDays(30);
+			options.LoginPath = "/User";
+			options.LogoutPath = "/Account/Logout";
+			options.AccessDeniedPath = "/User"; // TODO
 				options.SlidingExpiration = true;
-			});
+		});
 
-			services.AddDataProtection().UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration()
-			{
-				EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
-				ValidationAlgorithm = ValidationAlgorithm.HMACSHA256,
-			});
-
-			services.AddAutoMapper(typeof(Startup));
-
-			services.AddSingleton<TimerService>();
-			services.AddSingleton<IHostedService>(p => p.GetRequiredService<TimerService>());
-
-			services.AddScoped<StoreService>();
-			services.AddSingleton<TabBackingData>();
-			services.AddSingleton<SpamBackingData>();
-			services.AddSingleton<RamsesBackingData>();
-			services.AddSingleton<TeamspeakService>();
-			services.AddSingleton<LogNotifierService>();
-		}
-
-		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IServiceProvider provider, IHostApplicationLifetime applicationLifetime)
+		services.AddDataProtection().UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration()
 		{
-			provider.GetService<LogNotifierService>();
-			provider.GetService<TeamspeakService>();
-			provider.GetService<TabBackingData>();
-			//applicationLifetime.ApplicationStopping.Register(() => { });
+			EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
+			ValidationAlgorithm = ValidationAlgorithm.HMACSHA256,
+		});
+
+		services.AddAutoMapper(typeof(Startup));
+
+		services.AddSingleton<TimerService>();
+		services.AddSingleton<IHostedService>(p => p.GetRequiredService<TimerService>());
+
+		services.AddScoped<StoreService>();
+		services.AddSingleton<TabBackingData>();
+		services.AddSingleton<SpamBackingData>();
+		services.AddSingleton<RamsesBackingData>();
+		services.AddSingleton<TeamspeakService>();
+		services.AddSingleton<LogNotifierService>();
+	}
+
+	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+	public void Configure(IApplicationBuilder app, IServiceProvider provider, IHostApplicationLifetime applicationLifetime)
+	{
+		provider.GetService<LogNotifierService>();
+		provider.GetService<TeamspeakService>();
+		provider.GetService<TabBackingData>();
+		//applicationLifetime.ApplicationStopping.Register(() => { });
 
 #if DEBUG
-			var mapper = provider.GetRequiredService<AutoMapper.IMapper>();
-			mapper.ConfigurationProvider.AssertConfigurationIsValid();
+		var mapper = provider.GetRequiredService<AutoMapper.IMapper>();
+		mapper.ConfigurationProvider.AssertConfigurationIsValid();
 #endif
 
 #if DEBUG
-			app.UseDeveloperExceptionPage();
+		app.UseDeveloperExceptionPage();
 #else
 			app.UseExceptionHandler("/Error");
 #endif
 
-			app.UseStatusCodePagesWithReExecute("/Error");
+		app.UseStatusCodePagesWithReExecute("/Error");
 
 
-			app.UseStaticFiles();
+		app.UseStaticFiles();
 
-			app.UseRouting();
+		app.UseRouting();
 
-			app.UseAuthentication();
-			app.UseAuthorization();
+		app.UseAuthentication();
+		app.UseAuthorization();
 
-			app.UseEndpoints(endpoints =>
-			{
-				endpoints.MapControllers();
-				endpoints.MapRazorPages();
-				endpoints.MapHub<LogNotifier>("/livelog");
-			});
-		}
+		app.UseEndpoints(endpoints =>
+		{
+			endpoints.MapControllers();
+			endpoints.MapRazorPages();
+			endpoints.MapHub<LogNotifier>("/livelog");
+		});
 	}
 }

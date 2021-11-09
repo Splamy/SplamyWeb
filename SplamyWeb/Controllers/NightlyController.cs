@@ -9,202 +9,201 @@ using System.Net.Mime;
 using System.Threading.Tasks;
 using static SplamyWeb.Util;
 
-namespace SplamyWeb.Controllers
+namespace SplamyWeb.Controllers;
+
+[ApiController]
+[Authorize(AuthenticationSchemes = AuthScheme)] // , Roles = "Admin"
+[Route("api/[controller]")]
+public class NightlyController : ControllerBase
 {
-	[ApiController]
-	[Authorize(AuthenticationSchemes = AuthScheme)] // , Roles = "Admin"
-	[Route("api/[controller]")]
-	public class NightlyController : ControllerBase
+	private readonly SplamyContext db;
+	private static readonly string[] AcceptedContentTypes =
 	{
-		private readonly SplamyContext db;
-		private static readonly string[] AcceptedContentTypes =
-		{
 			MediaTypeNames.Application.Octet, // Binary
 			MediaTypeNames.Application.Zip,
 			"application/gzip"
 		};
 
-		public NightlyController(SplamyContext db)
+	public NightlyController(SplamyContext db)
+	{
+		this.db = db;
+	}
+
+	private readonly string nightlyPath = Path.Combine(Util.DataPath, "nightly");
+
+	[AllowAnonymous]
+	[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]
+	[HttpGet("{project}/{branch}/download")]
+	public async Task<IActionResult> GetDownload(string project, string branch)
+	{
+		project = project.ToLowerInvariant();
+		branch = branch.ToLowerInvariant();
+
+		if (!IsSave(project) || !IsSave(branch))
+			return BadRequest("Invalid path");
+
+		var entry = await GetActive(project, branch);
+		if (entry is null)
+			return NotFound();
+
+		entry.DownloadCount++;
+		await db.SaveChangesAsync();
+
+		if (entry.ZipContent)
 		{
-			this.db = db;
+			return BadRequest("Not supported");
 		}
 
-		private readonly string nightlyPath = Path.Combine(Util.DataPath, "nightly");
+		var path = Path.Combine(nightlyPath, project, branch, entry.FileName);
+		return PhysicalFile(path, MediaTypeNames.Application.Octet, entry.FileName);
+	}
 
-		[AllowAnonymous]
-		[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]
-		[HttpGet("{project}/{branch}/download")]
-		public async Task<IActionResult> GetDownload(string project, string branch)
-		{
-			project = project.ToLowerInvariant();
-			branch = branch.ToLowerInvariant();
+	[AllowAnonymous]
+	[HttpGet("{project}/{branch}")]
+	public async Task<IActionResult> GetInfo(string project, string branch)
+	{
+		project = project.ToLowerInvariant();
+		branch = branch.ToLowerInvariant();
 
-			if (!IsSave(project) || !IsSave(branch))
-				return BadRequest("Invalid path");
+		var entry = await GetActive(project, branch);
+		if (entry is null)
+			return NotFound();
+		return Ok(entry.Strip());
+	}
 
-			var entry = await GetActive(project, branch);
-			if (entry is null)
-				return NotFound();
+	[AllowAnonymous]
+	[HttpGet("{project}")]
+	public async Task<IActionResult> ProjectInfo(string project)
+	{
+		project = project.ToLowerInvariant();
 
-			entry.DownloadCount++;
-			await db.SaveChangesAsync();
+		var nProject = await db.NightlyProjects.SingleOrDefaultAsync(np => np.Project == project);
+		if (nProject is null)
+			return NotFound();
+		var branches = await (
+			from nb in db.NightlyBranches
+			where nb.Project == project
+			select nb.Branch)
+			.Distinct()
+			.ToArrayAsync();
 
-			if (entry.ZipContent)
-			{
-				return BadRequest("Not supported");
-			}
+		return Ok(new { name = nProject.ProjectName, branches, });
+	}
 
-			var path = Path.Combine(nightlyPath, project, branch, entry.FileName);
-			return PhysicalFile(path, MediaTypeNames.Application.Octet, entry.FileName);
-		}
+	[HttpPut("{project}")]
+	public async Task<IActionResult> CreateProjectApi(string project)
+	{
+		return Ok(await CreateProject(project));
+	}
 
-		[AllowAnonymous]
-		[HttpGet("{project}/{branch}")]
-		public async Task<IActionResult> GetInfo(string project, string branch)
-		{
-			project = project.ToLowerInvariant();
-			branch = branch.ToLowerInvariant();
+	private async Task<NightlyProject> CreateProject(string project)
+	{
+		project = project.ToLowerInvariant();
 
-			var entry = await GetActive(project, branch);
-			if (entry is null)
-				return NotFound();
-			return Ok(entry.Strip());
-		}
+		var nProject = await (
+			from np in db.NightlyProjects
+			where np.Project == project
+			select np)
+			.SingleOrDefaultAsync();
+		if (nProject != null)
+			return nProject;
 
-		[AllowAnonymous]
-		[HttpGet("{project}")]
-		public async Task<IActionResult> ProjectInfo(string project)
-		{
-			project = project.ToLowerInvariant();
+		return (await db.NightlyProjects.AddAsync(new NightlyProject() { Project = project })).Entity;
+	}
 
-			var nProject = await db.NightlyProjects.SingleOrDefaultAsync(np => np.Project == project);
-			if (nProject is null)
-				return NotFound();
-			var branches = await (
-				from nb in db.NightlyBranches
-				where nb.Project == project
-				select nb.Branch)
-				.Distinct()
-				.ToArrayAsync();
+	[HttpPatch("{project}")]
+	public async Task<IActionResult> SetProjectProperties(string project,
+		[FromQuery] string name,
+		[FromQuery] string commit_url)
+	{
+		project = project.ToLowerInvariant();
 
-			return Ok(new { name = nProject.ProjectName, branches, });
-		}
+		var projData = await db.NightlyProjects.SingleOrDefaultAsync(np => np.Project == project);
+		if (projData is null)
+			return NotFound();
 
-		[HttpPut("{project}")]
-		public async Task<IActionResult> CreateProjectApi(string project)
-		{
-			return Ok(await CreateProject(project));
-		}
+		if (name != null)
+			projData.ProjectName = name;
+		if (commit_url != null)
+			projData.CommitUrl = commit_url;
 
-		private async Task<NightlyProject> CreateProject(string project)
-		{
-			project = project.ToLowerInvariant();
+		await db.SaveChangesAsync();
+		return Ok(projData);
+	}
 
-			var nProject = await (
-				from np in db.NightlyProjects
-				where np.Project == project
-				select np)
-				.SingleOrDefaultAsync();
-			if (nProject != null)
-				return nProject;
+	[HttpPut("{project}/{branch}")]
+	[RequestSizeLimit(100_000_000)]
+	public async Task<IActionResult> Put(string project, string branch,
+		[FromQuery] string fileName,
+		[FromQuery] string version,
+		[FromQuery] string commit)
+	{
+		project = project.ToLowerInvariant();
+		branch = branch.ToLowerInvariant();
 
-			return (await db.NightlyProjects.AddAsync(new NightlyProject() { Project = project })).Entity;
-		}
+		if (!IsSave(project) || !IsSave(branch))
+			return BadRequest("Invalid path");
 
-		[HttpPatch("{project}")]
-		public async Task<IActionResult> SetProjectProperties(string project,
-			[FromQuery] string name,
-			[FromQuery] string commit_url)
-		{
-			project = project.ToLowerInvariant();
+		if (!AcceptedContentTypes.Contains(HttpContext.Request.ContentType))
+			return BadRequest("Invalid type");
 
-			var projData = await db.NightlyProjects.SingleOrDefaultAsync(np => np.Project == project);
-			if (projData is null)
-				return NotFound();
+		await CreateProject(project);
 
-			if (name != null)
-				projData.ProjectName = name;
-			if (commit_url != null)
-				projData.CommitUrl = commit_url;
+		const string defaultName = "data.dat";
 
-			await db.SaveChangesAsync();
-			return Ok(projData);
-		}
+		var nBranch = await (
+			from nb in db.NightlyBranches
+			where nb.Project == project && nb.Branch == branch
+			select nb)
+			.SingleOrDefaultAsync();
+		nBranch ??= (await db.NightlyBranches.AddAsync(new NightlyBranch { Project = project, Branch = branch })).Entity;
+		nBranch.Active = commit;
 
-		[HttpPut("{project}/{branch}")]
-		[RequestSizeLimit(100_000_000)]
-		public async Task<IActionResult> Put(string project, string branch,
-			[FromQuery] string fileName,
-			[FromQuery] string version,
-			[FromQuery] string commit)
-		{
-			project = project.ToLowerInvariant();
-			branch = branch.ToLowerInvariant();
-
-			if (!IsSave(project) || !IsSave(branch))
-				return BadRequest("Invalid path");
-
-			if (!AcceptedContentTypes.Contains(HttpContext.Request.ContentType))
-				return BadRequest("Invalid type");
-
-			await CreateProject(project);
-
-			const string defaultName = "data.dat";
-
-			var nBranch = await (
-				from nb in db.NightlyBranches
-				where nb.Project == project && nb.Branch == branch
-				select nb)
-				.SingleOrDefaultAsync();
-			nBranch ??= (await db.NightlyBranches.AddAsync(new NightlyBranch { Project = project, Branch = branch })).Entity;
-			nBranch.Active = commit;
-
-			var nBuild = await (
-				from nb in db.NightlyBuilds
-				where nb.NightlyBranch.Project == project && nb.Branch == branch && nb.Commit == commit
-				select nb)
-				.SingleOrDefaultAsync();
-
-			nBuild ??= (await db.NightlyBuilds.AddAsync(new NightlyBuild { Project = project, Branch = branch, Commit = commit, ZipContent = false, })).Entity;
-			nBuild.UploadTime = DateTime.UtcNow;
-			nBuild.FileName = fileName ?? defaultName;
-			nBuild.Version = version;
-
-			var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, nBuild.FileName));
-			var dir = fullPath.Directory;
-			if (dir is null)
-				return Problem("Could not create directory");
-			if (dir.Exists)
-				dir.Delete(true);
-			dir.Create();
-			using (var demoDataStream = fullPath.OpenWrite())
-			{
-				await HttpContext.Request.Body.CopyToAsync(demoDataStream);
-			}
-
-			await db.SaveChangesAsync();
-			return Ok();
-		}
-
-		private async Task<NightlyBuild?> GetActive(string project, string branch) => await (
-			from nbuild in db.NightlyBuilds
-			where nbuild.NightlyBranch.Project == project && nbuild.Branch == branch && nbuild.Commit == nbuild.NightlyBranch.Active
-			select nbuild)
+		var nBuild = await (
+			from nb in db.NightlyBuilds
+			where nb.NightlyBranch.Project == project && nb.Branch == branch && nb.Commit == commit
+			select nb)
 			.SingleOrDefaultAsync();
 
-		[HttpDelete("{project}/{branch}")]
-		public async Task<IActionResult> Delete(string project, string branch)
+		nBuild ??= (await db.NightlyBuilds.AddAsync(new NightlyBuild { Project = project, Branch = branch, Commit = commit, ZipContent = false, })).Entity;
+		nBuild.UploadTime = DateTime.UtcNow;
+		nBuild.FileName = fileName ?? defaultName;
+		nBuild.Version = version;
+
+		var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, nBuild.FileName));
+		var dir = fullPath.Directory;
+		if (dir is null)
+			return Problem("Could not create directory");
+		if (dir.Exists)
+			dir.Delete(true);
+		dir.Create();
+		using (var demoDataStream = fullPath.OpenWrite())
 		{
-			var nBranch = await (
-				from nb in db.NightlyBranches
-				where nb.Project == project && nb.Branch == branch
-				select nb)
-				.SingleOrDefaultAsync();
-			if (nBranch is null)
-				return StatusCode(304);
-			nBranch.Active = null;
-			await db.SaveChangesAsync();
-			return Ok();
+			await HttpContext.Request.Body.CopyToAsync(demoDataStream);
 		}
+
+		await db.SaveChangesAsync();
+		return Ok();
+	}
+
+	private async Task<NightlyBuild?> GetActive(string project, string branch) => await (
+		from nbuild in db.NightlyBuilds
+		where nbuild.NightlyBranch.Project == project && nbuild.Branch == branch && nbuild.Commit == nbuild.NightlyBranch.Active
+		select nbuild)
+		.SingleOrDefaultAsync();
+
+	[HttpDelete("{project}/{branch}")]
+	public async Task<IActionResult> Delete(string project, string branch)
+	{
+		var nBranch = await (
+			from nb in db.NightlyBranches
+			where nb.Project == project && nb.Branch == branch
+			select nb)
+			.SingleOrDefaultAsync();
+		if (nBranch is null)
+			return StatusCode(304);
+		nBranch.Active = null;
+		await db.SaveChangesAsync();
+		return Ok();
 	}
 }

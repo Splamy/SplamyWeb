@@ -4,54 +4,53 @@ using SplamyWeb.Db;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace SplamyWeb.Controllers
+namespace SplamyWeb.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class TabController : ControllerBase
 {
-	[ApiController]
-	[Route("api/[controller]")]
-	public class TabController : ControllerBase
+	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
+
+	private readonly TabBackingData tab;
+	private readonly SpamBackingData spam;
+
+	public TabController(TabBackingData tab, SpamBackingData spam)
 	{
-		private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
+		this.tab = tab;
+		this.spam = spam;
+	}
 
-		private readonly TabBackingData tab;
-		private readonly SpamBackingData spam;
+	[HttpPost("stats")]
+	[Consumes("application/json")]
+	public async Task PostPing()
+	{
+		var remoteIp = Request.HttpContext.Connection.RemoteIpAddress;
+		if (remoteIp is null || !spam.Check(remoteIp))
+			return;
 
-		public TabController(TabBackingData tab, SpamBackingData spam)
+		TabStatsData? obj = null;
+		try
 		{
-			this.tab = tab;
-			this.spam = spam;
+			obj = await JsonSerializer.DeserializeAsync<TabStatsData?>(Request.Body, Util.JsonDefault);
 		}
+		catch (JsonException ex) { Log.Debug(ex, "Failed to deserialize ping"); }
 
-		[HttpPost("stats")]
-		[Consumes("application/json")]
-		public async Task PostPing()
-		{
-			var remoteIp = Request.HttpContext.Connection.RemoteIpAddress;
-			if (remoteIp is null || !spam.Check(remoteIp))
-				return;
+		if (obj != null)
+			await tab.Add(obj);
+	}
 
-			TabStatsData? obj = null;
-			try
-			{
-				obj = await JsonSerializer.DeserializeAsync<TabStatsData?>(Request.Body, Util.JsonDefault);
-			}
-			catch (JsonException ex) { Log.Debug(ex, "Failed to deserialize ping"); }
+	[HttpGet("stats/graph")]
+	[Produces("application/json")]
+	public IActionResult GetGraphData()
+	{
+		return Ok(tab.CachedDayStats);
+	}
 
-			if (obj != null)
-				await tab.Add(obj);
-		}
-
-		[HttpGet("stats/graph")]
-		[Produces("application/json")]
-		public IActionResult GetGraphData()
-		{
-			return Ok(tab.CachedDayStats);
-		}
-
-		[HttpPost("stats/update")]
-		[Produces("application/json")]
-		public async Task UpdateGraphData()
-		{
-			await tab.UpdateAggregates();
-		}
+	[HttpPost("stats/update")]
+	[Produces("application/json")]
+	public async Task UpdateGraphData()
+	{
+		await tab.UpdateAggregates();
 	}
 }

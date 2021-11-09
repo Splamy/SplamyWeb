@@ -10,56 +10,55 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SplamyWeb
+namespace SplamyWeb;
+
+public static class Program
 {
-	public static class Program
+	public static async Task Main(string[] args)
 	{
-		public static async Task Main(string[] args)
+		ServerLog.ConfigueNLog();
+
+		IWebHost webHost = BuildWebHost(args);
+
+		// Create a new scope
+		using (var scope = webHost.Services.CreateScope())
 		{
-			ServerLog.ConfigueNLog();
+			using var context = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-			IWebHost webHost = BuildWebHost(args);
+			var logger = NLog.LogManager.GetLogger("SplamyWeb.Startup");
 
-			// Create a new scope
-			using (var scope = webHost.Services.CreateScope())
+			var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToArray();
+
+			//await context.GetInfrastructure().GetRequiredService<IMigrator>().MigrateAsync("20210714165443_InitialCreate");
+			if (pendingMigrations.Length > 0)
 			{
-				using var context = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-
-				var logger = NLog.LogManager.GetLogger("SplamyWeb.Startup");
-
-				var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToArray();
-
-				//await context.GetInfrastructure().GetRequiredService<IMigrator>().MigrateAsync("20210714165443_InitialCreate");
-				if (pendingMigrations.Length > 0)
-				{
-					logger.Info($"Applying {pendingMigrations.Length} migrations.");
-					await context.Database.MigrateAsync();
-				}
-
-				var lastAppliedMigration = (await context.Database.GetAppliedMigrationsAsync()).Last();
-
-				logger.Info($"Database on schema version: {lastAppliedMigration}");
+				logger.Info($"Applying {pendingMigrations.Length} migrations.");
+				await context.Database.MigrateAsync();
 			}
 
-			// Run the WebHost, and start accepting requests
-			// There's an async overload, so we may as well use it
-			await webHost.RunAsync();
+			var lastAppliedMigration = (await context.Database.GetAppliedMigrationsAsync()).Last();
+
+			logger.Info($"Database on schema version: {lastAppliedMigration}");
 		}
 
-		public static IWebHost BuildWebHost(string[] args) =>
-			WebHost
-				.CreateDefaultBuilder(args)
-				.ChangePortSomewhereElse()
-				.ConfigureLogging(logging =>
-				{
-					logging.ClearProviders();
-					logging.SetMinimumLevel(LogLevel.Trace);
-				})
-				.UseNLog()
-				.UseStartup<Startup>()
-				.Build();
-
-		private static IWebHostBuilder ChangePortSomewhereElse(this IWebHostBuilder webHostBuilder)
-			=> Environment.CurrentDirectory.StartsWith("E", StringComparison.OrdinalIgnoreCase) ? webHostBuilder.UseUrls("http://*:44422") : webHostBuilder;
+		// Run the WebHost, and start accepting requests
+		// There's an async overload, so we may as well use it
+		await webHost.RunAsync();
 	}
+
+	public static IWebHost BuildWebHost(string[] args) =>
+		WebHost
+			.CreateDefaultBuilder(args)
+			.ChangePortSomewhereElse()
+			.ConfigureLogging(logging =>
+			{
+				logging.ClearProviders();
+				logging.SetMinimumLevel(LogLevel.Trace);
+			})
+			.UseNLog()
+			.UseStartup<Startup>()
+			.Build();
+
+	private static IWebHostBuilder ChangePortSomewhereElse(this IWebHostBuilder webHostBuilder)
+		=> Environment.CurrentDirectory.StartsWith("E", StringComparison.OrdinalIgnoreCase) ? webHostBuilder.UseUrls("http://*:44422") : webHostBuilder;
 }

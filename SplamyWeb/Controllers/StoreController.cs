@@ -3,27 +3,26 @@ using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
 using System.Threading.Tasks;
 
-namespace SplamyWeb.Controllers
+namespace SplamyWeb.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/[controller]")]
+public class StoreController : ControllerBase
 {
-	[ApiController]
-	[Authorize]
-	[Route("api/[controller]")]
-	public class StoreController : ControllerBase
+	private readonly StoreService store;
+
+	public StoreController(StoreService store)
 	{
-		private readonly StoreService store;
-
-		public StoreController(StoreService store)
-		{
-			this.store = store;
-		}
-
-		[HttpGet("value/{key}")]
-		public async Task<string?> Get(string key) => await store.Get(key);
-
-		[HttpDelete("value/{key}")]
-		public async Task Delete(string key) => await store.Delete(key);
-
-		[HttpPut("value/{key}")]
-		public async Task Put(string key, [FromQuery] string? value) => await store.Set(key, value);
+		this.store = store;
 	}
+
+	[HttpGet("value/{key}")]
+	public async Task<string?> Get(string key) => await store.Get(key);
+
+	[HttpDelete("value/{key}")]
+	public async Task Delete(string key) => await store.Delete(key);
+
+	[HttpPut("value/{key}")]
+	public async Task Put(string key, [FromQuery] string? value) => await store.Set(key, value);
 }
