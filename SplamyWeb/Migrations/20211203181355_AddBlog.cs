@@ -34,7 +34,7 @@ namespace SplamyWeb.Migrations
 				oldType: "timestamp without time zone");
 
 			migrationBuilder.CreateTable(
-				name: "BlogPosts",
+				name: "blog",
 				columns: table => new
 				{
 					PostId = table.Column<int>(type: "integer", nullable: false)
@@ -49,7 +49,7 @@ namespace SplamyWeb.Migrations
 				},
 				constraints: table =>
 				{
-					table.PrimaryKey("PK_BlogPosts", x => x.PostId);
+					table.PrimaryKey("PK_blog", x => x.PostId);
 				});
 
 			migrationBuilder.CreateIndex(
@@ -58,13 +58,25 @@ namespace SplamyWeb.Migrations
 				column: "NameNormalized",
 				unique: true);
 
-			migrationBuilder.Sql("CREATE INDEX blog_posts_tags_index ON \"BlogPosts\" USING gin (\"Tags\");");
+			migrationBuilder.AddForeignKey(
+				name: "FK_nightly_build_nightly_project_Project",
+				table: "nightly_build",
+				column: "Project",
+				principalTable: "nightly_project",
+				principalColumn: "Project",
+				onDelete: ReferentialAction.Cascade);
+
+			migrationBuilder.Sql("CREATE INDEX blog_posts_tags_index ON \"blog\" USING gin (\"Tags\");");
 		}
 
 		protected override void Down(MigrationBuilder migrationBuilder)
 		{
+			migrationBuilder.DropForeignKey(
+				name: "FK_nightly_build_nightly_project_Project",
+				table: "nightly_build");
+
 			migrationBuilder.DropTable(
-				name: "BlogPosts");
+				name: "blog");
 
 			migrationBuilder.DropIndex(
 				name: "IX_user_NameNormalized",
@@ -94,7 +106,7 @@ namespace SplamyWeb.Migrations
 				oldClrType: typeof(DateTime),
 				oldType: "timestamp with time zone");
 
-			migrationBuilder.Sql("DROP INDEX blog_posts_tags_index IF EXISTS;");
+			migrationBuilder.Sql("DROP INDEX IF EXISTS blog_posts_tags_index;");
 		}
 	}
 }

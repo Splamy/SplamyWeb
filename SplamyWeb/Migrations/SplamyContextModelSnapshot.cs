@@ -85,7 +85,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("PostId");
 
-                    b.ToTable("BlogPosts");
+                    b.ToTable("blog");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LanguageEntry", b =>
@@ -364,6 +364,12 @@ namespace SplamyWeb.Migrations
 
             modelBuilder.Entity("SplamyWeb.Db.NightlyBuild", b =>
                 {
+                    b.HasOne("SplamyWeb.Db.NightlyProject", "NightlyProject")
+                        .WithMany("Builds")
+                        .HasForeignKey("Project")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("SplamyWeb.Db.NightlyBranch", "NightlyBranch")
                         .WithMany("Builds")
                         .HasForeignKey("Project", "Branch")
@@ -371,6 +377,8 @@ namespace SplamyWeb.Migrations
                         .IsRequired();
 
                     b.Navigation("NightlyBranch");
+
+                    b.Navigation("NightlyProject");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.RamsesMapDto", b =>
@@ -403,6 +411,8 @@ namespace SplamyWeb.Migrations
             modelBuilder.Entity("SplamyWeb.Db.NightlyProject", b =>
                 {
                     b.Navigation("Branches");
+
+                    b.Navigation("Builds");
 
                     b.Navigation("Languages");
                 });

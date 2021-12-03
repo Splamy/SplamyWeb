@@ -259,6 +259,7 @@ public class NightlyController : ControllerBase
 				Notification = db.StoreTable
 					.Where(kvp => kvp.Id == "notify_project_" + nProject.Project)
 					.Select(kvp => kvp.Value)
+					.AsSplitQuery()
 					.FirstOrDefault(),
 				Builds = db.NightlyBuilds
 					.Where(build => build.Project == nProject.Project && (includeInactive || build.NightlyBranch.Active == build.Commit))
