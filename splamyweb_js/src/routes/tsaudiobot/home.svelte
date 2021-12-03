@@ -35,21 +35,33 @@
 
 	// [Icon, Name, donwload name, URL stable, URL preview]
 	let table: [string, string, string, string, string][] = [
-		[mdiDotNet, 'dotnet core 3.1', 'TS3AudioBot.zip', '/api/nightly/ts3ab/master/download', '❌'],
-		[mdiDotNet, '.NET 5', 'TS3AudioBot.zip', 'Soon™', '/api/nightly/ts3ab/develop/download'],
+		[
+			mdiDotNet,
+			'dotnet core 3.1',
+			'TS3AudioBot.zip',
+			'/api/nightly/projects/ts3ab/master/download',
+			'❌'
+		],
+		[
+			mdiDotNet,
+			'.NET 5',
+			'TS3AudioBot.zip',
+			'Soon™',
+			'/api/nightly/projects/ts3ab/develop/download'
+		],
 		[
 			mdiLinux,
 			'Linux x64',
 			'TS3AudioBot.tar.gz',
-			'/api/nightly/ts3ab/master_linux_x64/download',
-			'/api/nightly/ts3ab/develop_linux_x64/download'
+			'/api/nightly/projects/ts3ab/master_linux_x64/download',
+			'/api/nightly/projects/ts3ab/develop_linux_x64/download'
 		],
 		[
 			mdiMicrosoft,
 			'Windows x64',
 			'TS3AudioBot.zip',
-			'/api/nightly/ts3ab/master_win_x64/download',
-			'/api/nightly/ts3ab/develop_win_x64/download'
+			'/api/nightly/projects/ts3ab/master_win_x64/download',
+			'/api/nightly/projects/ts3ab/develop_win_x64/download'
 		]
 	];
 

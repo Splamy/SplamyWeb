@@ -40,7 +40,7 @@ import { mdiClose } from '@mdi/js';
 		});
 		if (answer === true) {
 			try {
-				const response = await fetch(`${BASE_URL}/api/nightly/${project}/${branch}`, {
+				const response = await fetch(`${BASE_URL}/api/nightly/projects/${project}/${branch}`, {
 					method: 'DELETE',
 					credentials: 'include'
 				});
@@ -101,7 +101,7 @@ import { mdiClose } from '@mdi/js';
 						{#if entry.active !== false}
 							<a
 								rel="external"
-								href="{BASE_URL}/api/nightly/{project.project}/{entry.branch}/download"
+								href="{BASE_URL}/api/nightly/projects/{project.project}/{entry.branch}/download"
 								download={entry.fileName}
 								class="button is-primary is-rounded is-small"
 							>
