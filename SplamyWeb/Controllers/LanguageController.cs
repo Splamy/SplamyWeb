@@ -11,6 +11,7 @@ using SplamyWeb.Db;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -251,7 +252,7 @@ public class LanguageController : ControllerBase
 	static readonly MapperConfiguration UserMapping = new(cfg =>
 	{
 		cfg.CreateMap<LanguageEntry, LangInfo>(MemberList.None)
-			.ForMember(x => x.DownloadCount, opt => opt.MapFrom((_) => (bool?)null));
+			.ForMember(x => x.DownloadCount, opt => opt.MapFrom((_) => (int?)null));
 	});
 }
 
@@ -261,7 +262,6 @@ internal class TransifexLanguage
 	//public object coordinators { get; set; }
 	public string language_code { get; set; }
 }
-
 
 class LangInfo
 {
