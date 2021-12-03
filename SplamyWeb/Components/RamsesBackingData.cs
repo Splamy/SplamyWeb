@@ -5,8 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RateMapSeveritySaber;
 using SplamyWeb.Db;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -31,7 +29,7 @@ public class RamsesBackingData
 
 	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory, IMapper mapper)
 	{
-		var ver = typeof(Analyzer).Assembly.GetName().Version!;
+		var ver = typeof(RateMapSeveritySaber.Analyzer).Assembly.GetName().Version!;
 		RamsesVersion = $"{ver.Major}.{ver.Minor}";
 		this.scopeFactory = scopeFactory;
 		this.clientFactory = clientFactory;
@@ -130,7 +128,7 @@ public class RamsesBackingData
 			SongScore score;
 			try
 			{
-				score = Analyzer.AnalyzeMap(map);
+				score = RateMapSeveritySaber.Analyzer.AnalyzeMap(map);
 			}
 			catch (Exception ex)
 			{

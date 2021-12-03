@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Db;
-using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,17 +25,30 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 	{
 		if (token == null)
 			return null;
-		return await (from user in context.User
+		return await (from user in context.User.AsNoTracking()
 					  where user.Token == token
 					  select user).SingleOrDefaultAsync();
 	}
 
-	private static string RandomToken(int length = 64)
+	public static async Task InitializeAccountWhenEmpty(SplamyContext db, NLog.Logger logger)
+	{
+		if (!await db.User.AsNoTracking().AnyAsync())
+		{
+			logger.Info("Creating admin 'Splamy' acount");
+			var rndPw = RandomToken(16);
+			var rndToken = RandomToken();
+			var (pw, salt) = HashPw(rndPw);
+			await db.User.AddAsync(new LoginData("Splamy", pw, salt, rndToken, UserType.Admin));
+			File.WriteAllText(Path.Combine(Util.DataPath, "token.tmp"), $"PW:{rndPw}\nToken:{rndToken}");
+			await db.SaveChangesAsync();
+		}
+	}
+
+	public static string RandomToken(int length = 64)
 	{
 		const string tokenChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-		using var rng = RandomNumberGenerator.Create();
-		var buffer = new byte[length];
-		rng.GetBytes(buffer);
+		Span<byte> buffer = stackalloc byte[length];
+		RandomNumberGenerator.Fill(buffer);
 		var strb = new StringBuilder(buffer.Length);
 		for (int i = 0; i < buffer.Length; i++)
 			strb.Append(tokenChars[(tokenChars.Length - 1) * buffer[i] / 255]);
@@ -46,16 +59,14 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 	{
 		// generate a 128-bit salt using a secure PRNG
 		var salt = new byte[128 / 8];
-		using (var rng = RandomNumberGenerator.Create())
-		{
-			rng.GetBytes(salt);
-		}
+		using var rng = RandomNumberGenerator.Create();
+		rng.GetBytes(salt);
 		return (HashPw(password, salt), salt);
 	}
 
 	public static byte[] HashPw(string password, byte[] salt)
 	{
-		// derive a 256-bit subkey (use HMACSHA1 with 10,000 iterations)
+		// derive a 256-bit subkey
 		return KeyDerivation.Pbkdf2(
 			password: password,
 			salt: salt,
@@ -167,7 +178,7 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 		cancellationToken.ThrowIfCancellationRequested();
 
 		var irole = int.Parse(roleId, CultureInfo.InvariantCulture);
-		return await (from user in context.User
+		return await (from user in context.User.AsNoTracking()
 					  where user.Id == irole
 					  select user).SingleOrDefaultAsync(cancellationToken);
 	}
@@ -176,7 +187,7 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 	public async Task<LoginData> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		return await (from user in context.User
+		return await (from user in context.User.AsNoTracking()
 					  where user.NameNormalized == normalizedRoleName
 					  select user).FirstOrDefaultAsync(cancellationToken);
 	}

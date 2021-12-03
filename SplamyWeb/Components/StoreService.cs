@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SplamyWeb.Db;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -23,7 +22,7 @@ public class StoreService
 		{
 			using var scope = scopeFactory.CreateScope();
 			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-			var list = await db.StoreTable.ToListAsync();
+			var list = await db.StoreTable.AsNoTracking().ToListAsync();
 			var dict = list.ToDictionary(x => x.Id, x => x.Value);
 			_cache = (dict, list);
 		}
@@ -56,8 +55,7 @@ public class StoreService
 		_cache = null;
 		using var scope = scopeFactory.CreateScope();
 		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-		db.StoreTable.Upsert(new StoreEntry(key, value)).Run();
-		await db.SaveChangesAsync();
+		await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO kvp_store (\"Id\",\"Value\") VALUES ({key}, {value}) ON CONFLICT(\"Id\") DO UPDATE SET \"Value\" = {value};");
 	}
 
 	private const string KeyTransifexAuth = "transifex_auth";
@@ -65,4 +63,7 @@ public class StoreService
 
 	private const string KeyGithubAuth = "github_auth";
 	public ValueTask<string?> GetGithubAuth() => Get(KeyGithubAuth);
+
+	private const string KeyBlogMainTag = "blog_maintag";
+	public ValueTask<string?> GetBlogMainTag() => Get(KeyBlogMainTag);
 }

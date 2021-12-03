@@ -1,10 +1,10 @@
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using ProtoBuf;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -35,13 +35,14 @@ public class TeamspeakService
 	private readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
 	private readonly IServiceScopeFactory scopeFactory;
 
-	public TeamspeakService(IServiceScopeFactory scopeFactory, TimerService timer)
+	public TeamspeakService(IServiceScopeFactory scopeFactory, TimerService timer, IWebHostEnvironment env)
 	{
-#if !DEBUG
+		if (!env.IsDevelopment())
+		{
 			timer.Register(UpdateVersionsAsync);
 			timer.Register(UpdateBadgesAsync);
 			timer.Register(KeepNicknamesValidAsync);
-#endif
+		}
 		this.scopeFactory = scopeFactory;
 	}
 

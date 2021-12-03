@@ -1,5 +1,5 @@
-using System;
-using System.Collections.Generic;
+global using System;
+global using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
@@ -24,19 +24,33 @@ public static class Util
 		httpClient.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
 	}
 
-	private static readonly Regex saveRegex = new(@"^[\w-_]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
+	private static readonly Regex saveRegex = new(@"^[\w\d-_]*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
+	public static readonly Regex fileCleanRegex = new(@"[^\w\d-_]", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript);
 
 	public static readonly JsonSerializerOptions JsonDefault = new()
 	{
 		Converters = { new TimeSpanConverter() },
 	};
+	public static readonly JsonSerializerOptions JsonWebHideNull = new(JsonSerializerDefaults.Web)
+	{
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+	};
 
 	public static bool IsSave(string param) => saveRegex.IsMatch(param);
+	public static string CleanFilenameForPath(string name)
+	{
+		var clean = fileCleanRegex.Replace(name, "");
+		if (clean.Contains('.') || clean.Contains('/') || clean.Contains('\\'))
+		{
+			throw new Exception($"This shouldn't happen. Source: <{name}> Clean: <{clean}>");
+		}
+		return clean;
+	}
 
 	public static string Truncate(this string value, int maxLength)
 	{
 		if (string.IsNullOrEmpty(value)) return value;
-		return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+		return value.Length <= maxLength ? value : value[..maxLength];
 	}
 
 	public static uint Sum(this IEnumerable<uint> source)

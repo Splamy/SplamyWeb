@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,13 +11,14 @@ using Microsoft.Extensions.Options;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
 using SplamyWeb.Mock;
-using System;
 using System.Net.Http;
 
 namespace SplamyWeb;
 
 public class Startup
 {
+	public const string CorsAny = "corsAllowAny";
+
 	public Startup(IConfiguration configuration)
 	{
 		Configuration = configuration;
@@ -27,7 +29,6 @@ public class Startup
 	// This method gets called by the runtime. Use this method to add services to the container.
 	public void ConfigureServices(IServiceCollection services)
 	{
-		services.AddMemoryCache();
 		if (Configuration.GetValue<bool>("Mock:Web"))
 		{
 			services.AddSingleton<IHttpClientFactory, MockedHttpClientFactory>();
@@ -40,20 +41,25 @@ public class Startup
 				client.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
 			});
 		}
+
+		//services.AddCors(options =>
+		//{
+		//	options.AddPolicy(CorsAny,
+		//		builder =>
+		//		{
+		//			builder.AllowAnyOrigin();
+		//		});
+		//	options.AddDefaultPolicy(
+		//		builder =>
+		//		{
+		//			builder.WithOrigins("http://localhost:3000", "http://localhost:44422");
+		//			builder.AllowCredentials();
+		//			builder.AllowAnyHeader();
+		//			builder.AllowAnyMethod();
+		//		});
+		//});
+
 		services.AddSignalR();
-		services
-			.AddMvc(options =>
-			{
-				options.EnableEndpointRouting = false;
-			})
-			.AddRazorPagesOptions(options =>
-			{
-				options.Conventions.AuthorizeFolder("/Admin");
-			})
-#if DEBUG
-				.AddRazorRuntimeCompilation()
-#endif
-			;
 
 		services.AddIdentity<LoginData, LoginData>(options =>
 		{
@@ -68,6 +74,18 @@ public class Startup
 			options.AddScheme<BasicAuthenticationHandler>("BasicAuthentication", "Basic");
 		});
 
+		services.AddControllers();
+
+		services.AddSingleton(p =>
+		{
+			var conf = p.GetRequiredService<IConfiguration>();
+			var env = p.GetRequiredService<IWebHostEnvironment>();
+
+			return new DbContextConfig(
+				conf.GetConnectionString("DefaultConnection") ?? throw new Exception("Missing db connection string"),
+				env.IsDevelopment()
+			);
+		});
 		services.AddDbContext<SplamyContext>();
 		services.AddScoped<IUserStore<LoginData>, UserStore>();
 		services.AddScoped<IRoleStore<LoginData>, UserStore>();
@@ -77,13 +95,12 @@ public class Startup
 
 		services.ConfigureApplicationCookie(options =>
 		{
-				// Cookie settings
-				options.Cookie.HttpOnly = false;
+			// Cookie settings
+			options.Cookie.HttpOnly = false;
 			options.ExpireTimeSpan = TimeSpan.FromDays(30);
-			options.LoginPath = "/User";
-			options.LogoutPath = "/Account/Logout";
-			options.AccessDeniedPath = "/User"; // TODO
-				options.SlidingExpiration = true;
+			options.LoginPath = "/user";
+			options.LogoutPath = "/account/logout";
+			options.SlidingExpiration = true;
 		});
 
 		services.AddDataProtection().UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration()
@@ -106,39 +123,41 @@ public class Startup
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-	public void Configure(IApplicationBuilder app, IServiceProvider provider, IHostApplicationLifetime applicationLifetime)
+	public void Configure(IApplicationBuilder app, IServiceProvider provider, IWebHostEnvironment env)
 	{
 		provider.GetService<LogNotifierService>();
 		provider.GetService<TeamspeakService>();
 		provider.GetService<TabBackingData>();
-		//applicationLifetime.ApplicationStopping.Register(() => { });
 
-#if DEBUG
-		var mapper = provider.GetRequiredService<AutoMapper.IMapper>();
-		mapper.ConfigurationProvider.AssertConfigurationIsValid();
-#endif
+		if (env.IsDevelopment())
+		{
+			var mapper = provider.GetRequiredService<AutoMapper.IMapper>();
+			mapper.ConfigurationProvider.AssertConfigurationIsValid();
 
-#if DEBUG
-		app.UseDeveloperExceptionPage();
-#else
+			app.UseDeveloperExceptionPage();
+
+			app.UseCors();
+		}
+		else
+		{
 			app.UseExceptionHandler("/Error");
-#endif
-
-		app.UseStatusCodePagesWithReExecute("/Error");
-
-
-		app.UseStaticFiles();
+		}
 
 		app.UseRouting();
 
 		app.UseAuthentication();
 		app.UseAuthorization();
 
+		app.UseFileServer(new FileServerOptions
+		{
+			RedirectToAppendTrailingSlash = false
+		});
+
 		app.UseEndpoints(endpoints =>
 		{
 			endpoints.MapControllers();
-			endpoints.MapRazorPages();
 			endpoints.MapHub<LogNotifier>("/livelog");
+			endpoints.MapHub<MarkdownService>("/markdown");
 		});
 	}
 }

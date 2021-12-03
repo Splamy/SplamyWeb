@@ -2,7 +2,6 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NLog;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace SplamyWeb.Components;

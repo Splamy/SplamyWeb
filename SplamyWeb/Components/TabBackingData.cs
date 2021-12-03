@@ -2,7 +2,6 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SplamyWeb.Db;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -85,18 +84,18 @@ public class TabBackingData
 		using var scope = scopeFactory.CreateScope();
 		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-		Downloads = (uint)await db.NightlyBuilds
+		Downloads = (uint)await db.NightlyBuilds.AsNoTracking()
 			.Where(x => x.Project == "ts3ab")
 			.Select(x => x.DownloadCount)
 			.SumAsync();
 
-		var oneDayAgo = DateTime.Now - TimeSpan.FromDays(1);
+		var oneDayAgo = (DateTime.UtcNow - TimeSpan.FromDays(1)).ToUniversalTime();
 
-		RunningInstances = (uint)await db.TabStatsPings
+		RunningInstances = (uint)await db.TabStatsPings.AsNoTracking()
 			.Where(x => x.Time > oneDayAgo)
 			.CountAsync();
 
-		RunningBots = (uint)await db.TabStatsPings
+		RunningBots = (uint)await db.TabStatsPings.AsNoTracking()
 			.Where(x => x.Time > oneDayAgo)
 			.Select(x => x.RunningBots)
 			.SumAsync();

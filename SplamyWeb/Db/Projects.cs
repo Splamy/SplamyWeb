@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
-using System.Globalization;
 
 namespace SplamyWeb.Db;
 #pragma warning disable CS8618
@@ -13,6 +10,7 @@ namespace SplamyWeb.Db;
 public class NightlyProject
 {
 	public ICollection<NightlyBranch> Branches { get; set; }
+	public ICollection<NightlyBuild> Builds { get; set; }
 	public ICollection<LanguageEntry> Languages { get; set; }
 	[Key]
 	public string Project { get; set; } // Something like "ts3ab", "ts3hook"
@@ -35,24 +33,17 @@ public class NightlyBranch
 [DebuggerDisplay("{NightlyBranch?.Project},{Branch},{Commit}: {Version}")]
 public class NightlyBuild
 {
+	public NightlyProject NightlyProject { get; set; }
 	public NightlyBranch NightlyBranch { get; set; }
 	public string Project { get; set; }
 	public string Branch { get; set; }
 	public string Commit { get; set; }
-	public string Version { get; set; }
 
+	public string Version { get; set; }
 	public bool ZipContent { get; set; }
 	public string FileName { get; set; }
 	public DateTime UploadTime { get; set; }
 	public int DownloadCount { get; set; }
-
-	public object Strip() => new
-	{
-		Project,
-		Branch,
-		Version,
-		Commit,
-	};
 }
 
 [Table("nightly_lang")]
@@ -64,6 +55,4 @@ public class LanguageEntry
 
 	public DateTime UploadTime { get; set; }
 	public int DownloadCount { get; set; }
-
-	public CultureInfo GetCulture() => CultureInfo.GetCultureInfo(Language);
 }

@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SplamyWeb.Db;
 
+#nullable disable
+
 namespace SplamyWeb.Migrations
 {
     [DbContext(typeof(SplamyContext))]
@@ -15,14 +17,15 @@ namespace SplamyWeb.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 63)
-                .HasAnnotation("ProductVersion", "5.0.8")
-                .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                .HasAnnotation("ProductVersion", "6.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("SplamyWeb.Components.CachedDayStats", b =>
                 {
                     b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<TimeSpan>("PlaybackTime")
                         .HasColumnType("interval");
@@ -32,12 +35,57 @@ namespace SplamyWeb.Migrations
 
                     b.Property<long>("RunningInstances")
                         .HasColumnType("bigint");
+
+                    b.ToTable((string)null, t => t.ExcludeFromMigrations());
                 });
 
             modelBuilder.Entity("SplamyWeb.Components.PlaytimeDto", b =>
                 {
                     b.Property<TimeSpan?>("Playtime")
                         .HasColumnType("interval");
+
+                    b.ToTable((string)null, t => t.ExcludeFromMigrations());
+                });
+
+            modelBuilder.Entity("SplamyWeb.Db.BlogPost", b =>
+                {
+                    b.Property<int>("PostId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PostId"));
+
+                    b.Property<string>("ContentHtml")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentRaw")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string[]>("Tags")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Visible")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("PostId");
+
+                    b.ToTable("BlogPosts");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LanguageEntry", b =>
@@ -52,7 +100,7 @@ namespace SplamyWeb.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UploadTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Project", "Language");
 
@@ -63,8 +111,9 @@ namespace SplamyWeb.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -90,6 +139,9 @@ namespace SplamyWeb.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NameNormalized")
+                        .IsUnique();
 
                     b.ToTable("user");
                 });
@@ -129,7 +181,7 @@ namespace SplamyWeb.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UploadTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Version")
                         .IsRequired()
@@ -249,8 +301,9 @@ namespace SplamyWeb.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("BotVersion")
                         .HasColumnType("text");
@@ -277,7 +330,7 @@ namespace SplamyWeb.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("Time")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<TimeSpan>("TotalUptime")
                         .HasColumnType("interval");

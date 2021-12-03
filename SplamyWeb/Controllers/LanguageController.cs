@@ -1,10 +1,13 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using CliWrap;
 using CliWrap.Buffered;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
-using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -20,21 +23,25 @@ using static SplamyWeb.Util;
 namespace SplamyWeb.Controllers;
 
 [ApiController]
+[Authorize(AuthenticationSchemes = Util.AuthScheme)]
 [Route("api/[controller]")]
 public class LanguageController : ControllerBase
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 	private static readonly string languageBasePath = Path.Combine(Util.DataPath, "language");
 
+	private readonly UserManager<LoginData> userManager;
 	private readonly SplamyContext db;
 	private readonly StoreService store;
 
-	public LanguageController(SplamyContext db, StoreService store)
+	public LanguageController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
 	{
 		this.db = db;
 		this.store = store;
+		this.userManager = userManager;
 	}
 
+	[AllowAnonymous]
 	[HttpGet("project/{project}/languages")]
 	[Produces(MediaTypeNames.Application.Json)]
 	public async Task<IActionResult> GetLanguageList(string project)
@@ -44,13 +51,19 @@ public class LanguageController : ControllerBase
 
 		project = project.ToLowerInvariant();
 
-		var projectData = await db.NightlyProjects.Include(p => p.Languages).SingleOrDefaultAsync(p => p.Project == project);
-		if (projectData is null)
-			return BadRequest("Project not found");
+		var isAdmin = await ExtendedPermission();
 
-		return Ok(projectData.Languages.Select(lang => lang.Language));
+		var result = await db.LanguageEntries
+			.AsNoTracking()
+			.Where(x => x.Project == project)
+			.ProjectTo<LangInfo>(isAdmin ? AdminMapping : UserMapping)
+			.ToListAsync();
+
+		result.ForEach(x => x.DisplayName = CultureInfo.GetCultureInfo(x.Language).DisplayName);
+		return new JsonResult(result, JsonWebHideNull);
 	}
 
+	[AllowAnonymous]
 	[HttpGet("project/{project}/language/{language}/dll")]
 	[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Text.Plain)]
 	public async Task<IActionResult> GetLanguageFile(string project, string language)
@@ -81,6 +94,7 @@ public class LanguageController : ControllerBase
 	[HttpPost("project/{project}/rebuild")]
 	public Task<IActionResult> RebuildLanguageFiles(string project) => RebuildInternal(project, downloadFiles: false);
 
+	// TODO save download counts
 	private async Task<IActionResult> RebuildInternal(string project, bool downloadFiles)
 	{
 		if (project != "ts3ab")
@@ -102,7 +116,7 @@ public class LanguageController : ControllerBase
 		if (downloadFiles)
 		{
 			Log.Info("Requested language update");
-			var requestM = await TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
+			using var requestM = await TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
 			using var resultM = await httpClient.SendAsync(requestM);
 			if (!resultM.IsSuccessStatusCode)
 				return UnprocessableEntity("Error from transifex");
@@ -124,7 +138,7 @@ public class LanguageController : ControllerBase
 				}
 				catch { return; }
 
-				var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{lang.language_code}/?file");
+				using var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{lang.language_code}/?file");
 				using var result = await httpClient.SendAsync(request);
 				if (!result.IsSuccessStatusCode)
 					return;
@@ -133,7 +147,7 @@ public class LanguageController : ControllerBase
 				using var stream = await result.Content.ReadAsStreamAsync();
 				await stream.CopyToAsync(demoDataStream);
 
-				db.LanguageEntries.Add(new LanguageEntry
+				await db.LanguageEntries.AddAsync(new LanguageEntry
 				{
 					Language = language,
 					Project = project,
@@ -219,6 +233,26 @@ public class LanguageController : ControllerBase
 			where lang.Project == project && lang.Language == culture.Name
 			select lang).SingleOrDefaultAsync();
 	}
+
+	private async Task<bool> ExtendedPermission()
+	{
+		var user = await userManager.GetUserAsync(User);
+		if (user is null)
+			return false;
+
+		return user.Rank.AtLeast(UserType.Admin);
+	}
+
+	static readonly MapperConfiguration AdminMapping = new(cfg =>
+	{
+		cfg.CreateMap<LanguageEntry, LangInfo>(MemberList.None);
+	});
+
+	static readonly MapperConfiguration UserMapping = new(cfg =>
+	{
+		cfg.CreateMap<LanguageEntry, LangInfo>(MemberList.None)
+			.ForMember(x => x.DownloadCount, opt => opt.MapFrom((_) => (bool?)null));
+	});
 }
 
 #pragma warning disable IDE1006, CS8618 // Naming Styles
@@ -226,4 +260,14 @@ internal class TransifexLanguage
 {
 	//public object coordinators { get; set; }
 	public string language_code { get; set; }
+}
+
+
+class LangInfo
+{
+	public string Project { get; set; }
+	public string Language { get; set; }
+	public DateTime UploadTime { get; set; }
+	public string DisplayName { get; set; }
+	public int? DownloadCount { get; set; }
 }

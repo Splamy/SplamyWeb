@@ -17,29 +17,33 @@ public class SplamyContext : DbContext
 	public DbSet<NightlyBranch> NightlyBranches { get; set; }
 	public DbSet<NightlyBuild> NightlyBuilds { get; set; }
 	public DbSet<LanguageEntry> LanguageEntries { get; set; }
+	public DbSet<BlogPost> BlogPosts { get; set; }
 
 	// https://docs.microsoft.com/en-us/ef/core/miscellaneous/logging?tabs=v3
 	public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
-	private readonly string? connectionString;
+	private readonly DbContextConfig conf;
 
-	public SplamyContext(DbContextOptions options, IConfiguration conf) : base(options)
+	public SplamyContext(DbContextOptions options, DbContextConfig conf) : base(options)
 	{
-		connectionString = conf.GetConnectionString("DefaultConnection");
-		//Log.Info("Created context");
+		this.conf = conf;
 	}
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
 	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-		=> optionsBuilder
-#if DEBUG
-		//.UseLoggerFactory(MyLoggerFactory)
-		.EnableSensitiveDataLogging()
-#endif
-			.UseNpgsql(connectionString)
-		;
+	{
+		if (conf.IsDevelopment)
+		{
+			optionsBuilder = optionsBuilder.UseLoggerFactory(MyLoggerFactory).EnableSensitiveDataLogging();
+		}
+		optionsBuilder.UseNpgsql(conf.ConnectionString);
+	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
+		modelBuilder.Entity<LoginData>()
+			.HasIndex(user => user.NameNormalized)
+			.IsUnique();
+
 		// Ramses ***
 
 		modelBuilder.Entity<RamsesMapDto>()
@@ -63,8 +67,8 @@ public class SplamyContext : DbContext
 
 		// This tells EF to not create a table for this Type (We only want to query with it)
 		// see https://stackoverflow.com/questions/60076606/net-core-3-x-keyless-entity-types-avoid-table-creation
-		modelBuilder.Entity<CachedDayStats>().HasNoKey().ToTable(null);
-		modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToTable(null);
+		modelBuilder.Entity<CachedDayStats>().HasNoKey().ToTable(null, t => t.ExcludeFromMigrations());
+		modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToTable(null, t => t.ExcludeFromMigrations());
 
 		// *** Nightly
 
@@ -83,6 +87,9 @@ public class SplamyContext : DbContext
 			.HasOne(build => build.NightlyBranch)
 			.WithMany(branch => branch.Builds)
 			.HasForeignKey(build => new { build.Project, build.Branch });
+		modelBuilder.Entity<NightlyBuild>()
+			.HasOne(build => build.NightlyProject)
+			.WithMany(project => project.Builds);
 
 		modelBuilder.Entity<LanguageEntry>()
 			.HasKey(x => new { x.Project, x.Language });
@@ -91,5 +98,14 @@ public class SplamyContext : DbContext
 			.HasOne(lang => lang.NightlyProject)
 			.WithMany(project => project.Languages)
 			.HasForeignKey(lang => lang.Project);
+
+		// *** Blog
+
+		modelBuilder.Entity<BlogPost>()
+			.Property(b => b.Tags)
+			.HasDefaultValueSql("'{}'");
 	}
+
 }
+
+public sealed record DbContextConfig(string ConnectionString, bool IsDevelopment);

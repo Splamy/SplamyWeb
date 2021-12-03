@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
 using SplamyWeb.Db;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -27,9 +26,13 @@ public static class Program
 
 			var logger = NLog.LogManager.GetLogger("SplamyWeb.Startup");
 
+			//await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions
+			//	.GetInfrastructure(context)
+			//	.GetRequiredService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>()
+			//	.MigrateAsync("20210716172722_UpdatedJbmFormat");
+
 			var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToArray();
 
-			//await context.GetInfrastructure().GetRequiredService<IMigrator>().MigrateAsync("20210714165443_InitialCreate");
 			if (pendingMigrations.Length > 0)
 			{
 				logger.Info($"Applying {pendingMigrations.Length} migrations.");
@@ -39,6 +42,8 @@ public static class Program
 			var lastAppliedMigration = (await context.Database.GetAppliedMigrationsAsync()).Last();
 
 			logger.Info($"Database on schema version: {lastAppliedMigration}");
+
+			await Components.UserStore.InitializeAccountWhenEmpty(context, logger);
 		}
 
 		// Run the WebHost, and start accepting requests
@@ -48,16 +53,16 @@ public static class Program
 
 	public static IWebHost BuildWebHost(string[] args) =>
 		WebHost
-			.CreateDefaultBuilder(args)
-			.ChangePortSomewhereElse()
-			.ConfigureLogging(logging =>
-			{
-				logging.ClearProviders();
-				logging.SetMinimumLevel(LogLevel.Trace);
-			})
-			.UseNLog()
-			.UseStartup<Startup>()
-			.Build();
+		.CreateDefaultBuilder(args)
+		.ChangePortSomewhereElse()
+		.ConfigureLogging(logging =>
+		{
+			logging.ClearProviders();
+			logging.SetMinimumLevel(LogLevel.Trace);
+		})
+		.UseNLog()
+		.UseStartup<Startup>()
+		.Build();
 
 	private static IWebHostBuilder ChangePortSomewhereElse(this IWebHostBuilder webHostBuilder)
 		=> Environment.CurrentDirectory.StartsWith("E", StringComparison.OrdinalIgnoreCase) ? webHostBuilder.UseUrls("http://*:44422") : webHostBuilder;

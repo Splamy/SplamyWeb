@@ -1,13 +1,11 @@
 using CliWrap;
 using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
-using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,7 +26,6 @@ public class QintController : ControllerBase
 	public const string CiStatusError = "error";
 	public const string CiStatusFailure = "failure";
 	public const string CiUrlBase = "https://splamy.de/api/qint/log/";
-	public static readonly Regex fileCleanRegex = new(@"[^\w\d]", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript);
 
 	public QintController(StoreService store)
 	{
@@ -62,7 +59,7 @@ public class QintController : ControllerBase
 
 	public async void Run(string commit, BuildTask build)
 	{
-		var logFileName = fileCleanRegex.Replace($"{commit}", "");
+		var logFileName = Util.CleanFilenameForPath($"{commit}");
 		var ciBuildUrl = $"{CiUrlBase}{logFileName}";
 
 		try
@@ -105,13 +102,7 @@ public class QintController : ControllerBase
 	[HttpGet("log/{build}")]
 	public IActionResult GetLog(string build)
 	{
-		var logFileName = fileCleanRegex.Replace(build, "");
-		if (logFileName.Contains(".") || logFileName.Contains("/") || logFileName.Contains("\\"))
-		{
-			Log.Fatal("This shouldn't happen");
-			return Forbid();
-		}
-
+		var logFileName = Util.CleanFilenameForPath(build);
 		return PhysicalFile($"/var/lib/buildqint/log/{logFileName}", "text/plain; charset=utf-8");
 	}
 
