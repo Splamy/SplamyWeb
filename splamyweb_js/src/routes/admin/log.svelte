@@ -5,10 +5,10 @@
 <script lang="ts">
 	import { browser, prerendering } from '$app/env';
 	import { BASE_URL } from '$lib/util';
-	import * as signalR from '@microsoft/signalr';
+	import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 	import VirtualList from 'svelte-tiny-virtual-list';
 
-	let connection: signalR.HubConnection;
+	let connection: HubConnection;
 
 	let events: Record<number, LogEvent> = {};
 	let list = [];
@@ -21,7 +21,7 @@
 	async function init() {
 		if (!browser || prerendering) return;
 
-		connection = new signalR.HubConnectionBuilder().withUrl(`${BASE_URL}/livelog`).build();
+		connection = new HubConnectionBuilder().withUrl(`${BASE_URL}/livelog`).build();
 
 		connection.on('Log', function (ev: LogEvent) {
 			addEvent(ev);

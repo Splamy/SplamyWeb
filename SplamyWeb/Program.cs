@@ -54,7 +54,6 @@ public static class Program
 	public static IWebHost BuildWebHost(string[] args) =>
 		WebHost
 		.CreateDefaultBuilder(args)
-		.ChangePortSomewhereElse()
 		.ConfigureLogging(logging =>
 		{
 			logging.ClearProviders();
@@ -63,7 +62,4 @@ public static class Program
 		.UseNLog()
 		.UseStartup<Startup>()
 		.Build();
-
-	private static IWebHostBuilder ChangePortSomewhereElse(this IWebHostBuilder webHostBuilder)
-		=> Environment.CurrentDirectory.StartsWith("E", StringComparison.OrdinalIgnoreCase) ? webHostBuilder.UseUrls("http://*:44422") : webHostBuilder;
 }

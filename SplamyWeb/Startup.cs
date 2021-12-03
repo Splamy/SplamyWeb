@@ -12,6 +12,7 @@ using SplamyWeb.Components;
 using SplamyWeb.Db;
 using SplamyWeb.Mock;
 using System.Net.Http;
+using System.Text.Json;
 
 namespace SplamyWeb;
 
@@ -42,24 +43,33 @@ public class Startup
 			});
 		}
 
-		//services.AddCors(options =>
-		//{
-		//	options.AddPolicy(CorsAny,
-		//		builder =>
-		//		{
-		//			builder.AllowAnyOrigin();
-		//		});
-		//	options.AddDefaultPolicy(
-		//		builder =>
-		//		{
-		//			builder.WithOrigins("http://localhost:3000", "http://localhost:44422");
-		//			builder.AllowCredentials();
-		//			builder.AllowAnyHeader();
-		//			builder.AllowAnyMethod();
-		//		});
-		//});
+		if (Configuration.GetValue<bool>("Dev:UseCors"))
+		{
+			services.AddCors(options =>
+			{
+				options.AddPolicy(CorsAny,
+					builder =>
+					{
+						builder.AllowAnyOrigin();
+					});
+				options.AddDefaultPolicy(
+					builder =>
+					{
+						builder.WithOrigins("http://localhost:3000", "http://localhost:44422");
+						builder.AllowCredentials();
+						builder.AllowAnyHeader();
+						builder.AllowAnyMethod();
+					});
+			});
+		}
 
-		services.AddSignalR();
+		services.AddSignalR().AddJsonProtocol(options =>
+		{
+			options.PayloadSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+			{
+				Converters = { new Vector2Converter() }
+			};
+		});
 
 		services.AddIdentity<LoginData, LoginData>(options =>
 		{
@@ -120,6 +130,7 @@ public class Startup
 		services.AddSingleton<RamsesBackingData>();
 		services.AddSingleton<TeamspeakService>();
 		services.AddSingleton<LogNotifierService>();
+		services.AddSingleton<MinigameServer>();
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -136,7 +147,6 @@ public class Startup
 
 			app.UseDeveloperExceptionPage();
 
-			app.UseCors();
 		}
 		else
 		{
@@ -144,6 +154,11 @@ public class Startup
 		}
 
 		app.UseRouting();
+
+		if (Configuration.GetValue<bool>("Dev:UseCors"))
+		{
+			app.UseCors();
+		}
 
 		app.UseAuthentication();
 		app.UseAuthorization();
@@ -158,6 +173,7 @@ public class Startup
 			endpoints.MapControllers();
 			endpoints.MapHub<LogNotifier>("/livelog");
 			endpoints.MapHub<MarkdownService>("/markdown");
+			endpoints.MapHub<Minigame>("/minigame");
 		});
 	}
 }
