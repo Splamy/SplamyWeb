@@ -9,6 +9,7 @@
 #data
 data/
 appsettings.json
+launchSettings.json
 
 # User-specific files
 *.suo
