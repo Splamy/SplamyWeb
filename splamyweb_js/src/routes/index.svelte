@@ -1,5 +1,7 @@
 <script lang="ts">
-	import MiniGame from '$lib/MiniGame.svelte';
+	import Icon from '$lib/Icon.svelte';
+	import MiniGame from '$lib/mini/MiniGame.svelte';
+	import { mdiRobotHappy } from '@mdi/js';
 </script>
 
 <svelte:head>
@@ -10,5 +12,9 @@
 
 <h2>Home!</h2>
 <br />
+
+<span style="cursor: pointer;">
+	<Icon path={mdiRobotHappy} addclass="rpad" /> woking on stuff...</span
+>
 
 <MiniGame />

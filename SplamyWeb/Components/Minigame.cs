@@ -1,31 +1,54 @@
 using Math2D;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using NuGet.Protocol.Plugins;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	public class MinigameServer
+	public sealed class MinigameServer
 	{
 		private readonly object _lock = new();
-		public Dictionary<string, MiniGamePlayer> ConnectedPlayer = new();
-		private readonly IHubContext<Minigame, IMiniGame> hub;
-		private Timer? timer;
-		private static readonly TimeSpan TickWait = TimeSpan.FromSeconds(1 / 64f);
-		private readonly List<MiniGamePlayer> updateList = new();
+		private readonly Random random = new();
+		private readonly IHubContext<Minigame, IMinigame> hub;
+		private readonly Dictionary<string, MinigamePlayer> ConnectedPlayer = new();
+		private readonly List<MinigameCookie> Cookies = new();
+		private readonly Stack<MinigameCookie> CookiePool = new(Enumerable.Range(0, MaxCookies).Select(i => new MinigameCookie(i)));
+		public static readonly string[] PlayerNames = new[] { "Aardvark", "Albatross", "Alligator", "Alpaca", "Ant", "Anteater", "Antelope", "Ape", "Armadillo", "Donkey", "Baboon", "Badger", "Barracuda", "Bat", "Bear", "Beaver", "Bee", "Bison", "Boar", "Buffalo", "Butterfly", "Camel", "Capybara", "Caribou", "Cassowary", "Cat", "Caterpillar", "Cattle", "Chamois", "Cheetah", "Chicken", "Chimpanzee", "Chinchilla", "Chough", "Clam", "Cobra", "Cockroach", "Cod", "Cormorant", "Coyote", "Crab", "Crane", "Crocodile", "Crow", "Curlew", "Deer", "Dinosaur", "Dog", "Dogfish", "Dolphin", "Dotterel", "Dove", "Dragonfly", "Duck", "Dugong", "Dunlin", "Eagle", "Echidna", "Eel", "Eland", "Elephant", "Elk", "Emu", "Falcon", "Ferret", "Finch", "Fish", "Flamingo", "Fly", "Fox", "Frog", "Gaur", "Gazelle", "Gerbil", "Giraffe", "Gnat", "Gnu", "Goat", "Goldfinch", "Goldfish", "Goose", "Gorilla", "Goshawk", "Grasshopper", "Grouse", "Guanaco", "Gull", "Hamster", "Hare", "Hawk", "Hedgehog", "Heron", "Herring", "Hippopotamus", "Hornet", "Horse", "Human", "Hummingbird", "Hyena", "Ibex", "Ibis", "Jackal", "Jaguar", "Jay", "Jellyfish", "Kangaroo", "Kingfisher", "Koala", "Kookabura", "Kouprey", "Kudu", "Lapwing", "Lark", "Lemur", "Leopard", "Lion", "Llama", "Lobster", "Locust", "Loris", "Louse", "Lyrebird", "Magpie", "Mallard", "Manatee", "Mandrill", "Mantis", "Marten", "Meerkat", "Mink", "Mole", "Mongoose", "Monkey", "Moose", "Mosquito", "Mouse", "Mule", "Narwhal", "Newt", "Nightingale", "Octopus", "Okapi", "Opossum", "Oryx", "Ostrich", "Otter", "Owl", "Oyster", "Panther", "Parrot", "Partridge", "Peafowl", "Pelican", "Penguin", "Pheasant", "Pig", "Pigeon", "Pony", "Porcupine", "Porpoise", "Quail", "Quelea", "Quetzal", "Rabbit", "Raccoon", "Rail", "Ram", "Rat", "Raven", "Red deer", "Red panda", "Reindeer", "Rhinoceros", "Rook", "Salamander", "Salmon", "Sand Dollar", "Sandpiper", "Sardine", "Scorpion", "Seahorse", "Seal", "Shark", "Sheep", "Shrew", "Skunk", "Snail", "Snake", "Sparrow", "Spider", "Spoonbill", "Squid", "Squirrel", "Starling", "Stingray", "Stinkbug", "Stork", "Swallow", "Swan", "Tapir", "Tarsier", "Termite", "Tiger", "Toad", "Trout", "Turkey", "Turtle", "Viper", "Vulture", "Wallaby", "Walrus", "Wasp", "Weasel", "Whale", "Wildcat", "Wolf", "Wolverine", "Wombat", "Woodcock", "Woodpecker", "Worm", "Wren", "Yak", "Zebra" };
+		// Buffers
+		private readonly List<MinigamePlayer> updatePlayer = new();
+		private IEnumerable<MinigamePlayerState> updatePlayerState => updatePlayer;
+		private readonly List<MinigameCookie> updateCookies = new();
+		private bool fullUpdate = false;
+		// Timings
 		private readonly Stopwatch time = new();
+		private Timer? timer;
+		private static readonly TimeSpan TickWait = TimeSpan.FromSeconds(1 / 64d);
+		private uint CurrentTick;
+		// Game Rules
+		public static readonly Vector2 FieldSize = new(1600, 900);
+		public static readonly int CollectRadius = 13;
+		private const float TURN_SPEED = 1 / 600f;
+		private const float SPEED = 1 / 3f;
+		private const int MaxCookies = 10;
+		private const uint SyncPlayerAfterMaxTicks = 10;
+		private const uint SpawnCookieEachTicks = 200;
+		// Game Status
+		private uint LastTickCookieSpanwed;
 
-		public MinigameServer(IHubContext<Minigame, IMiniGame> hub)
+		public MinigameServer(IHubContext<Minigame, IMinigame> hub)
 		{
 			this.hub = hub;
+			CurrentTick = 0;
+			LastTickCookieSpanwed = 0;
 		}
 
-		public MiniGamePlayer AddClient(string id)
+		public void AddClient(string id)
 		{
-			hub.Clients.All.PlayerJoined(id);
 			lock (_lock)
 			{
 				if (ConnectedPlayer.Count == 0 || timer is null)
@@ -33,9 +56,13 @@ namespace SplamyWeb.Components
 					timer = new Timer(GameTick, null, TimeSpan.Zero, TickWait);
 				}
 
-				var player = new MiniGamePlayer() { Id = id };
+				var player = new MinigamePlayer(id)
+				{
+					Name = PlayerNames[random.Next(0, PlayerNames.Length)],
+					Color = random.Next(0, 360),
+				};
 				ConnectedPlayer.Add(id, player);
-				return player;
+				SyncStateTo(hub.Clients.Client(id));
 			}
 		}
 
@@ -51,6 +78,8 @@ namespace SplamyWeb.Components
 					timer.Dispose();
 					timer = null;
 					time.Stop();
+
+					ResetGame();
 				}
 			}
 		}
@@ -60,23 +89,35 @@ namespace SplamyWeb.Components
 			if (ConnectedPlayer.TryGetValue(id, out var player))
 			{
 				player.Target = target;
-				player.TargetSynced = false;
+				player.LastSyncTick = 0;
 			}
 		}
 
 		private void GameTick(object? state)
 		{
-			var elapsed = (float)time.Elapsed.TotalMilliseconds;
-			time.Restart();
+			if (ConnectedPlayer.Count == 0)
+				return;
 
 			lock (_lock)
 			{
+				if (ConnectedPlayer.Count == 0)
+					return;
+
+				var elapsed = (float)time.Elapsed.TotalMilliseconds;
+				time.Restart();
+				CurrentTick = unchecked(CurrentTick + 1);
+
+				if (CurrentTick > LastTickCookieSpanwed + SpawnCookieEachTicks)
+				{
+					SpawnCookie();
+				}
+
 				foreach (var player in ConnectedPlayer.Values)
 				{
-					//if (!player.TargetSynced)
+					if (CurrentTick > player.LastSyncTick + SyncPlayerAfterMaxTicks)
 					{
-						updateList.Add(player);
-						player.TargetSynced = true;
+						updatePlayer.Add(player);
+						player.LastSyncTick = CurrentTick;
 					}
 
 					var diff = player.Position - player.Target;
@@ -89,32 +130,165 @@ namespace SplamyWeb.Components
 					var x = player.Position.X + MathF.Cos(player.Angle) * (elapsed * SPEED);
 					var y = player.Position.Y + MathF.Sin(player.Angle) * (elapsed * SPEED);
 					player.Position = new(x, y);
+
+					CheckCollectCookie(player);
 				}
 			}
 
-			if (updateList.Count > 0)
+			if (updatePlayer.Count > 0)
 			{
-				hub.Clients.All.PlayersUpdate(updateList);
-				updateList.Clear();
+				if (fullUpdate)
+					hub.Clients.All.PlayersUpdate(updatePlayer);
+				else
+					hub.Clients.All.PlayersUpdateState(updatePlayerState);
+				fullUpdate = false;
+				updatePlayer.Clear();
+			}
+
+			if (updateCookies.Count > 0)
+			{
+				hub.Clients.All.CookiesUpdate(updateCookies);
+				updateCookies.Clear();
 			}
 		}
 
-		const float TURN_SPEED = 1 / 600f;
-		const float SPEED = 1 / 3f;
+		private void SpawnCookie()
+		{
+			LastTickCookieSpanwed = CurrentTick;
+			if (Cookies.Count >= MaxCookies || CookiePool.Count == 0)
+				return;
+
+			var cookie = CookiePool.Pop();
+			cookie.SetRandom();
+			cookie.Active = true;
+			updateCookies.Add(cookie);
+
+			for (int i = 0; i < Cookies.Count; i++)
+			{
+				if (cookie.PartitionX() <= Cookies[i].PartitionX())
+				{
+					Cookies.Insert(i, cookie);
+					return;
+				}
+			}
+			Cookies.Add(cookie);
+		}
+
+		private void CheckCollectCookie(MinigamePlayer player)
+		{
+			var playerX = (int)player.Position.X;
+			var checkMinX = playerX - CollectRadius;
+			var checkMaxX = playerX + CollectRadius;
+
+			for (int i = 0; i < Cookies.Count; i++)
+			{
+				var cookie = Cookies[i];
+				if (cookie.PartitionX() < checkMinX) continue;
+				if (cookie.PartitionX() > checkMaxX) break;
+
+				if (player.Position.Distance(cookie.Position) < CollectRadius)
+				{
+					Cookies.RemoveAt(i);
+					i--;
+					CookiePool.Push(cookie);
+					cookie.Active = false;
+					updateCookies.Add(cookie);
+
+					player.Points++;
+					fullUpdate = true;
+				}
+			}
+		}
+
+		private void SyncStateTo(IMinigame client)
+		{
+			client.InitState(new()
+			{
+				Players = ConnectedPlayer.Values,
+				Collectibles = Cookies,
+			});
+		}
+
+		private void ResetGame()
+		{
+			CurrentTick = 0;
+			LastTickCookieSpanwed = 0;
+			Cookies.ForEach(cookie => CookiePool.Push(cookie));
+			Cookies.Clear();
+		}
+
 		private static float MathMod(float n, float m) => ((n % m) + m) % m;
 	}
 
-	public class MiniGamePlayer
+	public class MinigamePlayerState
 	{
-		public string Id { get; set; }
+		public string Id { get; }
 		public Vector2 Position { get; set; }
 		public Vector2 Target { get; set; }
 		public float Angle { get; set; }
 
-		public bool TargetSynced { get; set; }
+		public uint LastSyncTick;
+
+		public MinigamePlayerState(string id)
+		{
+			Id = id;
+		}
+	}
+	public class MinigamePlayer : MinigamePlayerState
+	{
+		public string Name { get; set; }
+		public int Color { get; set; }
+		public int Points { get; set; }
+
+		public MinigamePlayer(string id) : base(id)
+		{
+
+		}
 	}
 
-	public class Minigame : Hub<IMiniGame>
+	public class MinigameCookie
+	{
+		private readonly Random random = new();
+		private int positionX;
+		public int Id { get; set; }
+		public Vector2 Position { get; private set; }
+		public bool Active { get; set; }
+
+		public MinigameCookie(int id)
+		{
+			Id = id;
+			Position = Vector2.Zero;
+		}
+
+		public void SetRandom()
+		{
+			Position = new(
+				random.NextSingle() * MinigameServer.FieldSize.X,
+				random.NextSingle() * MinigameServer.FieldSize.Y);
+			positionX = (int)Position.X;
+		}
+
+		public int PartitionX() => positionX;
+
+		public override string ToString() => $"{(Active ? "" : "-")} {Id} {Position}";
+
+		//private sealed class PartitionXComparer : IComparer<MinigameCookie>
+		//{
+		//	public static readonly PartitionXComparer Instance = new();
+		//	public int Compare(MinigameCookie x, MinigameCookie y)
+		//	{
+		//		return y.positionX - x.positionX;
+		//	}
+		//}
+	}
+
+	public class MinigameState
+	{
+		public ICollection<MinigamePlayer> Players { get; init; }
+		public ICollection<MinigameCookie> Collectibles { get; init; }
+	}
+
+	public class Minigame : Hub<IMinigame>
 	{
 		private readonly MinigameServer server;
 
@@ -141,11 +315,13 @@ namespace SplamyWeb.Components
 		}
 	}
 
-	public interface IMiniGame
+	public interface IMinigame
 	{
-		Task PlayerJoined(string userId);
+		Task InitState(MinigameState state);
 		Task PlayerLeft(string userId);
-		Task PlayersUpdate(IList<MiniGamePlayer> players);
+		Task PlayersUpdateState(IEnumerable<MinigamePlayerState> players);
+		Task PlayersUpdate(IEnumerable<MinigamePlayer> players);
+		Task CookiesUpdate(IList<MinigameCookie> cookies);
 	}
 
 	class Vector2Converter : System.Text.Json.Serialization.JsonConverter<Vector2>
