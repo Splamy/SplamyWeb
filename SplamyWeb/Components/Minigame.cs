@@ -1,7 +1,6 @@
 using Math2D;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
-using NuGet.Protocol.Plugins;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;

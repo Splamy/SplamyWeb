@@ -8,11 +8,13 @@
 
 	let elem: HTMLDivElement;
 	let update = rocket.update;
-	let points = 0;
+	let display = "";
 
 	$: {
 		let _ = $update;
-		points = rocket.points;
+		if (rocket.name) {
+			display = `${rocket.name}\n${rocket.points}pts`;
+		}
 	}
 
 	onMount(() => {
@@ -25,6 +27,6 @@
 		<div class="rocket" style="width:0; height:0;">
 			<Icon path={mdiRocket} style={"transform: translate(-12px,-12px);"} />
 		</div>
-		<span class="name" style="position: absolute; left: 20px">{`${rocket.name}\n${points}pts`}</span>
+		<span class="name" style="position: absolute; left: 20px">{display}</span>
 	</div>
 </div>

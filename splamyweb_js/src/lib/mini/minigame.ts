@@ -6,10 +6,13 @@ const TURN_SPEED = 1 / 600;
 const SPEED = 1 / 3;
 
 export class Rocket {
+	public elem: HTMLElement | null = null;
+	private _elemCache: HTMLElement | null = null;
+	private _transformElemCache: HTMLElement | null = null;
+	private _rotateElemCache: HTMLElement | null = null;
 	public id: string;
 	public name: string;
 	public color: number = Rocket.randomColor();
-	public elem: HTMLElement | null = null;
 	public position: Coord = { x: 0, y: 0 };
 	public target: Coord = { x: 0, y: 0 };
 	public angle = 0.0;
@@ -87,10 +90,21 @@ export class Rocket {
 		this.position.x = x;
 		this.position.y = y;
 		if (this.elem != null) {
-			const translateElem = this.elem;
-			const rotateElem = this.elem.querySelector<HTMLElement>(".rocket");
-			translateElem.style.transform =`translate(${x}px, ${y}px)`;
-			rotateElem.style.transform =`rotate(${this.angle + Math.PI / 2}rad)`;
+			let translateElem = this.elem;
+			let rotateElem = this.elem.querySelector<HTMLElement>(".rocket");
+			if (this._elemCache !== this.elem) {
+				translateElem = this.elem;
+				rotateElem = this.elem.querySelector<HTMLElement>(".rocket");
+				this._transformElemCache = translateElem;
+				this._rotateElemCache = rotateElem;
+				this._elemCache = this.elem;
+			} else {
+				translateElem = this._transformElemCache
+				rotateElem = this._rotateElemCache;
+			}
+
+			translateElem.style.transform = `translate(${x}px, ${y}px)`;
+			rotateElem.style.transform = `rotate(${this.angle + Math.PI / 2}rad)`;
 		}
 	}
 }
@@ -98,4 +112,28 @@ export class Rocket {
 export class CollectableData {
 	id: number;
 	position: Coord;
+}
+
+
+export class Particle {
+	public elem?: HTMLElement | null = null;
+	public position: Coord = { x: 0, y: 0 };
+	public angle: number;
+	public lifetime = 0;
+
+	public animate(elapsed: number) {
+		if (this.lifetime <= 0) return;
+		this.position.x += Math.cos(this.angle) * (elapsed * SPEED);
+		this.position.y += Math.sin(this.angle) * (elapsed * SPEED);
+		this.lifetime -= elapsed;
+		if (this.elem != null) {
+			if (this.lifetime > 0) {
+				this.elem.style.transform = `translate(${this.position.x}px, ${this.position.y}px)`;
+				this.elem.style.color = `rgb(${Math.min(this.lifetime, 255)}, 0, 0)`;
+				this.elem.style.opacity = `${Math.min(this.lifetime / 200, 1)}`;
+			} else {
+				this.elem.style.transform = `translate(-1000px, -1000px)`;
+			}
+		}
+	}
 }

@@ -8,21 +8,30 @@
 	import Collectable from './Collectable.svelte';
 	import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 	import { onMount } from 'svelte';
-	import { CollectableData, Coord, Rocket } from './minigame';
+	import { CollectableData, Coord, Particle, Rocket } from './minigame';
 	import { BASE_URL, debounced } from '$lib/util';
+	import { mdiStar } from '@mdi/js';
+	import Icon from '$lib/Icon.svelte';
 
 	const rocketIds = new Map<string, Rocket>();
 	let rockets: Rocket[] = [];
 	const collectableIds = new Map<number, CollectableData>();
 	let collectables: CollectableData[] = [];
+	let particlePool: Particle[] = [];
+	let particlePoolStart = 0;
+	let particlePoolEnd = 0;
+	let particleTicker = 0;
 	let lastTimeStamp = 0;
 	let hasRAF = false;
 	const mouse: Coord = { x: 0, y: 0 };
 	let isOnline = false;
 	let connection: HubConnection | null = null;
-	let username = '';
 
-	function add() {
+	for (let i = 0; i < 100; i++) {
+		particlePool.push(new Particle());
+	}
+
+	export function add() {
 		if (isOnline) return;
 		let rocket: Rocket = Rocket.createLocal();
 		rocket.color = Rocket.randomColor();
@@ -62,6 +71,25 @@
 		}
 	}
 
+	export function clearAllRockets() {
+		rocketIds.clear();
+		rockets = [];
+	}
+
+	function addCollectable(collectable: CollectableData) {
+		collectableIds.set(collectable.id, collectable);
+		collectables = [...collectables, collectable];
+	}
+
+	function addParticle(position: Coord, angle: number) {
+		const index = Math.floor(Math.random() * particlePool.length);
+		const particle = particlePool[index];
+		particle.position.x = position.x;
+		particle.position.y = position.y;
+		particle.angle = angle;
+		particle.lifetime = 200;
+	}
+
 	function animateAll(time: DOMHighResTimeStamp) {
 		hasRAF = false;
 		if (rocketIds.size == 0) {
@@ -72,16 +100,34 @@
 		const elapsed = time - lastTimeStamp;
 		lastTimeStamp = time;
 
+		let spawnParticle = false;
+		particleTicker += elapsed;
+		if (particleTicker > 50) {
+			particleTicker -= 50;
+			spawnParticle = true;
+		}
+
 		for (const rocket of rocketIds.values()) {
 			if (rocket.followTarget) {
 				rocket.animateFollow(elapsed);
 			} else {
 				rocket.animateAuto(elapsed);
 			}
+
+			if (spawnParticle)
+				addParticle(rocket.position, (rocket.angle + Math.PI + (Math.random() - 0.5) / 5) % (Math.PI * 2));
 		}
+
+		animateParticles(elapsed);
 
 		hasRAF = true;
 		requestAnimationFrame(animateAll);
+	}
+
+	function animateParticles(elapsed: number) {
+		for (const particle of particlePool) {
+			particle.animate(elapsed);
+		}
 	}
 
 	const sendMouse = debounced(
@@ -110,11 +156,6 @@
 				}
 			}
 		}
-	}
-
-	function addCollectable(collectable: CollectableData) {
-		collectableIds.set(collectable.id, collectable);
-		collectables = [...collectables, collectable];
 	}
 
 	type RocketUpdate = { id: string; position: Coord; target: Coord; angle: number };
@@ -195,18 +236,10 @@
 		});
 
 		await connection.start();
-
-		//const self = Rocket.createOnline(connection.connectionId);
-		//addRocket(self);
 	}
 
 	function diffC(a: Coord, b: Coord) {
 		return { x: a.x - b.x, y: a.y - b.y };
-	}
-
-	export function clearAllRockets() {
-		rocketIds.clear();
-		rockets = [];
 	}
 
 	onMount(() => {
@@ -223,18 +256,26 @@
 	<div class="field is-horizontal">
 		<button class="button" on:click={add}>Spawn another Rocket</button>
 	</div>
-{/if}
 
-<div class="field is-horizontal">
-	<!-- <input
+	<div class="field is-horizontal">
+		<!-- <input
 			class="input"
 			style="max-width: 10em;"
 			type="text"
 			bind:value={username}
 			placeholder="Username"
 		/> -->
-	<button class="button" on:click={connectOnline}>Join Online</button>
-</div>
+		<button class="button" on:click={connectOnline}>Join Online</button>
+	</div>
+{/if}
+
+{#each particlePool as particle}
+	<div style="position:fixed;top:0;left:0;pointer-events: none;">
+		<div bind:this={particle.elem} style="width:0; height:0;">
+			<Icon path={mdiStar} style={'transform: translate(-12px,-12px) scale(0.6);'} />
+		</div>
+	</div>
+{/each}
 
 {#each rockets as zoomie (zoomie.id)}
 	<Zoomie rocket={zoomie} />
