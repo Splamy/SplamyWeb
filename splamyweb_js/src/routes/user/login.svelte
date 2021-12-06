@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { enhance } from '$lib/form';
-	import { applyLoginResult, fetchCurrentUser } from '$lib/user';
-	import { BASE_URL } from '$lib/util';
+	import { applyLoginResult } from '$lib/user';
+	import { BASE_URL, enhance } from '$lib/util';
 
 	let errors: string[] = [];
 </script>

@@ -29,7 +29,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import moment from 'moment';
 	import ShortDate from '$lib/ShortDate.svelte';
-import { mdiClose } from '@mdi/js';
+	import { mdiClose } from '@mdi/js';
 
 	export let projects: ProjectInfo[] = [];
 
@@ -40,10 +40,13 @@ import { mdiClose } from '@mdi/js';
 		});
 		if (answer === true) {
 			try {
-				const response = await fetch(`${BASE_URL}/api/nightly/projects/${project}/${branch}`, {
-					method: 'DELETE',
-					credentials: 'include'
-				});
+				const response = await fetch(
+					`${BASE_URL}/api/nightly/projects/${project}/${branch}`,
+					{
+						method: 'DELETE',
+						credentials: 'include'
+					}
+				);
 				if (!response.ok) {
 					throw response;
 				}

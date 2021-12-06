@@ -18,8 +18,7 @@
 </script>
 
 <script lang="ts">
-	import { enhance } from '$lib/form';
-	import { BASE_URL } from '$lib/util';
+	import { BASE_URL, enhance } from '$lib/util';
 	import { goto } from '$app/navigation';
 	import { browser, prerendering } from '$app/env';
 

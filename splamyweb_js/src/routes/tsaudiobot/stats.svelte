@@ -147,7 +147,6 @@
 
 		(window as any).myLine = chart;
 	}
-
 	onMount(() => {
 		init();
 	});

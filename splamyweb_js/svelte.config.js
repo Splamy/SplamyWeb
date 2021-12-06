@@ -1,6 +1,5 @@
 import adapter from '@sveltejs/adapter-static';
 import preprocess from 'svelte-preprocess';
-import { defineConfig } from "vite";
 
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -17,6 +16,19 @@ const config = {
 		router: true,
 		prerender: {
 			onError: "continue"
+		},
+
+		vite: {
+			build: {
+				rollupOptions: {
+					output: {
+						// https://github.com/sveltejs/kit/issues/1632
+						// https://github.com/sveltejs/kit/issues/1571
+						// https://github.com/vitejs/vite/issues/3731
+						manualChunks: undefined
+					}
+				},
+			}
 		}
 	},
 };

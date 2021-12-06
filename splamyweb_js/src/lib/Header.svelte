@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { enhance } from '$lib/form';
 	import Icon from '$lib/Icon.svelte';
 	import { applyLoginResult, CurrentUser } from '$lib/user';
-	import { BASE_URL } from '$lib/util';
-	import { mdiGithub, mdiTranslate } from '@mdi/js';
+	import { BASE_URL, enhance } from '$lib/util';
+	import { mdiChartBar, mdiGithub, mdiTranslate } from '@mdi/js';
 </script>
 
 <nav>
@@ -30,6 +29,12 @@
 				<Icon path={mdiGithub} addclass="padr" />
 				<span>Github</span>
 			</a>
+			{#if $CurrentUser}
+				<a class="navl" href="/tsaudiobot/stats">
+					<Icon path={mdiChartBar} addclass="padr" />
+					<span>Stats</span>
+				</a>
+			{/if}
 		</div>
 	</div>
 	<a class="navl" href="/impress">Impress &amp; Privacy</a>

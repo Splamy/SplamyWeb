@@ -1,3 +1,5 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,30 +17,28 @@ public class ContentController : ControllerBase
 {
 	private readonly SplamyContext db;
 	private readonly StoreService store;
+	private readonly IMapper mapper;
 
-	public ContentController(SplamyContext db, StoreService store)
+	public ContentController(SplamyContext db, StoreService store, IMapper mapper)
 	{
 		this.db = db;
 		this.store = store;
+		this.mapper = mapper;
 	}
 
 	[AllowAnonymous]
 	[HttpGet("home")]
-	public async Task<IList<PortfolioEntry>> GetProjects([FromQuery] int? offset = null)
+	public async Task<IList<BlogPostView>> GetProjects([FromQuery] int? offset = null)
 	{
 		var tagName = await store.GetBlogMainTag();
 		if (string.IsNullOrEmpty(tagName))
-			return Array.Empty<PortfolioEntry>();
+			return Array.Empty<BlogPostView>();
 
-		IQueryable<PortfolioEntry> posts =
+		IQueryable<BlogPostView> posts = (
 			from post in db.BlogPosts.AsNoTracking()
 			where post.Tags.Contains(tagName)
-			select new PortfolioEntry()
-			{
-				Title = post.Title,
-				ContentHtml = post.ContentHtml,
-				Tags = post.Tags,
-			};
+			select post)
+			.ProjectTo<BlogPostView>(mapper.ConfigurationProvider);
 
 		if (offset is { } offsetNum)
 			posts = posts.Skip(offsetNum);
@@ -78,11 +78,4 @@ public class ContentController : ControllerBase
 
 		return await posts.ToArrayAsync();
 	}
-}
-
-public class PortfolioEntry
-{
-	public string Title { get; set; }
-	public string ContentHtml { get; set; }
-	public IList<string> Tags { get; set; }
 }

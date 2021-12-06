@@ -22,7 +22,7 @@ namespace SplamyWeb.Components
 		private readonly List<MinigamePlayer> updatePlayer = new();
 		private IEnumerable<MinigamePlayerState> updatePlayerState => updatePlayer;
 		private readonly List<MinigameCookie> updateCookies = new();
-		private bool fullUpdate = false;
+		private bool fullUpdate;
 		// Timings
 		private readonly Stopwatch time = new();
 		private Timer? timer;
@@ -55,9 +55,8 @@ namespace SplamyWeb.Components
 					timer = new Timer(GameTick, null, TimeSpan.Zero, TickWait);
 				}
 
-				var player = new MinigamePlayer(id)
+				var player = new MinigamePlayer(id, PlayerNames[random.Next(0, PlayerNames.Length)])
 				{
-					Name = PlayerNames[random.Next(0, PlayerNames.Length)],
 					Color = random.Next(0, 360),
 				};
 				ConnectedPlayer.Add(id, player);
@@ -239,9 +238,9 @@ namespace SplamyWeb.Components
 		public int Color { get; set; }
 		public int Points { get; set; }
 
-		public MinigamePlayer(string id) : base(id)
+		public MinigamePlayer(string id, string name) : base(id)
 		{
-
+			Name = name;
 		}
 	}
 

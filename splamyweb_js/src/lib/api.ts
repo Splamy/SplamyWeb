@@ -46,3 +46,10 @@ export interface LoginResult {
 		rank: number;
 	}
 }
+
+export interface BlogView {
+	title: string;
+	summary: string;
+	contentHtml: string;
+	tags: string[];
+}
