@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
+using System.Buffers;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Controllers;
@@ -23,21 +25,51 @@ public class TabController : ControllerBase
 
 	[HttpPost("stats")]
 	[Consumes("application/json")]
-	public async Task PostPing()
+	public async Task PostPing(CancellationToken cancellationToken)
 	{
 		var remoteIp = Request.HttpContext.Connection.RemoteIpAddress;
 		if (remoteIp is null || !spam.Check(remoteIp))
 			return;
 
-		TabStatsData? obj = null;
+		const int MaxPingBodySize = 2_000;
+		byte[] readBuffer = ArrayPool<byte>.Shared.Rent(MaxPingBodySize);
+		Memory<byte> readSlice = readBuffer.AsMemory(..MaxPingBodySize);
 		try
 		{
-			obj = await JsonSerializer.DeserializeAsync<TabStatsData?>(Request.Body, Util.JsonDefault);
-		}
-		catch (JsonException ex) { Log.Debug(ex, "Failed to deserialize ping"); }
+			var read = await Request.Body.ReadAsync(readSlice, cancellationToken);
+			readSlice = readSlice[..read];
 
-		if (obj != null)
-			await tab.Add(obj);
+			var obj = JsonSerializer.Deserialize<TabStatsData?>(readSlice.Span, Util.JsonDefault);
+
+			if (obj != null)
+				await tab.Add(obj);
+		}
+		catch (Exception jsonEx)
+		{
+			string jsonPeek = "";
+			try
+			{
+				CleanNewlines(readSlice.Span);
+				jsonPeek = Util.Utf8Encoding.GetString(readSlice.Span);
+			}
+			catch (Exception ex)
+			{
+				jsonPeek = ex.Message;
+			}
+
+			var path = jsonEx is JsonException jex ? jex.Path : null;
+			Log.Debug("Ping Er: {0} {1} {2}", jsonEx.Message, path, jsonPeek);
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(readBuffer);
+		}
+	}
+
+	private static void CleanNewlines(Span<byte> data)
+	{
+		for (int i = 0; i < data.Length; i++)
+			data[i] = data[i] is (byte)'\r' or (byte)'\n' ? (byte)' ' : data[i];
 	}
 
 	public static readonly string[] ImpMod = { "", "K", "M", "G" };
