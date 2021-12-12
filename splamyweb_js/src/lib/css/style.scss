@@ -42,13 +42,13 @@ a.button {
 }
 
 .readblock {
-	justify-content: center;
+	flex-direction: column;
 	display: flex;
+	justify-content: center;
+	margin: auto;
 
-	& > * {
-		width: 100%;
-		max-width: 800px;
-	}
+	width: 100%;
+	max-width: 800px;
 }
 
 h1 {

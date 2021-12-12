@@ -150,23 +150,23 @@ public class Startup
 		}
 		else
 		{
-			app.UseExceptionHandler("/Error");
+			app.UseExceptionHandler();
 		}
-
-		app.UseRouting();
 
 		if (Configuration.GetValue<bool>("Dev:UseCors"))
 		{
 			app.UseCors();
 		}
 
-		app.UseAuthentication();
-		app.UseAuthorization();
-
 		app.UseFileServer(new FileServerOptions
 		{
-			RedirectToAppendTrailingSlash = false
+			RedirectToAppendTrailingSlash = false,
 		});
+
+		app.UseRouting();
+
+		app.UseAuthentication();
+		app.UseAuthorization();
 
 		app.UseEndpoints(endpoints =>
 		{
@@ -174,6 +174,7 @@ public class Startup
 			endpoints.MapHub<LogNotifier>("/livelog");
 			endpoints.MapHub<MarkdownService>("/markdown");
 			endpoints.MapHub<Minigame>("/minigame");
+			endpoints.MapFallbackToController("Index", "Fallback");
 		});
 	}
 }

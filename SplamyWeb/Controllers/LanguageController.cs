@@ -107,7 +107,7 @@ public class LanguageController : ControllerBase
 		// GET https://www.transifex.com/api/2/project/ts3audiobot/languages
 		// GET https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/en/?file
 
-		var projectData = await db.NightlyProjects.SingleOrDefaultAsync(p => p.Project == project);
+		var projectData = await db.NightlyProjects.FindAsync(project);
 		if (projectData is null)
 			return BadRequest("Project not found");
 
@@ -228,12 +228,7 @@ public class LanguageController : ControllerBase
 	}
 
 	private async Task<LanguageEntry?> GetLanguageEntry(string project, CultureInfo culture)
-	{
-		return await (
-			from lang in db.LanguageEntries
-			where lang.Project == project && lang.Language == culture.Name
-			select lang).SingleOrDefaultAsync();
-	}
+		=> await db.LanguageEntries.FindAsync(project, culture.Name);
 
 	private async Task<bool> ExtendedPermission()
 	{

@@ -93,6 +93,14 @@
 		});
 		kvpList = (await res.json()) as KeyValue[];
 	}
+
+	function protectText(this: HTMLElement) {
+		this.classList.add("protected");
+	}
+
+	function showText(this: HTMLElement) {
+		this.classList.remove("protected");
+	}
 </script>
 
 <svelte:head>
@@ -117,8 +125,10 @@
 					<textarea
 						id="key_{key}"
 						autocomplete="off"
-						class="input"
+						class="input protected"
 						type="text"
+						on:mouseenter={showText}
+						on:mouseleave={protectText}
 						on:input={auto_grow}
 						on:keypress={onenter(() => updateKey(key))}>{value}</textarea
 					>
@@ -166,3 +176,9 @@
 		</tr>
 	</tbody>
 </table>
+
+<style lang="scss">
+	.protected {
+		//filter: blur(2px);
+	}
+</style>

@@ -1,34 +1,56 @@
 <script lang="ts">
+	import Icon from '$lib/Icon.svelte';
+
+	import { BASE_URL } from '$lib/util';
+	import { mdiOpenInNew } from '@mdi/js';
+
+	let version: string = '';
+	let platform: string = '';
+	let sign: string = '';
+
+	let resultMsg = '';
+	let isErr = false;
+
 	function checkFn(event) {
 		checkResult();
 		event.preventDefault();
 		return false;
 	}
 
-	// TODO sveltify !!!
-
 	async function checkResult() {
-		const version = encodeURIComponent(document.querySelector("input[name='version']").value);
-		const platform = encodeURIComponent(document.querySelector("input[name='platform']").value);
-		const sign = encodeURIComponent(document.querySelector("input[name='sign']").value);
-		var resp = await fetch(`/api/teamspeak/version/${version}/${platform}?sign=${sign}`, {
-			method: 'POST'
-		});
-		var result = await resp.json();
+		resultMsg = '';
 
-		document.getElementById('result_msg').classList.remove('is-hidden');
-		const res_txt = document.getElementById('result_txt');
-		res_txt.classList.remove('is-info', 'is-danger');
-		if (typeof result === 'string') {
-			res_txt.classList.add('is-info');
-			res_txt.innerText = result;
-		} else if ('error' in result) {
-			res_txt.classList.add('is-danger');
-			res_txt.innerText = result.error;
-		} else {
-			res_txt.classList.add('is-danger');
-			res_txt.innerText = 'The api seems down, try again later...';
+		if (!version || !platform || !sign) {
+			resultMsg = 'Please fill out all fields';
+			isErr = true;
+			return;
 		}
+
+		const encVersion = encodeURIComponent(version);
+		const encPlatform = encodeURIComponent(platform);
+		const encSign = encodeURIComponent(sign);
+
+		try {
+			const resp = await fetch(
+				`${BASE_URL}/api/teamspeak/version/${encVersion}/${encPlatform}?sign=${encSign}`,
+				{
+					method: 'POST'
+				}
+			);
+			const result = await resp.json();
+			if (typeof result === 'string') {
+				resultMsg = result;
+				isErr = false;
+				return;
+			} else if ('error' in result) {
+				resultMsg = result.error;
+				isErr = true;
+				return;
+			}
+		} catch {}
+
+		resultMsg = 'The api seems down, try again later...';
+		isErr = true;
 	}
 </script>
 
@@ -46,6 +68,7 @@
 					<label class="label" for="fld_version">Version</label>
 					<div class="control">
 						<input
+							bind:value={version}
 							id="fld_version"
 							name="version"
 							class="input"
@@ -57,6 +80,7 @@
 					<label class="label" for="fld_platform">Platform</label>
 					<div class="control">
 						<input
+							bind:value={platform}
 							id="fld_platform"
 							name="platform"
 							class="input"
@@ -68,6 +92,7 @@
 					<label class="label" for="fld_sign">Sign</label>
 					<div class="control">
 						<input
+							bind:value={sign}
 							id="fld_sign"
 							name="sign"
 							class="input"
@@ -84,22 +109,29 @@
 					</div>
 				</div>
 
-				<div id="result_msg" class="field is-hidden">
-					<div id="result_txt" class=" notification is-info" />
-				</div>
+				{#if resultMsg}
+					<div class="field is-hidden">
+						<div class:is-info={!isErr} class:is-danger={isErr} class="notification">
+							{resultMsg}
+						</div>
+					</div>
+				{/if}
 			</form>
 		</div>
 
 		<div class="tile is-parent">
 			<article class="tile is-child notification is-primary">
-				You can check out all collected versions
-				<a
-					rel="external"
-					href="https://github.com/ReSpeak/tsdeclarations/blob/master/Versions.csv"
-					target="_blank"
-				>
-					here<span class="icon"><i class="mdi mdi-open-in-new mdi-18px" /></span>
-				</a>
+				<span>
+					You can check out all collected versions
+					<a
+						class="icon-text"
+						rel="external"
+						href="https://github.com/ReSpeak/tsdeclarations/blob/master/Versions.csv"
+						target="_blank"
+					>
+						here <Icon path={mdiOpenInNew} />
+					</a>
+				</span>
 			</article>
 		</div>
 	</div>

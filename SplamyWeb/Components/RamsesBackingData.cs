@@ -74,7 +74,7 @@ public class RamsesBackingData
 						   where entries.Id == request.MapId
 						   select entries)
 					 .Include(e => e.Maps)
-					 .SingleOrDefaultAsync();
+					 .FirstOrDefaultAsync();
 
 		if (entry != null && entry.Version == RamsesVersion)
 		{

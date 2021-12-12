@@ -1,9 +1,35 @@
+<script context="module" lang="ts">
+	import { BASE_URL } from '$lib/util';
+	import type { BlogViewData } from '$lib/api';
+	import type { Load } from '@sveltejs/kit';
+	import { prerendering } from '$app/env';
+
+	export const load: Load = async ({ fetch }) => {
+		if (prerendering) return {};
+		const res = await fetch(`${BASE_URL}/api/content/home`);
+		const json: BlogViewData[] = await res.json();
+
+		if (res.ok) {
+			return {
+				props: {
+					blogViews: json
+				}
+			};
+		}
+
+		return { status: res.status };
+	};
+</script>
+
 <script lang="ts">
+	import HomeView from '$lib/blog/HomeView.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { loadMinigame } from '$lib/mini/loader';
 	import type MiniGame from '$lib/mini/MiniGame.svelte';
 	import { mdiRobotHappy } from '@mdi/js';
 	import { tick } from 'svelte';
+
+	export let blogViews: BlogViewData[] = [];
 
 	let minigameComponent: any = undefined;
 	let minigame: MiniGame;
@@ -24,13 +50,25 @@
 
 <h1 class="title">Splamy</h1>
 
-<h2>Home!</h2>
-<br />
+<HomeView {blogViews} />
 
-<span style="cursor: pointer;" on:click={init} >
-	<Icon path={mdiRobotHappy} addclass="rpad" /> woking on stuff...</span
->
+<div class="easteregg">
+	<span class="icon-text" style="cursor: pointer;" on:click={init}>
+		<Icon path={mdiRobotHappy} addclass="padr" />
+		woking on more stuff...
+	</span>
+</div>
 
 {#if minigameComponent}
-	<svelte:component bind:this={minigame} this={minigameComponent}/>
+	<svelte:component this={minigameComponent} bind:this={minigame} />
 {/if}
+
+<style lang="scss">
+	.easteregg {
+		padding-top: 3em;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+</style>

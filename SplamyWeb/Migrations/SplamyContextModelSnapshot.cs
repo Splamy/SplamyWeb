@@ -85,7 +85,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("PostId");
 
-                    b.ToTable("blog");
+                    b.ToTable("blog", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LanguageEntry", b =>
@@ -104,7 +104,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project", "Language");
 
-                    b.ToTable("nightly_lang");
+                    b.ToTable("nightly_lang", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LoginData", b =>
@@ -143,7 +143,7 @@ namespace SplamyWeb.Migrations
                     b.HasIndex("NameNormalized")
                         .IsUnique();
 
-                    b.ToTable("user");
+                    b.ToTable("user", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.NightlyBranch", b =>
@@ -159,7 +159,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project", "Branch");
 
-                    b.ToTable("nightly_branch");
+                    b.ToTable("nightly_branch", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.NightlyBuild", b =>
@@ -192,7 +192,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project", "Branch", "Commit");
 
-                    b.ToTable("nightly_build");
+                    b.ToTable("nightly_build", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.NightlyProject", b =>
@@ -210,7 +210,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project");
 
-                    b.ToTable("nightly_project");
+                    b.ToTable("nightly_project", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.RamsesMapDto", b =>
@@ -236,7 +236,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("RamsesId", "Characteristic", "IndexDifficulty");
 
-                    b.ToTable("ramses_map");
+                    b.ToTable("ramses_map", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.RamsesSongDto", b =>
@@ -253,7 +253,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ramses_song");
+                    b.ToTable("ramses_song", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.StoreEntry", b =>
@@ -266,7 +266,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("kvp_store");
+                    b.ToTable("kvp_store", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.TabStatsFactoryDto", b =>
@@ -294,7 +294,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("TabStatsId", "FactoryName");
 
-                    b.ToTable("tabstats_factory");
+                    b.ToTable("tabstats_factory", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.TabStatsPingDto", b =>
@@ -337,7 +337,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("tabstats_entry");
+                    b.ToTable("tabstats_entry", (string)null);
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LanguageEntry", b =>

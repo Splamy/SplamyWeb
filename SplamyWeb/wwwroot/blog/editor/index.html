@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="description" content="Svelte demo app" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+
+		
+
+		<link rel="modulepreload" href="/_app/start-115122ad.js">
+		<link rel="modulepreload" href="/_app/chunks/index-d3fad2ce.js">
+		<link rel="modulepreload" href="/_app/chunks/preload-helper-ec9aa979.js">
+		<link rel="modulepreload" href="/_app/chunks/index-a628068a.js">
+		<link rel="modulepreload" href="/_app/chunks/singletons-12a22614.js">
+		<link rel="modulepreload" href="/_app/pages/__layout.svelte-69202be4.js">
+		<link rel="modulepreload" href="/_app/chunks/mdi-34097439.js">
+		<link rel="modulepreload" href="/_app/chunks/user-96543e0f.js">
+		<link rel="modulepreload" href="/_app/chunks/util-26cef359.js">
+		<link rel="modulepreload" href="/_app/pages/blog/editor.svelte-d2f5a361.js">
+		<link rel="modulepreload" href="/_app/chunks/HubConnectionBuilder-6916ebda.js">
+		<link rel="stylesheet" href="/_app/assets/start-61d1577b.css">
+		<link rel="stylesheet" href="/_app/assets/pages/__layout.svelte-9e693235.css">
+		<link rel="stylesheet" href="/_app/assets/mdi-516231a3.css">
+		<link rel="stylesheet" href="/_app/assets/pages/blog/editor.svelte-c36cec21.css">
+
+		<script type="module">
+			import { start } from "/_app/start-115122ad.js";
+			start({
+				target: document.querySelector("#svelte"),
+				paths: {"base":"","assets":""},
+				session: {},
+				host: location.host,
+				route: true,
+				spa: false,
+				trailing_slash: "never",
+				hydrate: {
+					status: 200,
+					error: null,
+					nodes: [
+						import("/_app/pages/__layout.svelte-69202be4.js"),
+						import("/_app/pages/blog/editor.svelte-d2f5a361.js")
+					],
+					page: {
+						host: location.host, // TODO this is redundant
+						path: "\u002Fblog\u002Feditor",
+						query: new URLSearchParams(""),
+						params: {}
+					}
+				}
+			});
+		</script>
+	</head>
+	<body>
+		<div id="svelte">
+
+
+<nav class="svelte-1imc82e"><a class="navl svelte-1imc82e" href="/">Home</a>
+	<a class="navl svelte-1imc82e" href="/nightly">Nightly</a>
+	<div class="navdrop svelte-1imc82e" tabindex="0"><a class="navl svelte-1imc82e" href="/tsaudiobot/home">TS3AudioBot</a>
+		<div class="navdrop-list svelte-1imc82e"><a class="navl svelte-1imc82e" href="/tsaudiobot/languagePacks">
+
+
+
+<svg class="icon padr svelte-1trhzeg" viewBox="0 0 24 24" style=""><path d="M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z" class="svelte-1trhzeg"></path></svg>
+				<span>Language Packs</span></a>
+			<a class="navl svelte-1imc82e" rel="external" href="https://github.com/Splamy/TS3AudioBot" target="_blank">
+
+
+
+<svg class="icon padr svelte-1trhzeg" viewBox="0 0 24 24" style=""><path d="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21C14.5,21.27 14.66,21.59 15.17,21.5C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z" class="svelte-1trhzeg"></path></svg>
+				<span>Github</span></a>
+			<a class="navl svelte-1imc82e" href="/ts/version">
+
+
+
+<svg class="icon padr svelte-1trhzeg" viewBox="0 0 24 24" style=""><path d="M22.7,19L13.6,9.9C14.5,7.6 14,4.9 12.1,3C10.1,1 7.1,0.6 4.7,1.7L9,6L6,9L1.6,4.7C0.4,7.1 0.9,10.1 2.9,12.1C4.8,14 7.5,14.5 9.8,13.6L18.9,22.7C19.3,23.1 19.9,23.1 20.3,22.7L22.6,20.4C23.1,20 23.1,19.3 22.7,19Z" class="svelte-1trhzeg"></path></svg>
+				<span>TS Version Checker Tool</span></a>
+			</div></div>
+	<a class="navl svelte-1imc82e" href="/impress">Impress &amp; Privacy</a>
+	<div class="navdrop svelte-1imc82e" tabindex="0"><a class="navl svelte-1imc82e" href="/blog">Blog</a>
+		</div>
+	<a class="navl navuser svelte-1imc82e" href="/user/login?return=/blog/editor">Login</a>
+</nav>
+
+<section class="section svelte-1kvcdcb"><div><label for="post_visible">Post visible</label>
+	<input type="checkbox" id="post_visible">
+	<br>
+	<div class="field has-addons"><p class="control"><button title="Source" class="button">
+
+
+
+<svg class="icon  svelte-1trhzeg" viewBox="0 0 24 24" style=""><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" class="svelte-1trhzeg"></path></svg></button></p>
+	<p class="control"><button title="Split view" class="button">
+
+
+
+<svg class="icon  svelte-1trhzeg" viewBox="0 0 24 24" style=""><path d="M15 21H17V19H15M19 9H21V7H19M3 5V19C3 20.1 3.9 21 5 21H9V19H5V5H9V3H5C3.9 3 3 3.9 3 5M19 3V5H21C21 3.9 20.1 3 19 3M11 23H13V1H11M19 17H21V15H19M15 5H17V3H15M19 13H21V11H19M19 21C20.1 21 21 20.1 21 19H19Z" class="svelte-1trhzeg"></path></svg></button></p>
+	<p class="control"><button title="Preview" class="button">
+
+
+
+<svg class="icon  svelte-1trhzeg" viewBox="0 0 24 24" style=""><path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z" class="svelte-1trhzeg"></path></svg></button></p></div>
+
+<div class="editbox svelte-1rxyvck"><textarea></textarea>
+	<div class="renderSide content svelte-1rxyvck"><!-- HTML_TAG_START --><!-- HTML_TAG_END --></div>
+</div>
+	<button class="button">Submit</button></div>
+</section>
+
+
+
+			
+		</div>
+	</body>
+</html>

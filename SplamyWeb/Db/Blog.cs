@@ -14,6 +14,8 @@ public class BlogPost
 	public DateTime CreateTime { get; set; }
 	public string Title { get; set; }
 	public string Summary { get; set; }
+	//public string SummaryRaw { get; set; }
+	//public string SummaryHtml { get; set; }
 	public string ContentRaw { get; set; }
 	public string ContentHtml { get; set; }
 
@@ -32,6 +34,7 @@ public class BlogPostShortView
 {
 	public string Title { get; set; }
 	public string Summary { get; set; }
+	//public string SummaryHtml { get; set; }
 	public string[] Tags { get; set; }
 }
 
@@ -41,6 +44,7 @@ public class BlogProfile : Profile
 	{
 		CreateMap<BlogPost, BlogPostShortView>(MemberList.Destination);
 		CreateMap<BlogPost, BlogPostView>(MemberList.Destination);
+		CreateMap<BlogPost, BlogPost>(MemberList.Destination);
 	}
 }
 

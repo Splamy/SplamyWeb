@@ -4,6 +4,7 @@
 	import { BASE_URL, debounced } from './util';
 	import { onMount } from 'svelte';
 	import { mdiEye, mdiFlipHorizontal, mdiPencil } from '@mdi/js';
+import { prerendering } from '$app/env';
 
 	const enum View {
 		Edit,
@@ -17,7 +18,9 @@
 	let rendered: string = '';
 	let connection: signalR.HubConnection | undefined = undefined;
 
-	init();
+	if (!prerendering) {
+		init();
+	}
 
 	async function init() {
 		try {
@@ -28,11 +31,12 @@
 		}
 	}
 
-	$: renderRequest(raw);
-
 	const renderRequest = debounced(
 		(text: string) => {
 			try {
+				if (connection.state !== signalR.HubConnectionState.Connected) {
+					return;
+				}
 				connection.invoke<string>('Render', text).then((r) => (rendered = r));
 			} catch (e) {
 				console.error('Failed to render text', e);
@@ -43,6 +47,8 @@
 			resetOnCall: false
 		}
 	);
+
+	$: renderRequest(raw);
 
 	onMount(() => {
 		return () => {

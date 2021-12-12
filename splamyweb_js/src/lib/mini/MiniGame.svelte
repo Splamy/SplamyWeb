@@ -173,7 +173,7 @@
 		connection = new HubConnectionBuilder().withUrl(`${BASE_URL}/minigame`).build();
 
 		connection.on('InitState', function (init: InitState) {
-			console.log('InitState', JSON.stringify(init));
+			//console.log('InitState', JSON.stringify(init));
 			for (const initRocket of init.players) {
 				const rocket = Rocket.createOnline(initRocket.id);
 				Object.assign(rocket, initRocket);

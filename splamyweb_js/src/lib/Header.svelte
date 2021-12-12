@@ -3,23 +3,19 @@
 	import Icon from '$lib/Icon.svelte';
 	import { applyLoginResult, CurrentUser } from '$lib/user';
 	import { BASE_URL, enhance } from '$lib/util';
-	import { mdiChartBar, mdiGithub, mdiTranslate } from '@mdi/js';
+	import { mdiChartBar, mdiGithub, mdiTranslate, mdiWrench } from '@mdi/js';
 </script>
 
 <nav>
 	<a class="navl" href="/">Home</a>
 	<a class="navl" href="/nightly">Nightly</a>
-	<div class="navdrop">
+	<div class="navdrop" tabindex="0">
 		<a class="navl" href="/tsaudiobot/home">TS3AudioBot</a>
 		<div class="navdrop-list">
 			<a class="navl" href="/tsaudiobot/languagePacks">
 				<Icon path={mdiTranslate} addclass="padr" />
 				<span>Language Packs</span>
 			</a>
-			<!-- <a class="navl" href="/TSAudioBot/Stats">
-				<span class="icon is-medium"><i class="mdi mdi-24px mdi-counter" /></span>
-				Stats
-			</a> -->
 			<a
 				class="navl"
 				rel="external"
@@ -28,6 +24,10 @@
 			>
 				<Icon path={mdiGithub} addclass="padr" />
 				<span>Github</span>
+			</a>
+			<a class="navl" href="/ts/version">
+				<Icon path={mdiWrench} addclass="padr" />
+				<span>TS Version Checker Tool</span>
 			</a>
 			{#if $CurrentUser}
 				<a class="navl" href="/tsaudiobot/stats">
@@ -38,9 +38,17 @@
 		</div>
 	</div>
 	<a class="navl" href="/impress">Impress &amp; Privacy</a>
-	{#if $CurrentUser}
+	<div class="navdrop" tabindex="0">
 		<a class="navl" href="/blog">Blog</a>
-		<!-- <span class="icon is-medium"><i class="mdi mdi-24px mdi-calendar-text" /></span> -->
+		{#if $CurrentUser}
+			<div class="navdrop-list">
+				<a class="navl" href="/blog/editor">
+					<span>Write</span>
+				</a>
+			</div>
+		{/if}
+	</div>
+	{#if $CurrentUser}
 		<div class="navdrop">
 			<a class="navl" href="/admin/hub">Admin</a>
 			<div class="navdrop-list">
@@ -76,39 +84,47 @@
 		display: flex;
 		flex-wrap: wrap;
 		background-color: $primary;
+		position: fixed;
+		left: 0;
+		top: 0;
+		right: 0;
+		z-index: 10;
+	}
 
-		.navl {
-			display: flex;
-			padding: 14px 16px;
-			color: $primary-invert;
-			text-decoration: none;
-			cursor: pointer;
-			align-items: center;
-		}
+	.navl {
+		display: flex;
+		padding: 14px 16px;
+		color: $primary-invert;
+		text-decoration: none;
+		cursor: pointer;
+		align-items: center;
+	}
 
-		.navl:hover {
-			@include link_shine;
-		}
+	.navl:hover {
+		@include link_shine;
+	}
 
-		.navuser {
-			margin-left: auto;
-		}
+	.navuser {
+		margin-left: auto;
+	}
 
-		.navdrop {
-			@include unselectable;
-			position: relative;
-			display: inline-block;
-		}
+	.navdrop {
+		@include unselectable;
+		position: relative;
+		display: inline-block;
+	}
 
+	.navdrop-list {
+		display: none;
+		position: absolute;
+		background-color: $primary;
+		z-index: 1;
+		white-space: nowrap;
+	}
+
+	.navdrop:hover,
+	.navdrop:focus {
 		.navdrop-list {
-			display: none;
-			position: absolute;
-			background-color: $primary;
-			z-index: 1;
-			white-space: nowrap;
-		}
-
-		.navdrop:hover .navdrop-list {
 			display: block;
 		}
 	}

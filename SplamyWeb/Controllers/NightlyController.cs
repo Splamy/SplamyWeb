@@ -99,11 +99,8 @@ public class NightlyController : ControllerBase
 	{
 		project = project.ToLowerInvariant();
 
-		var nProject = await (
-			from np in db.NightlyProjects
-			where np.Project == project
-			select np)
-			.SingleOrDefaultAsync();
+		var nProject = await db.NightlyProjects.FindAsync(project);
+
 		if (nProject != null)
 			return Ok();
 
@@ -123,7 +120,7 @@ public class NightlyController : ControllerBase
 	{
 		project = project.ToLowerInvariant();
 
-		var projData = await db.NightlyProjects.SingleOrDefaultAsync(np => np.Project == project);
+		var projData = await db.NightlyProjects.FindAsync(project);
 		if (projData is null)
 			return NotFound();
 
@@ -157,20 +154,11 @@ public class NightlyController : ControllerBase
 
 		const string defaultName = "data.dat";
 
-		var nBranch = await (
-			from nb in db.NightlyBranches
-			where nb.Project == project && nb.Branch == branch
-			select nb)
-			.SingleOrDefaultAsync();
+		var nBranch = await db.NightlyBranches.FindAsync(project, branch);
 		nBranch ??= (await db.NightlyBranches.AddAsync(new NightlyBranch { Project = project, Branch = branch })).Entity;
 		nBranch.Active = commit;
 
-		var nBuild = await (
-			from nb in db.NightlyBuilds
-			where nb.NightlyBranch.Project == project && nb.Branch == branch && nb.Commit == commit
-			select nb)
-			.SingleOrDefaultAsync();
-
+		var nBuild = await db.NightlyBuilds.FindAsync(project, branch, commit);
 		nBuild ??= (await db.NightlyBuilds.AddAsync(new NightlyBuild { Project = project, Branch = branch, Commit = commit, ZipContent = false, })).Entity;
 		nBuild.UploadTime = DateTime.UtcNow;
 		nBuild.FileName = fileName ?? defaultName;
@@ -195,11 +183,7 @@ public class NightlyController : ControllerBase
 	[HttpDelete("projects/{project}")]
 	public async Task<IActionResult> DeleteProject(string project)
 	{
-		var nProject = await (
-			from nb in db.NightlyProjects
-			where nb.Project == project
-			select nb)
-			.SingleOrDefaultAsync();
+		var nProject = await db.NightlyProjects.FindAsync(project);
 		if (nProject is null)
 			return NotFound();
 		db.NightlyProjects.Remove(nProject);
@@ -210,11 +194,7 @@ public class NightlyController : ControllerBase
 	[HttpDelete("projects/{project}/{branch}")]
 	public async Task<IActionResult> DeleteProjectBranch(string project, string branch)
 	{
-		var nBranch = await (
-			from nb in db.NightlyBranches
-			where nb.Project == project && nb.Branch == branch
-			select nb)
-			.SingleOrDefaultAsync();
+		var nBranch = await db.NightlyBranches.FindAsync(project, branch);
 		if (nBranch is null)
 			return StatusCode(304);
 		nBranch.Active = null;
@@ -226,7 +206,7 @@ public class NightlyController : ControllerBase
 		from nbuild in db.NightlyBuilds
 		where nbuild.NightlyBranch.Project == project && nbuild.Branch == branch && nbuild.Commit == nbuild.NightlyBranch.Active
 		select nbuild)
-		.SingleOrDefaultAsync();
+		.FirstOrDefaultAsync();
 
 	private ValueTask<string?> TryFetchNotification(string project)
 	{

@@ -102,10 +102,10 @@ public class TabBackingData
 
 		PlaybackTime = (await db.Set<PlaytimeDto>().FromSqlRaw(
 @"SELECT SUM(""Playtime"") as ""Playtime""
-FROM tabstats_factory").SingleOrDefaultAsync())?.Playtime ?? TimeSpan.Zero;
+FROM tabstats_factory").FirstOrDefaultAsync())?.Playtime ?? TimeSpan.Zero;
 
 		CachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
-@"SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances, sum(f.""PlaybackTime"") as PlaybackTime
+@"SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances, COALESCE(SUM(f.""PlaybackTime""), INTERVAL '0') as PlaybackTime
 FROM tabstats_entry
 LEFT OUTER JOIN
 (

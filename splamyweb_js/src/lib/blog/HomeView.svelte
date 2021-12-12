@@ -1,28 +1,33 @@
-<script context="module" lang="ts">
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-
-	export const load: Load = async ({ fetch }) => {
-		if (prerendering) return {};
-		const res = await fetch(`${BASE_URL}/api/tab/stats/header`);
-		const json: BlogView[] = await res.json();
-
-		if (res.ok) {
-			return {
-				props: {
-					blogViews: json
-				}
-			};
-		}
-
-		return { status: res.status };
-	};
-</script>
-
 <script lang="ts">
-	import { BASE_URL } from '$lib/util';
-	import type { BlogView } from '$lib/api';
+	import type { BlogViewData } from '$lib/api';
+	import SummaryView from '$lib/blog/SummaryView.svelte';
 
-	export let blogViews: BlogView[] = [];
+	export let blogViews: BlogViewData[];
 </script>
 
+<div class="blogbox">
+	{#each blogViews as blogView}
+		<SummaryView {blogView} />
+	{/each}
+</div>
+
+<style lang="scss">
+	.blogbox {
+		width: 100%;
+		max-width: 1200px;
+		margin: auto;
+
+		:global {
+			.blogentry {
+				max-width: 800px;
+				&:nth-child(even) {
+					margin-left: auto;
+
+					h2 {
+						text-align: right;
+					}
+				}
+			}
+		}
+	}
+</style>

@@ -1,44 +1,26 @@
 <script lang="ts">
-	import moment from 'moment';
-	import { Chart, registerables } from 'chart.js';
 	import 'chartjs-adapter-moment';
+	import Chart from 'chart.js/auto/auto.esm';
+	import moment from 'moment';
 	import { onMount } from 'svelte';
 	import { BASE_URL } from '$lib/util';
-	import { prerendering } from '$app/env';
 
 	type GraphData = GraphDay[];
 	interface GraphDay {
 		date: string;
 		runningInstances: number;
 		runningBots: number;
-		playbackTime: TimeSpan;
-	}
-	interface TimeSpan {
-		ticks: number;
-		days: number;
-		hours: number;
-		milliseconds: number;
-		minutes: number;
-		seconds: number;
-		totalDays: number;
-		totalHours: number;
-		totalMilliseconds: number;
-		totalMinutes: number;
-		totalSeconds: number;
+		playbackTime: string;
 	}
 
-	// TODO sveltify !!!
+	let canvas: HTMLCanvasElement;
 
 	async function init() {
-		if (prerendering) return;
-
-		Chart.register(...registerables);
-
-		const ctx = (document.getElementById('tsab_graph') as HTMLCanvasElement).getContext('2d');
+		const ctx = canvas.getContext('2d');
 		const response = await fetch(`${BASE_URL}/api/tab/stats/graph`);
 		const data = (await response.json()) as GraphData;
 
-		function cjsd(date) {
+		function cjsd(date: string): number {
 			return moment(date).valueOf();
 		}
 
@@ -49,7 +31,7 @@
 			return { x: cjsd(x.date), y: x.runningBots };
 		});
 		const mappedPlayTime = data.map((x) => {
-			return { x: cjsd(x.date), y: Number(x.playbackTime.totalDays.toFixed(1)) };
+			return { x: cjsd(x.date), y: moment.duration(x.playbackTime).asDays() };
 		});
 
 		const cRed = 'rgb(255, 99, 132)';
@@ -159,5 +141,5 @@
 <h1 class="title">TSAudioBot Stats</h1>
 
 <section class="section">
-	<canvas id="tsab_graph" width="400" height="400" />
+	<canvas bind:this={canvas} width="400" height="400" />
 </section>

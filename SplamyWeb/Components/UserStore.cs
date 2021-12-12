@@ -27,7 +27,7 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 			return null;
 		return await (from user in context.User.AsNoTracking()
 					  where user.Token == token
-					  select user).SingleOrDefaultAsync();
+					  select user).FirstOrDefaultAsync();
 	}
 
 	public static async Task InitializeAccountWhenEmpty(SplamyContext db, NLog.Logger logger)
@@ -180,7 +180,7 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 		var irole = int.Parse(roleId, CultureInfo.InvariantCulture);
 		return await (from user in context.User.AsNoTracking()
 					  where user.Id == irole
-					  select user).SingleOrDefaultAsync(cancellationToken);
+					  select user).FirstOrDefaultAsync(cancellationToken);
 	}
 
 	// TODO split up role <-> user

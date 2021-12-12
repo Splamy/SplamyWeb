@@ -47,9 +47,9 @@ export interface LoginResult {
 	}
 }
 
-export interface BlogView {
+export interface BlogViewData {
 	title: string;
-	summary: string;
+	summaryHtml: string;
 	contentHtml: string;
 	tags: string[];
 }

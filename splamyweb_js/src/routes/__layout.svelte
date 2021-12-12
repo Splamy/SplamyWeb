@@ -10,4 +10,7 @@
 </section>
 
 <style lang="scss">
+	.section {
+		padding-top: 3.25rem + 3;
+	}
 </style>

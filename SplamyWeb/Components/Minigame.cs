@@ -200,11 +200,7 @@ namespace SplamyWeb.Components
 
 		private void SyncStateTo(IMinigame client)
 		{
-			client.InitState(new()
-			{
-				Players = ConnectedPlayer.Values,
-				Collectibles = Cookies,
-			});
+			client.InitState(new(ConnectedPlayer.Values, Cookies));
 		}
 
 		private void ResetGame()
@@ -284,6 +280,12 @@ namespace SplamyWeb.Components
 	{
 		public ICollection<MinigamePlayer> Players { get; init; }
 		public ICollection<MinigameCookie> Collectibles { get; init; }
+
+		public MinigameState(ICollection<MinigamePlayer> players, ICollection<MinigameCookie> collectibles)
+		{
+			Players = players;
+			Collectibles = collectibles;
+		}
 	}
 
 	public class Minigame : Hub<IMinigame>

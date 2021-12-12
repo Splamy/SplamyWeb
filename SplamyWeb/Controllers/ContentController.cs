@@ -1,6 +1,7 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
@@ -15,20 +16,22 @@ namespace SplamyWeb.Controllers;
 [Route("api/[controller]")]
 public class ContentController : ControllerBase
 {
+	private readonly UserManager<LoginData> userManager;
 	private readonly SplamyContext db;
 	private readonly StoreService store;
 	private readonly IMapper mapper;
 
-	public ContentController(SplamyContext db, StoreService store, IMapper mapper)
+	public ContentController(SplamyContext db, StoreService store, IMapper mapper, UserManager<LoginData> userManager)
 	{
 		this.db = db;
 		this.store = store;
 		this.mapper = mapper;
+		this.userManager = userManager;
 	}
 
 	[AllowAnonymous]
 	[HttpGet("home")]
-	public async Task<IList<BlogPostView>> GetProjects([FromQuery] int? offset = null)
+	public async Task<IList<BlogPostView>> GetHomePosts()
 	{
 		var tagName = await store.GetBlogMainTag();
 		if (string.IsNullOrEmpty(tagName))
@@ -40,13 +43,67 @@ public class ContentController : ControllerBase
 			select post)
 			.ProjectTo<BlogPostView>(mapper.ConfigurationProvider);
 
+		var result = await posts.ToListAsync();
+		return result;
+	}
+
+	[AllowAnonymous]
+	[HttpGet("posts")]
+	public async Task<IList<BlogPost>> GetAllPosts([FromQuery] int? offset = null)
+	{
+		IQueryable<BlogPost> posts =
+			from post in db.BlogPosts.AsNoTracking()
+			orderby post.PostId descending
+			select post;
+
 		if (offset is { } offsetNum)
 			posts = posts.Skip(offsetNum);
 		posts = posts.Take(10);
 
-		var result = await posts.ToListAsync();
-		return result;
+		return await posts.ToArrayAsync();
 	}
+
+	[AllowAnonymous]
+	[HttpGet("post/{id}")]
+	public async Task<IActionResult> GetPostById(int id)
+	{
+		var post = await db.BlogPosts.FindAsync(id);
+		if (post == null)
+			return NotFound();
+		if (!post.Visible && !(await ExtendedPermission()))
+			return NotFound();
+		return Ok(post);
+	}
+
+	[HttpPut("post")]
+	public async Task SaveOrUpdatePost([FromBody] BlogPost blogPost)
+	{
+		BlogPost? trackedPost = null;
+		if (blogPost.PostId != 0)
+		{
+			trackedPost = await db.BlogPosts.FindAsync(blogPost.PostId);
+		}
+
+		if (trackedPost is not null)
+		{
+			mapper.Map(blogPost, trackedPost);
+		}
+		else
+		{
+			await db.BlogPosts.AddAsync(blogPost);
+		}
+
+		await db.SaveChangesAsync();
+	}
+
+	[HttpGet("tags")]
+	public async Task<IActionResult> GetAllTags()
+	{
+		var tags = await db.Set<string>().FromSqlRaw("SELECT DISTINCT UNNEST(b.\"Tags\") FROM blog b;").ToListAsync();
+		return Ok(tags);
+	}
+
+	// Tmp Helper
 
 	[HttpPost("post/random")]
 	public async Task PushRandomPost([FromQuery] string? tag = null)
@@ -58,9 +115,8 @@ public class ContentController : ControllerBase
 			Visible = true,
 			CreateTime = DateTime.UtcNow,
 			Title = UserStore.RandomToken(12),
-			Summary = UserStore.RandomToken(30),
 			ContentRaw = UserStore.RandomToken(100),
-			ContentHtml = UserStore.RandomToken(110),
+			ContentHtml = UserStore.RandomToken(105),
 			Tags = tags,
 		};
 
@@ -68,14 +124,12 @@ public class ContentController : ControllerBase
 		await db.SaveChangesAsync();
 	}
 
-	[HttpGet("post/all")]
-	public async Task<IList<BlogPost>> GetAllPosts()
+	private async Task<bool> ExtendedPermission()
 	{
-		IQueryable<BlogPost> posts =
-			from post in db.BlogPosts.AsNoTracking()
-			orderby post.PostId descending
-			select post;
+		var user = await userManager.GetUserAsync(User);
+		if (user is null)
+			return false;
 
-		return await posts.ToArrayAsync();
+		return user.Rank.AtLeast(UserType.Admin);
 	}
 }
