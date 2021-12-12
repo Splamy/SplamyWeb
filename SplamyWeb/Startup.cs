@@ -150,7 +150,7 @@ public class Startup
 		}
 		else
 		{
-			app.UseExceptionHandler();
+			app.UseExceptionHandler("/InternalError");
 		}
 
 		if (Configuration.GetValue<bool>("Dev:UseCors"))
