@@ -142,7 +142,8 @@ internal class TimeSpanConverter : JsonConverter<TimeSpan>
 		if (value is null) return null;
 		return ParseTimeAsSimple(value)
 			?? ParseTimeAsDigital(value)
-			?? ParseTimeAsXml(value);
+			?? ParseTimeAsXml(value)
+			?? ParseTimeAsToString(value);
 	}
 
 	private static readonly Regex TimeReg = new(@"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?(?:(\d+)ms)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript);
@@ -200,6 +201,12 @@ internal class TimeSpanConverter : JsonConverter<TimeSpan>
 		catch (FormatException) { return null; }
 	}
 
+	private static TimeSpan? ParseTimeAsToString(string value)
+	{
+		if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var timeSpan))
+			return timeSpan;
+		return null;
+	}
 
 	private struct TickReaderHelper
 	{
