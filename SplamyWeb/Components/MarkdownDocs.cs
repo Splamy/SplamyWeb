@@ -6,5 +6,5 @@ namespace SplamyWeb.Components;
 [Authorize]
 public class MarkdownService : Hub
 {
-	public string Render(string md) => Markdig.Markdown.ToHtml(md);
+	public string Render(string? md) => string.IsNullOrEmpty(md) ? "" : Markdig.Markdown.ToHtml(md);
 }

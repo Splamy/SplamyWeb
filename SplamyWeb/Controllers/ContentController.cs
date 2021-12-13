@@ -1,11 +1,14 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Markdig;
+using Markdig.Syntax;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -20,6 +23,7 @@ public class ContentController : ControllerBase
 	private readonly SplamyContext db;
 	private readonly StoreService store;
 	private readonly IMapper mapper;
+	private const int EntriesPerPage = 10;
 
 	public ContentController(SplamyContext db, StoreService store, IMapper mapper, UserManager<LoginData> userManager)
 	{
@@ -31,69 +35,139 @@ public class ContentController : ControllerBase
 
 	[AllowAnonymous]
 	[HttpGet("home")]
-	public async Task<IList<BlogPostView>> GetHomePosts()
+	public async Task<BlogListQuery> GetHomePosts()
 	{
 		var tagName = await store.GetBlogMainTag();
 		if (string.IsNullOrEmpty(tagName))
-			return Array.Empty<BlogPostView>();
+			return BlogListQuery.Empty;
 
-		IQueryable<BlogPostView> posts = (
+		IQueryable<BlogPostShortView> posts = (
 			from post in db.BlogPosts.AsNoTracking()
+			where post.Visible
 			where post.Tags.Contains(tagName)
 			select post)
-			.ProjectTo<BlogPostView>(mapper.ConfigurationProvider);
+			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider);
 
 		var result = await posts.ToListAsync();
-		return result;
+		return new BlogListQuery()
+		{
+			Pages = 1,
+			Posts = result,
+		};
 	}
 
 	[AllowAnonymous]
 	[HttpGet("posts")]
-	public async Task<IList<BlogPost>> GetAllPosts([FromQuery] int? offset = null)
+	public async Task<BlogListQuery> GetAllPosts([FromQuery] int? page = null)
 	{
-		IQueryable<BlogPost> posts =
+		IQueryable<BlogPostShortView> posts = (
 			from post in db.BlogPosts.AsNoTracking()
+			where post.Visible
 			orderby post.PostId descending
-			select post;
+			select post)
+			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider);
 
-		if (offset is { } offsetNum)
-			posts = posts.Skip(offsetNum);
-		posts = posts.Take(10);
+		if (page is { } offsetNum)
+			posts = posts.Skip(offsetNum * EntriesPerPage);
+		posts = posts.Take(EntriesPerPage);
+		var postsCnt = await db.BlogPosts.CountAsync();
 
-		return await posts.ToArrayAsync();
+		return new BlogListQuery()
+		{
+			Pages = (postsCnt + EntriesPerPage - 1) / EntriesPerPage,
+			Posts = await posts.ToArrayAsync(),
+		};
 	}
+
+	// TODO /search?tags=(a&b)|c?text=free_text
 
 	[AllowAnonymous]
 	[HttpGet("post/{id}")]
 	public async Task<IActionResult> GetPostById(int id)
 	{
-		var post = await db.BlogPosts.FindAsync(id);
-		if (post == null)
+		var isAdmin = await ExtendedPermission();
+
+		BlogPostView? postView = await (
+			from post in db.BlogPosts.AsNoTracking()
+			where post.PostId == id
+			where post.Visible || isAdmin
+			select post)
+			.ProjectTo<BlogPostView>(mapper.ConfigurationProvider)
+			.FirstOrDefaultAsync();
+
+		if (postView == null)
 			return NotFound();
-		if (!post.Visible && !(await ExtendedPermission()))
+
+		postView.RecentPosts = await db.BlogPosts.AsNoTracking()
+			.OrderByDescending(p => p.CreateTime)
+			.Where(p => p.Visible && p.PostId != postView.PostId)
+			.Take(3)
+			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider)
+			.ToListAsync();
+
+		return Ok(postView);
+	}
+
+	[HttpGet("post/{id}/raw")]
+	public async Task<IActionResult> GetEditablePostById(int id)
+	{
+		BlogPostUpdate? postView = await (
+			from post in db.BlogPosts.AsNoTracking()
+			where post.PostId == id
+			select post)
+			.ProjectTo<BlogPostUpdate>(mapper.ConfigurationProvider)
+			.FirstOrDefaultAsync();
+
+		if (postView == null)
 			return NotFound();
-		return Ok(post);
+		return Ok(postView);
 	}
 
 	[HttpPut("post")]
-	public async Task SaveOrUpdatePost([FromBody] BlogPost blogPost)
+	public async Task<IActionResult> SaveOrUpdatePost([FromBody] BlogPostUpdate blogPostUpdate)
 	{
-		BlogPost? trackedPost = null;
-		if (blogPost.PostId != 0)
+		BlogPost? blogPost;
+		if (blogPostUpdate.PostId is { } postId)
 		{
-			trackedPost = await db.BlogPosts.FindAsync(blogPost.PostId);
-		}
-
-		if (trackedPost is not null)
-		{
-			mapper.Map(blogPost, trackedPost);
+			blogPost = await db.BlogPosts.FindAsync(postId);
+			if (blogPost is null)
+				return BadRequest("Post to update not found");
 		}
 		else
 		{
+			blogPost = new()
+			{
+				PostId = default,
+				Visible = true,
+				CreateTime = DateTime.UtcNow,
+			};
 			await db.BlogPosts.AddAsync(blogPost);
 		}
 
+		if (blogPostUpdate.Visible is { } visible) blogPost.Visible = visible;
+		if (blogPostUpdate.ContentRaw is not null) blogPost.ContentRaw = blogPostUpdate.ContentRaw;
+		if (blogPostUpdate.Tags is not null) blogPost.Tags = blogPostUpdate.Tags;
+
+		TransformPostData(blogPost);
+
 		await db.SaveChangesAsync();
+
+		var updated = new BlogPostUpdate()
+		{
+			PostId = blogPost.PostId
+		};
+		return new JsonResult(updated, Util.JsonWebHideNull);
+	}
+
+	[HttpDelete("post/{id}")]
+	public async Task<IActionResult> DeletePostById(int id)
+	{
+		var post = await db.BlogPosts.FindAsync(id);
+		if (post is null)
+			return NotFound();
+		db.BlogPosts.Remove(post);
+		await db.SaveChangesAsync();
+		return Ok();
 	}
 
 	[HttpGet("tags")]
@@ -124,6 +198,65 @@ public class ContentController : ControllerBase
 		await db.SaveChangesAsync();
 	}
 
+	internal static readonly MarkdownPipeline DefaultPipeline = new MarkdownPipelineBuilder().Build();
+
+	private static void TransformPostData(BlogPost post)
+	{
+		var doc = Markdown.Parse(post.ContentRaw);
+		var parseState = 0;
+		var title = "";
+
+		using var summarySw = new StringWriter();
+		var summaryRenderer = new Markdig.Renderers.HtmlRenderer(summarySw);
+
+		foreach (var block in doc)
+		{
+			switch (parseState)
+			{
+			case 0:
+				{
+					if (block is HeadingBlock heading && heading.Level == 1)
+					{
+						parseState = 1;
+						using var titleSw = new StringWriter();
+						var titleRenderer = new Markdig.Renderers.HtmlRenderer(titleSw)
+						{
+							EnableHtmlForBlock = false,
+							EnableHtmlForInline = false,
+							EnableHtmlEscape = false
+						};
+						titleRenderer.Write(heading);
+						titleRenderer.Writer.Flush();
+						title = titleSw.ToString();
+					}
+					break;
+				}
+
+			case 1:
+				{
+					if (block is HeadingBlock heading)
+					{
+						parseState = 2;
+					}
+					else
+					{
+
+						summaryRenderer.Render(block);
+					}
+					break;
+				}
+
+			default:
+				break;
+			}
+		}
+
+		summaryRenderer.Writer.Flush();
+		post.Title = title.Replace("\n", "");
+		post.Summary = summarySw.ToString().Replace("\n", "");
+		post.ContentHtml = doc.ToHtml();
+	}
+
 	private async Task<bool> ExtendedPermission()
 	{
 		var user = await userManager.GetUserAsync(User);
@@ -131,5 +264,13 @@ public class ContentController : ControllerBase
 			return false;
 
 		return user.Rank.AtLeast(UserType.Admin);
+	}
+
+	public class BlogListQuery
+	{
+		public int Pages { get; init; }
+		public ICollection<BlogPostShortView> Posts { get; init; }
+
+		public static BlogListQuery Empty { get; } = new() { Pages = 0, Posts = Array.Empty<BlogPostShortView>() };
 	}
 }

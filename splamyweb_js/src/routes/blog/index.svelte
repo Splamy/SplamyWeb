@@ -1,18 +1,18 @@
 <script context="module" lang="ts">
 	import { BASE_URL } from '$lib/util';
-	import type { BlogViewData } from '$lib/api';
+	import type { BlogListQuery } from '$lib/api';
 	import type { Load } from '@sveltejs/kit';
 	import { prerendering } from '$app/env';
 
 	export const load: Load = async ({ fetch }) => {
 		if (prerendering) return {};
 		const res = await fetch(`${BASE_URL}/api/content/posts`);
-		const json: BlogViewData[] = await res.json();
+		const json: BlogListQuery = await res.json();
 
 		if (res.ok) {
 			return {
 				props: {
-					blogViews: json
+					query: json
 				}
 			};
 		}
@@ -24,7 +24,8 @@
 <script lang="ts">
 	import SummaryView from '$lib/blog/SummaryView.svelte';
 
-	export let blogViews: BlogViewData[] = [];
+	export let query: BlogListQuery;
+	$: blogViews = query?.posts ?? [];
 </script>
 
 <svelte:head>

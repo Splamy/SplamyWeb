@@ -47,9 +47,27 @@ export interface LoginResult {
 	}
 }
 
-export interface BlogViewData {
+export interface BlogPostShortView {
+	postId: number;
+	createTime: string;
 	title: string;
-	summaryHtml: string;
-	contentHtml: string;
+	summary: string;
 	tags: string[];
+}
+
+export interface BlogViewData extends BlogPostShortView {
+	contentHtml: string;
+	recentPosts: BlogPostShortView[];
+}
+
+export interface BlogPostUpdate {
+	postId?: number;
+	visible?: boolean;
+	contentRaw?: string;
+	tags?: string[];
+}
+
+export interface BlogListQuery {
+	pages: number;
+	posts: BlogPostShortView[];
 }

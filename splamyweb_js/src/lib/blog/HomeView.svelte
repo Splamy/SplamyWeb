@@ -1,8 +1,9 @@
 <script lang="ts">
-	import type { BlogViewData } from '$lib/api';
+	import type { BlogListQuery } from '$lib/api';
 	import SummaryView from '$lib/blog/SummaryView.svelte';
 
-	export let blogViews: BlogViewData[];
+	export let query: BlogListQuery;
+	$: blogViews = query?.posts ?? [];
 </script>
 
 <div class="blogbox">
@@ -22,9 +23,14 @@
 				max-width: 800px;
 				&:nth-child(even) {
 					margin-left: auto;
+				}
 
+				&:nth-child(odd) {
 					h2 {
 						text-align: right;
+					}
+					.topline {
+						flex-direction: row-reverse;
 					}
 				}
 			}

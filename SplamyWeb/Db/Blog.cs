@@ -28,14 +28,26 @@ public class BlogPost
 public class BlogPostView : BlogPostShortView
 {
 	public string ContentHtml { get; set; }
+
+	public IList<BlogPostShortView>? RecentPosts { get; set; }
 }
 
 public class BlogPostShortView
 {
+	public int PostId { get; set; }
+	public DateTime CreateTime { get; set; }
 	public string Title { get; set; }
 	public string Summary { get; set; }
 	//public string SummaryHtml { get; set; }
 	public string[] Tags { get; set; }
+}
+
+public class BlogPostUpdate
+{
+	public int? PostId { get; set; }
+	public bool? Visible { get; set; }
+	public string? ContentRaw { get; set; }
+	public string[]? Tags { get; set; }
 }
 
 public class BlogProfile : Profile
@@ -43,8 +55,9 @@ public class BlogProfile : Profile
 	public BlogProfile()
 	{
 		CreateMap<BlogPost, BlogPostShortView>(MemberList.Destination);
-		CreateMap<BlogPost, BlogPostView>(MemberList.Destination);
-		CreateMap<BlogPost, BlogPost>(MemberList.Destination);
+		CreateMap<BlogPost, BlogPostView>(MemberList.Destination)
+			.ForMember(p => p.RecentPosts, p => p.Ignore());
+		CreateMap<BlogPost, BlogPostUpdate>(MemberList.Destination);
 	}
 }
 

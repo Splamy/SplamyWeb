@@ -37,7 +37,6 @@
 			{/if}
 		</div>
 	</div>
-	<a class="navl" href="/impress">Impress &amp; Privacy</a>
 	<div class="navdrop" tabindex="0">
 		<a class="navl" href="/blog">Blog</a>
 		{#if $CurrentUser}
@@ -77,24 +76,19 @@
 </nav>
 
 <style lang="scss">
-	@import './css/_preset';
+	@import './css/_prelude';
 	@import './css/_util';
 
 	nav {
 		display: flex;
 		flex-wrap: wrap;
 		background-color: $primary;
-		position: fixed;
-		left: 0;
-		top: 0;
-		right: 0;
-		z-index: 10;
 	}
 
 	.navl {
 		display: flex;
 		padding: 14px 16px;
-		color: $primary-invert;
+		color: $primary-invert !important;
 		text-decoration: none;
 		cursor: pointer;
 		align-items: center;
