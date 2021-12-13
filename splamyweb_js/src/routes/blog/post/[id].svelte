@@ -42,14 +42,16 @@
 
 <div class="columns">
 	<div class="column is-half is-offset-one-quarter">
-		<article class="content readblock">
-			{@html data.contentHtml}
-		</article>
-		<hr />
-		<div class="columns is-size-7 is-gapless">
-			<div class="column">Posted <ShortDate date={moment(data.createTime)} /></div>
-			<div class="column is-narrow">
-				<TagList tags={data.tags} />
+		<div class="readblock">
+			<article class="content">
+				{@html data.contentHtml}
+			</article>
+			<hr />
+			<div class="columns is-size-7 is-gapless">
+				<div class="column">Posted <ShortDate date={moment(data.createTime)} /></div>
+				<div class="column is-narrow">
+					<TagList tags={data.tags} />
+				</div>
 			</div>
 		</div>
 	</div>

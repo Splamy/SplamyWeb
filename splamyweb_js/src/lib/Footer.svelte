@@ -4,10 +4,9 @@
 	import { onMount } from 'svelte';
 
 	let protectedMail = '<protected>';
-
-	onMount(() => {
-		protectedMail = ["splamy", "n@", "g", "mail.com"].join('');
-	})
+	function descrambleMail() {
+		protectedMail = ['mail.com', 'g', 'n@', 'splamy'].reverse().join('');
+	}
 </script>
 
 <footer class="footer">
@@ -15,7 +14,11 @@
 		<div class="columns">
 			<div class="column is-4 is-size-7">
 				<div>Powered by <strong>ASP.NET Core 6</strong></div>
-				<div>Presented with <a href="https://kit.svelte.dev/" rel="external" target="_blank"><strong>Svelte Kit</strong></a></div>
+				<div>
+					Presented with <a href="https://kit.svelte.dev/" rel="external" target="_blank"
+						><strong>Svelte Kit</strong></a
+					>
+				</div>
 			</div>
 			<div class="column is-4">
 				<a rel="external" href="https://twitter.com/Splamyn" target="_blank">
@@ -31,7 +34,7 @@
 				>
 					<Icon path={mdiYoutube} />
 				</a>
-				<a rel="external" href="mailto:{protectedMail}">
+				<a rel="external" href="mailto:{protectedMail}" on:mouseenter|once={descrambleMail}>
 					<Icon path={mdiEmail} />
 				</a>
 			</div>
