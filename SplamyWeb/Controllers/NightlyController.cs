@@ -208,11 +208,6 @@ public class NightlyController : ControllerBase
 		select nbuild)
 		.FirstOrDefaultAsync();
 
-	private ValueTask<string?> TryFetchNotification(string project)
-	{
-		return store.Get("notify_project_" + project);
-	}
-
 	private async Task<bool> ExtendedPermission()
 	{
 		var user = await userManager.GetUserAsync(User);

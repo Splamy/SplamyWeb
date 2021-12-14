@@ -8,9 +8,9 @@ public class StoreEntry
 {
 	[Key]
 	public string Id { get; set; }
-	public string? Value { get; set; }
+	public string Value { get; set; }
 
-	public StoreEntry(string id, string? value)
+	public StoreEntry(string id, string value)
 	{
 		Id = id;
 		Value = value;

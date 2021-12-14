@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SplamyWeb.Components;
 
@@ -56,8 +55,8 @@ public class SplamyContext : DbContext
 
 		// *** Tab Stats
 
-		//modelBuilder.Entity<TabStatsPingDto>();
-
+		modelBuilder.Entity<TabStatsPingDto>()
+			.HasIndex(x => x.Time);
 		modelBuilder.Entity<TabStatsFactoryDto>()
 			.HasKey(x => new { x.TabStatsId, x.FactoryName });
 		modelBuilder.Entity<TabStatsFactoryDto>()
@@ -104,6 +103,8 @@ public class SplamyContext : DbContext
 		modelBuilder.Entity<BlogPost>()
 			.Property(b => b.Tags)
 			.HasDefaultValueSql("'{}'");
+		modelBuilder.Entity<BlogPost>()
+			.HasIndex(b => b.CreateTime);
 	}
 
 }

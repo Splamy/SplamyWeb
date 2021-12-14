@@ -30,7 +30,7 @@
 		{/if}
 	</div>
 	<div class="content">
-		{@html blogView.summary}
+		{@html blogView.summaryHtml}
 	</div>
 	<div class="columns is-size-7 is-gapless">
 		<div class="column">Posted <ShortDate date={moment(blogView.createTime)} /></div>

@@ -13,9 +13,7 @@ public class BlogPost
 	public bool Visible { get; set; }
 	public DateTime CreateTime { get; set; }
 	public string Title { get; set; }
-	public string Summary { get; set; }
-	//public string SummaryRaw { get; set; }
-	//public string SummaryHtml { get; set; }
+	public string SummaryHtml { get; set; }
 	public string ContentRaw { get; set; }
 	public string ContentHtml { get; set; }
 
@@ -37,8 +35,7 @@ public class BlogPostShortView
 	public int PostId { get; set; }
 	public DateTime CreateTime { get; set; }
 	public string Title { get; set; }
-	public string Summary { get; set; }
-	//public string SummaryHtml { get; set; }
+	public string SummaryHtml { get; set; }
 	public string[] Tags { get; set; }
 }
 

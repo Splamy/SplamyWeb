@@ -51,7 +51,7 @@ export interface BlogPostShortView {
 	postId: number;
 	createTime: string;
 	title: string;
-	summary: string;
+	summaryHtml: string;
 	tags: string[];
 }
 

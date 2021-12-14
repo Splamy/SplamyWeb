@@ -63,7 +63,7 @@ public class ContentController : ControllerBase
 		IQueryable<BlogPostShortView> posts = (
 			from post in db.BlogPosts.AsNoTracking()
 			where post.Visible
-			orderby post.PostId descending
+			orderby post.CreateTime descending
 			select post)
 			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider);
 
@@ -253,7 +253,7 @@ public class ContentController : ControllerBase
 
 		summaryRenderer.Writer.Flush();
 		post.Title = title.Replace("\n", "");
-		post.Summary = summarySw.ToString().Replace("\n", "");
+		post.SummaryHtml = summarySw.ToString().Replace("\n", "");
 		post.ContentHtml = doc.ToHtml();
 	}
 
@@ -269,7 +269,7 @@ public class ContentController : ControllerBase
 	public class BlogListQuery
 	{
 		public int Pages { get; init; }
-		public ICollection<BlogPostShortView> Posts { get; init; }
+		public ICollection<BlogPostShortView>? Posts { get; init; }
 
 		public static BlogListQuery Empty { get; } = new() { Pages = 0, Posts = Array.Empty<BlogPostShortView>() };
 	}

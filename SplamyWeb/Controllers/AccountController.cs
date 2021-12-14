@@ -110,7 +110,7 @@ public class AccountController : ControllerBase
 		return IsApi ? Ok() : Redirect("/");
 	}
 
-	public IEnumerable<string> GetErrs(string? errs)
+	public static IEnumerable<string> GetErrs(string? errs)
 	{
 		if (string.IsNullOrEmpty(errs)) yield break;
 		foreach (var err in errs.Split(','))
@@ -127,5 +127,5 @@ public class AccountController : ControllerBase
 		}
 	}
 
-	private static string ToErrs(IdentityResult res) => string.Join(",", res.Errors.Select(e => e.Code));
+	public static string ToErrs(IdentityResult res) => string.Join("\n", res.Errors.Select(e => GetErrs(e.Code)));
 }

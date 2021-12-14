@@ -341,5 +341,7 @@ namespace SplamyWeb.Components
 		}
 	}
 
+#pragma warning disable IDE1006
 	record struct Vec2Converter(float x, float y);
+#pragma warning restore IDE1006
 }

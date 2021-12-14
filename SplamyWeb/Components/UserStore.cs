@@ -176,20 +176,21 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 	public async Task<LoginData> FindByIdAsync(string roleId, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-
 		var irole = int.Parse(roleId, CultureInfo.InvariantCulture);
-		return await (from user in context.User.AsNoTracking()
+		// Using ! to ignor nullability warning since the interface for some reason doesn't declare it nullable
+		return (await (from user in context.User.AsNoTracking()
 					  where user.Id == irole
-					  select user).FirstOrDefaultAsync(cancellationToken);
+					  select user).FirstOrDefaultAsync(cancellationToken))!;
 	}
 
 	// TODO split up role <-> user
 	public async Task<LoginData> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		return await (from user in context.User.AsNoTracking()
+		// Using ! to ignor nullability warning since the interface for some reason doesn't declare it nullable
+		return (await (from user in context.User.AsNoTracking()
 					  where user.NameNormalized == normalizedRoleName
-					  select user).FirstOrDefaultAsync(cancellationToken);
+					  select user).FirstOrDefaultAsync(cancellationToken))!;
 	}
 
 	public async Task SetPasswordHashAsync(LoginData user, string passwordHash, CancellationToken cancellationToken)

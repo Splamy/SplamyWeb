@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SplamyWeb.Db;
+#pragma warning disable CS8618
 
 [Table("user")]
 public class LoginData
@@ -38,6 +39,8 @@ public class LoginData
 	public bool CanEditOtherUser() => Rank.AtLeast(UserType.Admin);
 	public bool CanSetRankUpTo(UserType targetRank) => targetRank <= Rank.CanSetRankUpTo();
 }
+
+#pragma warning restore CS8618
 
 // Rank (currently) ordered by number
 // the lower the more powerful

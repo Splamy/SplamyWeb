@@ -31,5 +31,5 @@ public class StoreController : ControllerBase
 	public async Task Delete(string key) => await store.Delete(key);
 
 	[HttpPut("value/{key}")]
-	public async Task Put(string key, [FromQuery] string? value) => await store.Set(key, value);
+	public async Task Put(string key, [FromQuery] string value) => await store.Set(key, value);
 }

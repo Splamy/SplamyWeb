@@ -8,7 +8,7 @@ namespace SplamyWeb.Components;
 
 public class StoreService
 {
-	private (Dictionary<string, string?> dict, List<StoreEntry> list)? _cache;
+	private (Dictionary<string, string> dict, List<StoreEntry> list)? _cache;
 	private readonly IServiceScopeFactory scopeFactory;
 
 	public StoreService(IServiceScopeFactory scopeFactory)
@@ -16,7 +16,7 @@ public class StoreService
 		this.scopeFactory = scopeFactory;
 	}
 
-	private async ValueTask<(Dictionary<string, string?> dict, List<StoreEntry> list)> GetAllInternal()
+	private async ValueTask<(Dictionary<string, string> dict, List<StoreEntry> list)> GetAllInternal()
 	{
 		if (!_cache.HasValue)
 		{
@@ -46,11 +46,13 @@ public class StoreService
 		_cache = null;
 		using var scope = scopeFactory.CreateScope();
 		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
-		db.Remove(new StoreEntry(key, null));
+		var kvp = await db.StoreTable.FindAsync(key);
+		if (kvp is null) return;
+		db.StoreTable.Remove(kvp);
 		await db.SaveChangesAsync();
 	}
 
-	public async Task Set(string key, string? value)
+	public async Task Set(string key, string value)
 	{
 		_cache = null;
 		using var scope = scopeFactory.CreateScope();
