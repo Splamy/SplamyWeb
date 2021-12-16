@@ -85,7 +85,7 @@
 	</div>
 </section>
 
-<section class="section readblock">
+<section class="readblock">
 	<div class="tile is-ancestor is-vertical">
 		<div class="tile is-parent">
 			<article class="tile is-child notification is-primary">
@@ -252,8 +252,20 @@
 </section>
 
 <style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/elements/title';
+	@import 'bulma/sass/layout/hero';
+	@import 'bulma/sass/elements/content';
+	@import 'bulma/sass/elements/notification';
+	@import 'bulma/sass/elements/button';
+	@import 'bulma/sass/components/level';
+	@import 'bulma/sass/elements/box';
+	@import 'bulma/sass/grid/tiles';
+	@import 'bulma/sass/elements/container';
+	@import 'bulma/sass/layout/section';
+
 	.ccol {
-		vertical-align: middle;
+		vertical-align: middle !important;
 		> span {
 			display: flex;
 		}

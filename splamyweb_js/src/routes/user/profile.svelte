@@ -34,7 +34,7 @@
 <h1 class="title">Profile</h1>
 
 {#if $CurrentUser != null}
-	<div class="container" style="max-width:800px;">
+	<div class="readblock">
 		<form
 			action="{BASE_URL}/account/update"
 			method="POST"
@@ -131,3 +131,13 @@
 		</form>
 	</div>
 {/if}
+
+<style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/form/shared';
+	@import 'bulma/sass/form/tools';
+	@import 'bulma/sass/form/input-textarea';
+	@import 'bulma/sass/elements/notification';
+	@import 'bulma/sass/elements/box';
+	@import 'bulma/sass/elements/button';
+</style>

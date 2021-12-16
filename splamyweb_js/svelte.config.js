@@ -15,7 +15,9 @@ const config = {
 		target: '#svelte',
 		router: true,
 		prerender: {
-			onError: "continue"
+			crawl: true,
+			enabled: true,
+			onError: "continue",
 		},
 
 		vite: {
@@ -27,7 +29,7 @@ const config = {
 						// https://github.com/vitejs/vite/issues/3731
 						manualChunks: undefined
 					}
-				},
+				}
 			}
 		}
 	},

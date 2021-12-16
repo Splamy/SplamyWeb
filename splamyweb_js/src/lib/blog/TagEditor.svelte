@@ -1,7 +1,7 @@
 <script lang="ts">
-	export let tags: string[] = [];
+	export let tags: string[] | undefined = [];
 
-	$: tagsAsText = tags.join(', ');
+	$: tagsAsText = tags?.join(', ') ?? '';
 
 	function onChange(this: HTMLInputElement) {
 		let tagSplit = this.value.split(/\s*,\s*/);
@@ -20,3 +20,9 @@
 </script>
 
 <input class="input" type="text" value={tagsAsText} on:change={onChange} placeholder="Tags" />
+
+<style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import "bulma/sass/form/shared";
+	@import "bulma/sass/form/input-textarea";
+</style>

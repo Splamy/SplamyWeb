@@ -57,7 +57,7 @@ export interface BlogPostShortView {
 
 export interface BlogViewData extends BlogPostShortView {
 	contentHtml: string;
-	recentPosts: BlogPostShortView[];
+	recentPosts?: BlogPostShortView[];
 }
 
 export interface BlogPostUpdate {

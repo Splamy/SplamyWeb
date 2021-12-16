@@ -131,3 +131,11 @@
 		</table>
 	</div>
 {/each}
+
+<style lang="scss">
+	@import '../lib/css/_prelude';
+	@import 'bulma/sass/elements/title';
+	@import 'bulma/sass/elements/table';
+	@import 'bulma/sass/elements/button';
+	@import 'bulma/sass/elements/box';
+</style>

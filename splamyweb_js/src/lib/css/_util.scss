@@ -9,7 +9,7 @@
 
 @mixin link_shine {
 	&:hover {
-		background-color: $link-light;
-		box-shadow: 0 0 10px 0 $link-light;
+		background-color: $link-light !important;
+		box-shadow: 0 0 10px 0 $link-light !important;
 	}
 }

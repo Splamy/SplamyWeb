@@ -17,6 +17,8 @@
 </div>
 
 <style lang="scss">
+	@import "bulma/sass/layout/section";
+
 	.layout {
 		height: 100%;
 		display: flex;

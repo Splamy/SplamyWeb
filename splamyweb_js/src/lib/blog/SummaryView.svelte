@@ -19,7 +19,7 @@
 <article class="blogentry box">
 	<div class="topline">
 		<h2 class="subtitle" style="flex: 1;">
-			<a href="/blog/post/{blogView.postId}">
+			<a href="/blog/post?i={blogView.postId}">
 				{blogView.title}
 			</a>
 		</h2>
@@ -45,6 +45,7 @@
 	@import 'bulma/sass/elements/tag';
 	@import 'bulma/sass/elements/title';
 	@import 'bulma/sass/grid/columns';
+	@import 'bulma/sass/elements/box';
 
 	.topline {
 		display: flex;

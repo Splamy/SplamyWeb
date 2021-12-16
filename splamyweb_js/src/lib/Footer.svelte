@@ -49,4 +49,5 @@
 	@import './css/_prelude';
 	@import 'bulma/sass/layout/footer';
 	@import 'bulma/sass/grid/columns';
+	@import 'bulma/sass/elements/container';
 </style>

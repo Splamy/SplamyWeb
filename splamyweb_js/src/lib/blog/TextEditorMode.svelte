@@ -35,3 +35,10 @@
 		</button>
 	</p>
 </div>
+
+<style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/form/shared';
+	@import "bulma/sass/form/tools";
+	@import 'bulma/sass/elements/button';
+</style>

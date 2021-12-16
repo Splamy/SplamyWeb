@@ -136,3 +136,16 @@
 		</div>
 	</div>
 </article>
+
+<style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/elements/icon';
+	@import 'bulma/sass/form/shared';
+	@import 'bulma/sass/form/tools';
+	@import 'bulma/sass/form/input-textarea';
+	@import 'bulma/sass/elements/notification';
+	@import 'bulma/sass/elements/box';
+	@import 'bulma/sass/elements/button';
+	@import 'bulma/sass/grid/tiles';
+	@import 'bulma/sass/layout/section';
+</style>

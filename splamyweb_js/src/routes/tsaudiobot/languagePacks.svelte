@@ -36,42 +36,52 @@
 
 <h1 class="title">TSAudioBot Language Packs</h1>
 
-<p class="notification is-primary">
-	<em>Want to help translate or improve translation?</em><br />
-	Join us on <a rel="external" href="https://www.transifex.com/respeak/ts3audiobot/">Transifex</a>
-	to help translate<br />
-	or in our
-	<a
-		rel="external"
-		href="https://gitter.im/TS3AudioBot/Lobby?utm_source=share-link&amp;utm_medium=link&amp;utm_campaign=share-link"
-		>Gitter</a
-	>
-	to discuss or ask anything!<br />
-</p>
+<article class="readblock">
+	<p class="notification is-primary">
+		<em>Want to help translate or improve translation?</em><br />
+		Join us on
+		<a rel="external" href="https://www.transifex.com/respeak/ts3audiobot/">Transifex</a>
+		to help translate<br />
+		or in our
+		<a
+			rel="external"
+			href="https://gitter.im/TS3AudioBot/Lobby?utm_source=share-link&amp;utm_medium=link&amp;utm_campaign=share-link"
+			>Gitter</a
+		>
+		to discuss or ask anything!<br />
+	</p>
 
-<p class="notification is-info">
-	Note: The TSAudioBot will automatically download language extension packs when you select the
-	language.
-</p>
+	<p class="notification is-info">
+		Note: The TSAudioBot will automatically download language extension packs when you select
+		the language.
+	</p>
 
-<table class="table" style="width:100%;">
-	<tr>
-		<th>Language</th>
-		<th>Date</th>
-		<th>Link</th>
-	</tr>
-
-	{#each langs as lang}
+	<table class="table" style="width:100%;">
 		<tr>
-			<td>{lang.displayName}</td>
-			<td><ShortDate date={moment(lang.uploadTime)} /></td>
-			<td
-				><a
-					rel="external"
-					href="{BASE_URL}/api/language/project/ts3ab/language/{lang.language}/dll"
-					download="TS3AudioBot.resources.dll">Download</a
-				></td
-			>
+			<th>Language</th>
+			<th>Built</th>
+			<th>Link</th>
 		</tr>
-	{/each}
-</table>
+
+		{#each langs as lang}
+			<tr>
+				<td>{lang.displayName}</td>
+				<td><ShortDate date={moment(lang.uploadTime)} /></td>
+				<td
+					><a
+						rel="external"
+						href="{BASE_URL}/api/language/project/ts3ab/language/{lang.language}/dll"
+						download="TS3AudioBot.resources.dll">Download</a
+					></td
+				>
+			</tr>
+		{/each}
+	</table>
+</article>
+
+<style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/elements/title';
+	@import 'bulma/sass/elements/table';
+	@import "bulma/sass/elements/notification";
+</style>

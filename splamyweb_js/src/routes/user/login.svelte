@@ -12,7 +12,7 @@
 
 <h1 class="title">Login</h1>
 
-<div class="container" style="max-width:800px;">
+<div class="readblock">
 	{#each errors as error}
 		<div class="notification is-danger">{error}</div>
 	{/each}
@@ -26,14 +26,14 @@
 				applyLoginResult(await res.json());
 
 				let queryParams = new URLSearchParams(window.location.search);
-				let returnUrl = queryParams.get("return");
+				let returnUrl = queryParams.get('return');
 				form.reset();
 				goto(returnUrl ?? `/`);
 			},
 			error: async (res, form) => {
 				let json = await res.json();
 				errors = [...json];
-			},
+			}
 		}}
 	>
 		<div class="field">
@@ -70,3 +70,13 @@
 		</div>
 	</form>
 </div>
+
+<style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/form/shared';
+	@import 'bulma/sass/form/tools';
+	@import 'bulma/sass/form/input-textarea';
+	@import 'bulma/sass/elements/notification';
+	@import 'bulma/sass/elements/box';
+	@import 'bulma/sass/elements/button';
+</style>

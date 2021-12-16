@@ -64,6 +64,9 @@
 {/if}
 
 <style lang="scss">
+	@import "../lib/css/_prelude";
+	@import "bulma/sass/elements/icon";
+
 	.easteregg {
 		padding-top: 3em;
 		width: 100%;

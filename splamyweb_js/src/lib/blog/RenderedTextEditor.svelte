@@ -5,7 +5,7 @@
 	import { prerendering } from '$app/env';
 	import { View } from './editor';
 
-	export let raw: string = "";
+	export let raw: string = '';
 	export let view: View = View.Edit;
 
 	let textArea: HTMLTextAreaElement;
@@ -21,7 +21,7 @@
 			connection = new signalR.HubConnectionBuilder().withUrl(`${BASE_URL}/markdown`).build();
 			await connection.start();
 		} catch (err) {
-			console.error(err);
+			console.warn('Failed to establish connection: ', err?.message);
 		}
 	}
 
@@ -32,8 +32,8 @@
 					return;
 				}
 				rendered = await connection.invoke<string>('Render', text);
-			} catch (e) {
-				console.error('Failed to render text', e);
+			} catch (err) {
+				console.warn('Failed to render text: ', err?.message);
 			}
 		},
 		100,
@@ -46,14 +46,18 @@
 
 	function adaptHeight() {
 		if (!textArea) return;
-		const oldH = textArea.clientHeight;
+		const oldH = 0; //textArea.clientHeight;
 		textArea.style.height = 'auto';
 		textArea.style.height = Math.max(oldH, textArea.scrollHeight) + 'px';
 	}
 
-	$: if (textArea) adaptHeight();
+	$: if (textArea) {
+		let _ = raw;
+		adaptHeight();
+	}
 
 	onMount(() => {
+		adaptHeight();
 		return () => {
 			connection?.stop();
 			connection = undefined;
@@ -63,16 +67,21 @@
 
 <div class="editbox">
 	{#if view === View.Edit || view === View.Both}
-		<textarea on:input={adaptHeight} bind:this={textArea} bind:value={raw} />
+		<textarea class="input" bind:this={textArea} bind:value={raw} />
 	{/if}
 	{#if view === View.Rendered || view === View.Both}
-		<div class="renderSide readblock content">
+		<div class="renderSide readblock content box">
 			{@html rendered}
 		</div>
 	{/if}
 </div>
 
 <style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/form/shared';
+	@import 'bulma/sass/form/input-textarea';
+	@import 'bulma/sass/elements/box';
+
 	.renderSide {
 		overflow: hidden;
 		padding: 0.5em;

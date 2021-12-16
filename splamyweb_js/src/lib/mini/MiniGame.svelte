@@ -115,7 +115,10 @@
 			}
 
 			if (spawnParticle)
-				addParticle(rocket.position, (rocket.angle + Math.PI + (Math.random() - 0.5) / 5) % (Math.PI * 2));
+				addParticle(
+					rocket.position,
+					(rocket.angle + Math.PI + (Math.random() - 0.5) / 5) % (Math.PI * 2)
+				);
 		}
 
 		animateParticles(elapsed);
@@ -284,3 +287,10 @@
 {#each collectables as coll (coll.id)}
 	<Collectable {coll} />
 {/each}
+
+<style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import 'bulma/sass/elements/button';
+	@import 'bulma/sass/form/shared';
+	@import 'bulma/sass/form/tools';
+</style>

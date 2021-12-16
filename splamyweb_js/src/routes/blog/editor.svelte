@@ -17,7 +17,8 @@
 			if (res.ok) {
 				return {
 					props: {
-						data: json
+						data: json,
+						postId: post
 					}
 				};
 			}
@@ -29,18 +30,19 @@
 </script>
 
 <script lang="ts">
-	import swal from 'sweetalert';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import RenderedTextEditor from '$lib/blog/RenderedTextEditor.svelte';
+	import swal from 'sweetalert';
+	import TagEditor from '$lib/blog/TagEditor.svelte';
 	import TextEditorMode from '$lib/blog/TextEditorMode.svelte';
 	import type { View } from '$lib/blog/editor';
-	import { goto } from '$app/navigation';
-	import TagEditor from '$lib/blog/TagEditor.svelte';
 
+	export let postId: string | undefined = undefined;
 	export let data: BlogPostUpdate = {
 		visible: true,
 		tags: []
 	};
-	$: data.tags ??= [];
 
 	// ?post=<number>
 	let view: View;
@@ -101,13 +103,34 @@
 		});
 		return answer as boolean;
 	}
+
+	async function fetchPost(post: string) {
+		try {
+			const res = await fetch(`${BASE_URL}/api/content/post/${post}/raw`, {
+				credentials: 'include'
+			});
+			const json: BlogPostUpdate = await res.json();
+
+			if (res.ok) {
+				data = json;
+			}
+		} catch (err) {}
+	}
+
+	onMount(() => {
+		let queryParams = new URLSearchParams(window.location.search);
+		const queryPostId = queryParams.get('post');
+		if (postId !== queryPostId && queryPostId) {
+			fetchPost(queryPostId);
+		}
+	});
 </script>
 
 <div class="columns">
 	<form class="column is-narrow">
 		<div class="field">
 			<label for="post_visible">Post visible</label>
-			<input type="checkbox" id="post_visible" bind:checked={data.visible} />
+			<input class="input" type="checkbox" id="post_visible" bind:checked={data.visible} />
 		</div>
 		<div class="field">
 			<TagEditor bind:tags={data.tags} />
@@ -143,5 +166,9 @@
 </div>
 
 <style lang="scss">
+	@import '../../lib/css/_prelude';
 	@import 'bulma/sass/grid/columns';
+	@import 'bulma/sass/elements/button';
+	@import 'bulma/sass/form/shared';
+	@import 'bulma/sass/form/tools';
 </style>

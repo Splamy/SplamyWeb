@@ -178,6 +178,13 @@
 </table>
 
 <style lang="scss">
+	@import '../../lib/css/_prelude';
+	@import "bulma/sass/elements/table";
+	@import "bulma/sass/form/shared";
+	@import 'bulma/sass/form/tools';
+	@import "bulma/sass/form/input-textarea";
+	@import 'bulma/sass/elements/button';
+
 	.protected {
 		//filter: blur(2px);
 	}

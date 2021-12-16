@@ -16,7 +16,9 @@
 </script>
 
 <svg
-	class="icon{isLeft ? ' is-left' : ''}{isRight ? ' is-right' : ''} {addclass}"
+	class="icon {addclass}"
+	class:is-left={isLeft}
+	class:is-right={isRight}
 	class:spin
 	viewBox="0 0 24 24"
 	style="{mdiFontsize}{style}"
@@ -25,6 +27,9 @@
 </svg>
 
 <style lang="scss">
+	@import "css/_prelude";
+	@import "bulma/sass/elements/icon";
+
 	path {
 		fill: currentColor;
 	}

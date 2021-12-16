@@ -143,3 +143,7 @@
 <section class="section">
 	<canvas bind:this={canvas} width="400" height="400" />
 </section>
+
+<style lang="scss">
+	@import 'bulma/sass/layout/section';
+</style>
