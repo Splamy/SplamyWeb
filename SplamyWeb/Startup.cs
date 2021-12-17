@@ -86,6 +86,8 @@ public class Startup
 
 		services.AddControllers();
 
+		services.AddResponseCompression();
+
 		services.AddSingleton(p =>
 		{
 			var conf = p.GetRequiredService<IConfiguration>();
@@ -157,6 +159,8 @@ public class Startup
 		{
 			app.UseCors();
 		}
+
+		app.UseResponseCompression();
 
 		app.UseFileServer(new FileServerOptions
 		{

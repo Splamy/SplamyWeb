@@ -80,6 +80,8 @@ public class ContentController : ControllerBase
 	}
 
 	// TODO /search?tags=(a&b)|c?text=free_text
+	// https://www.postgresql.org/docs/12/textsearch-intro.html
+	// https://www.postgresql.org/docs/12/ddl-generated-columns.html
 
 	[AllowAnonymous]
 	[HttpGet("post/{id}")]
