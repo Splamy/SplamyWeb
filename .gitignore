@@ -31,6 +31,8 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+SplamyWeb/wwwroot/
+!.gitkeep
 
 # Visual Studio 2015 cache/options directory
 .vs/
