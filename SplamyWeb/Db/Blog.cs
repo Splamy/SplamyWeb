@@ -33,6 +33,7 @@ public class BlogPostView : BlogPostShortView
 public class BlogPostShortView
 {
 	public int PostId { get; set; }
+	public bool? Visible { get; set; }
 	public DateTime CreateTime { get; set; }
 	public string Title { get; set; }
 	public string SummaryHtml { get; set; }

@@ -33,7 +33,12 @@
 		{@html blogView.summaryHtml}
 	</div>
 	<div class="columns is-size-7 is-gapless">
-		<div class="column">Posted <ShortDate date={moment(blogView.createTime)} /></div>
+		<div class="column">
+			Posted <ShortDate date={moment(blogView.createTime)} />
+			{#if blogView.visible === false}
+				<span class="tag is-warning">Hidden</span>
+			{/if}
+		</div>
 		<div class="column is-narrow">
 			<TagList tags={blogView.tags} />
 		</div>

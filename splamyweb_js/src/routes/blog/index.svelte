@@ -6,7 +6,9 @@
 
 	export const load: Load = async ({ fetch }) => {
 		if (prerendering) return {};
-		const res = await fetch(`${BASE_URL}/api/content/posts`);
+		const res = await fetch(`${BASE_URL}/api/content/posts`, {
+			credentials: 'include'
+		});
 		const json: BlogListQuery = await res.json();
 
 		if (res.ok) {

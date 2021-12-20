@@ -49,6 +49,7 @@ export interface LoginResult {
 
 export interface BlogPostShortView {
 	postId: number;
+	visible?: boolean;
 	createTime: string;
 	title: string;
 	summaryHtml: string;
