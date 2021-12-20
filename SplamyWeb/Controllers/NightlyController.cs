@@ -208,8 +208,10 @@ public class NightlyController : ControllerBase
 		select nbuild)
 		.FirstOrDefaultAsync();
 
-	private async Task<bool> ExtendedPermission()
+	private async ValueTask<bool> ExtendedPermission()
 	{
+		if (User.Identity?.IsAuthenticated != true)
+			return false;
 		var user = await userManager.GetUserAsync(User);
 		if (user is null)
 			return false;

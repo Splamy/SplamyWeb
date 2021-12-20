@@ -41,9 +41,11 @@ public class ContentController : ControllerBase
 		if (string.IsNullOrEmpty(tagName))
 			return BlogListQuery.Empty;
 
+		var isAdmin = await ExtendedPermission();
+
 		IQueryable<BlogPostShortView> posts = (
 			from post in db.BlogPosts.AsNoTracking()
-			where post.Visible
+			where post.Visible || isAdmin
 			where post.Tags.Contains(tagName)
 			select post)
 			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider);
@@ -60,9 +62,11 @@ public class ContentController : ControllerBase
 	[HttpGet("posts")]
 	public async Task<BlogListQuery> GetAllPosts([FromQuery] int? page = null)
 	{
+		var isAdmin = await ExtendedPermission();
+
 		IQueryable<BlogPostShortView> posts = (
 			from post in db.BlogPosts.AsNoTracking()
-			where post.Visible
+			where post.Visible || isAdmin
 			orderby post.CreateTime descending
 			select post)
 			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider);
@@ -259,8 +263,10 @@ public class ContentController : ControllerBase
 		post.ContentHtml = doc.ToHtml();
 	}
 
-	private async Task<bool> ExtendedPermission()
+	private async ValueTask<bool> ExtendedPermission()
 	{
+		if (User.Identity?.IsAuthenticated != true)
+			return false;
 		var user = await userManager.GetUserAsync(User);
 		if (user is null)
 			return false;

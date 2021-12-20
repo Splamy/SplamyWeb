@@ -9,7 +9,9 @@
 
 		const post = page.query.get('i');
 		if (post) {
-			const res = await fetch(`${BASE_URL}/api/content/post/${post}`);
+			const res = await fetch(`${BASE_URL}/api/content/post/${post}`, {
+				credentials: 'include'
+			});
 			const json: BlogViewData = await res.json();
 
 			if (res.ok) {
@@ -46,7 +48,9 @@
 
 	async function fetchPost(post: string) {
 		try {
-			const res = await fetch(`${BASE_URL}/api/content/post/${post}`);
+			const res = await fetch(`${BASE_URL}/api/content/post/${post}`, {
+				credentials: 'include'
+			});
 			const json: BlogViewData = await res.json();
 
 			if (res.ok) {
