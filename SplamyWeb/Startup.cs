@@ -84,8 +84,10 @@ public class Startup
 			options.AddScheme<BasicAuthenticationHandler>("BasicAuthentication", "Basic");
 		});
 
-		services.AddControllers()
-			.AddXmlSerializerFormatters();
+		services.AddControllers(o =>
+		{
+			o.OutputFormatters.Add(new RssSerializerOutputFormatter());
+		});
 
 		services.AddResponseCompression();
 

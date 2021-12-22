@@ -1,5 +1,6 @@
 global using System;
 global using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
@@ -9,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Serialization;
 
 namespace SplamyWeb;
 
@@ -211,6 +213,27 @@ internal class TimeSpanConverter : JsonConverter<TimeSpan>
 	private struct TickReaderHelper
 	{
 		public long Ticks { get; set; }
+	}
+}
+
+internal class RssSerializerOutputFormatter : XmlSerializerOutputFormatter
+{
+	private static readonly XmlSerializerNamespaces Namespaces = new(new[] { new XmlQualifiedName("", "") });
+
+	public RssSerializerOutputFormatter()
+	{
+		WriterSettings.OmitXmlDeclaration = false;
+		WriterSettings.Indent = true;
+	}
+
+	public override XmlWriter CreateXmlWriter(TextWriter writer, XmlWriterSettings xmlWriterSettings)
+	{
+		return XmlWriter.Create(writer, WriterSettings);
+	}
+
+	protected override void Serialize(XmlSerializer xmlSerializer, XmlWriter xmlWriter, object? value)
+	{
+		xmlSerializer.Serialize(xmlWriter, value, Namespaces);
 	}
 }
 
