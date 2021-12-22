@@ -1,6 +1,6 @@
 <script context="module" lang="ts">
 	import { BASE_URL } from '$lib/util';
-	import type { BlogViewData } from '$lib/api';
+	import type { BlogItemQuery } from '$lib/api';
 	import type { Load } from '@sveltejs/kit';
 	import { prerendering } from '$app/env';
 
@@ -12,12 +12,12 @@
 			const res = await fetch(`${BASE_URL}/api/content/post/${post}`, {
 				credentials: 'include'
 			});
-			const json: BlogViewData = await res.json();
+			const json: BlogItemQuery = await res.json();
 
 			if (res.ok) {
 				return {
 					props: {
-						data: json,
+						query: json,
 						postId: post
 					}
 				};
@@ -36,7 +36,8 @@
 	import { onMount } from 'svelte';
 
 	export let postId: string | undefined = undefined;
-	export let data: BlogViewData = {
+	export let query: BlogItemQuery;
+	$: data = query?.post ?? {
 		postId: 0,
 		createTime: '',
 		title: 'Not Found',
@@ -44,17 +45,17 @@
 		contentHtml: '',
 		tags: []
 	};
-	$: recentPosts = data.recentPosts ?? [];
+	$: recentPosts = query?.recentPosts ?? [];
 
 	async function fetchPost(post: string) {
 		try {
 			const res = await fetch(`${BASE_URL}/api/content/post/${post}`, {
 				credentials: 'include'
 			});
-			const json: BlogViewData = await res.json();
+			const json: BlogItemQuery = await res.json();
 
 			if (res.ok) {
-				data = json;
+				query = json;
 			}
 		} catch (err) {}
 	}
@@ -68,22 +69,21 @@
 	});
 </script>
 
-<div class="columns">
-	<div class="column is-half is-offset-one-quarter">
-		<div class="readblock">
-			<article class="content">
-				{@html data.contentHtml}
-			</article>
-			<hr />
-			<div class="columns is-size-7 is-gapless">
-				<div class="column">Posted <ShortDate date={moment(data.createTime)} /></div>
-				<div class="column is-narrow">
-					<TagList tags={data.tags} />
-				</div>
+<div class="readcol">
+	<div />
+	<div class="readblock">
+		<article class="content">
+			{@html data.contentHtml}
+		</article>
+		<hr />
+		<div class="columns is-size-7 is-gapless">
+			<div class="column">Posted <ShortDate date={moment(data.createTime)} /></div>
+			<div class="column is-narrow">
+				<TagList tags={data.tags} />
 			</div>
 		</div>
 	</div>
-	<div class="column is-narrow">
+	<div style="display: flex; align-items: start;">
 		<div class="box">
 			<h3 class="title is-4">Recent Posts</h3>
 			<ul>

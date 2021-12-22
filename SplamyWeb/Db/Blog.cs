@@ -26,8 +26,6 @@ public class BlogPost
 public class BlogPostView : BlogPostShortView
 {
 	public string ContentHtml { get; set; }
-
-	public IList<BlogPostShortView>? RecentPosts { get; set; }
 }
 
 public class BlogPostShortView
@@ -53,8 +51,7 @@ public class BlogProfile : Profile
 	public BlogProfile()
 	{
 		CreateMap<BlogPost, BlogPostShortView>(MemberList.Destination);
-		CreateMap<BlogPost, BlogPostView>(MemberList.Destination)
-			.ForMember(p => p.RecentPosts, p => p.Ignore());
+		CreateMap<BlogPost, BlogPostView>(MemberList.Destination);
 		CreateMap<BlogPost, BlogPostUpdate>(MemberList.Destination);
 	}
 }

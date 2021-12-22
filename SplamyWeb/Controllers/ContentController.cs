@@ -11,6 +11,7 @@ using SplamyWeb.Db;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace SplamyWeb.Controllers;
 
@@ -74,7 +75,7 @@ public class ContentController : ControllerBase
 		if (page is { } offsetNum)
 			posts = posts.Skip(offsetNum * EntriesPerPage);
 		posts = posts.Take(EntriesPerPage);
-		var postsCnt = await db.BlogPosts.CountAsync();
+		var postsCnt = await db.BlogPosts.Where(post => post.Visible || isAdmin).CountAsync();
 
 		return new BlogListQuery()
 		{
@@ -89,7 +90,7 @@ public class ContentController : ControllerBase
 
 	[AllowAnonymous]
 	[HttpGet("post/{id}")]
-	public async Task<IActionResult> GetPostById(int id)
+	public async Task<ActionResult<BlogItemQuery>> GetPostById(int id)
 	{
 		var isAdmin = await ExtendedPermission();
 
@@ -104,18 +105,22 @@ public class ContentController : ControllerBase
 		if (postView == null)
 			return NotFound();
 
-		postView.RecentPosts = await db.BlogPosts.AsNoTracking()
+		var recentPosts = await db.BlogPosts.AsNoTracking()
 			.OrderByDescending(p => p.CreateTime)
 			.Where(p => p.Visible && p.PostId != postView.PostId)
 			.Take(3)
 			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider)
 			.ToListAsync();
 
-		return Ok(postView);
+		return new BlogItemQuery
+		{
+			Post = postView,
+			RecentPosts = recentPosts,
+		};
 	}
 
 	[HttpGet("post/{id}/raw")]
-	public async Task<IActionResult> GetEditablePostById(int id)
+	public async Task<ActionResult<BlogPostUpdate>> GetEditablePostById(int id)
 	{
 		BlogPostUpdate? postView = await (
 			from post in db.BlogPosts.AsNoTracking()
@@ -126,11 +131,11 @@ public class ContentController : ControllerBase
 
 		if (postView == null)
 			return NotFound();
-		return Ok(postView);
+		return postView;
 	}
 
 	[HttpPut("post")]
-	public async Task<IActionResult> SaveOrUpdatePost([FromBody] BlogPostUpdate blogPostUpdate)
+	public async Task<ActionResult<BlogPostUpdate>> SaveOrUpdatePost([FromBody] BlogPostUpdate blogPostUpdate)
 	{
 		BlogPost? blogPost;
 		if (blogPostUpdate.PostId is { } postId)
@@ -177,34 +182,56 @@ public class ContentController : ControllerBase
 	}
 
 	[HttpGet("tags")]
-	public async Task<IActionResult> GetAllTags()
+	public async Task<ActionResult<IList<string>>> GetAllTags()
 	{
 		var tags = await db.Set<string>().FromSqlRaw("SELECT DISTINCT UNNEST(b.\"Tags\") FROM blog b;").ToListAsync();
-		return Ok(tags);
+		return tags;
 	}
 
-	// Tmp Helper
-
-	[HttpPost("post/random")]
-	public async Task PushRandomPost([FromQuery] string? tag = null)
+	[AllowAnonymous]
+	[HttpGet("feed/rss")]
+	[Produces("text/xml")]
+	public async Task<ActionResult<RssFeed>> GetFeedRss()
 	{
-		string[] tags = tag is null ? Array.Empty<string>() : tag.Split(',', StringSplitOptions.TrimEntries);
+		var posts = await (
+			from post in db.BlogPosts.AsNoTracking()
+			where post.Visible
+			orderby post.CreateTime descending
+			select post)
+			.ProjectTo<BlogPostView>(mapper.ConfigurationProvider)
+			.Take(EntriesPerPage)
+			.ToArrayAsync();
 
-		var blogPost = new BlogPost()
+		return new RssFeed
 		{
-			Visible = true,
-			CreateTime = DateTime.UtcNow,
-			Title = UserStore.RandomToken(12),
-			ContentRaw = UserStore.RandomToken(100),
-			ContentHtml = UserStore.RandomToken(105),
-			Tags = tags,
+			Channel = {
+				Title = "Splamy's Blog",
+				Link = "https://splamy.de/blog",
+				Description = "Writing about random programming stuff.",
+				Language = "en",
+				PublishDate = "Wed, 22 Dec 2021 13:06:18 GMT",
+				LastBuildDate = DateTime.UtcNow.ToString("r"),
+				Items = posts.Select(p => new RssItem
+				{
+					Title = p.Title,
+					Description = p.ContentHtml,
+					Link = $"https://splamy.de/blog/post?i={p.PostId}",
+					PublishDate = p.CreateTime.ToString("r"),
+					Guid = $"https://splamy.de/blog/post?i={p.PostId}",
+				}).ToArray()
+			}
 		};
-
-		await db.BlogPosts.AddAsync(blogPost);
-		await db.SaveChangesAsync();
 	}
 
-	internal static readonly MarkdownPipeline DefaultPipeline = new MarkdownPipelineBuilder().Build();
+	private async ValueTask<IQueryable<BlogPost>> VisiblePosts()
+	{
+		var isAdmin = await ExtendedPermission();
+
+		var query = db.BlogPosts.AsNoTracking();
+		if (!isAdmin)
+			query = query.Where(p => p.Visible);
+		return query;
+	}
 
 	private static void TransformPostData(BlogPost post)
 	{
@@ -278,7 +305,59 @@ public class ContentController : ControllerBase
 	{
 		public int Pages { get; init; }
 		public ICollection<BlogPostShortView>? Posts { get; init; }
+		//public IList<BlogPostShortView>? RecentPosts { get; init; }
 
 		public static BlogListQuery Empty { get; } = new() { Pages = 0, Posts = Array.Empty<BlogPostShortView>() };
+	}
+
+	public class BlogItemQuery
+	{
+		public BlogPostView Post { get; init; }
+		public IList<BlogPostShortView>? RecentPosts { get; init; }
+	}
+
+	[XmlRoot("rss")]
+	public class RssFeed
+	{
+		[XmlElement("channel")]
+		public RssChannel Channel { get; set; } = new RssChannel();
+
+		[XmlAttribute("version")]
+		public string Version { get; set; } = "2.0";
+	}
+
+	public class RssChannel
+	{
+		[XmlElement("title")]
+		public string Title { get; set; } = "";
+		[XmlElement("link")]
+		public string Link { get; set; } = "";
+		[XmlElement("description")]
+		public string Description { get; set; } = "";
+
+		[XmlElement("language")]
+		public string? Language { get; set; }
+		[XmlElement("pubDate")]
+		public string? PublishDate { get; set; }
+		[XmlElement("lastBuildDate")]
+		public string? LastBuildDate { get; set; }
+
+		[XmlElement("item")]
+		public RssItem[] Items { get; set; } = Array.Empty<RssItem>();
+	}
+
+	public class RssItem
+	{
+		[XmlElement("title")]
+		public string Title { get; set; } = "";
+		[XmlElement("link")]
+		public string Link { get; set; } = "";
+		[XmlElement("description")]
+		public string Description { get; set; } = "";
+
+		[XmlElement("pubDate")]
+		public string? PublishDate { get; set; }
+		[XmlElement("guid")]
+		public string? Guid { get; set; }
 	}
 }

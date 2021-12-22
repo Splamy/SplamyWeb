@@ -84,7 +84,8 @@ public class Startup
 			options.AddScheme<BasicAuthenticationHandler>("BasicAuthentication", "Basic");
 		});
 
-		services.AddControllers();
+		services.AddControllers()
+			.AddXmlSerializerFormatters();
 
 		services.AddResponseCompression();
 

@@ -12,7 +12,7 @@
 <footer class="footer">
 	<div class="container">
 		<div class="columns">
-			<div class="column is-4 is-size-7">
+			<div class="column is-4 is-size-7 has-text-left">
 				<div>Powered by <strong>ASP.NET Core 6</strong></div>
 				<div>
 					Presented with <a href="https://kit.svelte.dev/" rel="external" target="_blank"
@@ -20,7 +20,7 @@
 					>
 				</div>
 			</div>
-			<div class="column is-4">
+			<div class="column is-4 has-text-centered">
 				<a rel="external" href="https://twitter.com/Splamyn" target="_blank">
 					<Icon path={mdiTwitter} />
 				</a>
@@ -38,7 +38,7 @@
 					<Icon path={mdiEmail} />
 				</a>
 			</div>
-			<div class="column is-4">
+			<div class="column is-4 has-text-right">
 				<a href="/impress">Impress &amp; Privacy</a>
 			</div>
 		</div>
