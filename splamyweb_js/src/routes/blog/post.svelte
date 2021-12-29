@@ -1,6 +1,6 @@
 <script context="module" lang="ts">
 	import { BASE_URL } from '$lib/util';
-	import type { BlogItemQuery } from '$lib/api';
+	import { BlogItemQuery, BlogPostShortView, BlogPostView, EMPTY_POST } from '$lib/api';
 	import type { Load } from '@sveltejs/kit';
 	import { prerendering } from '$app/env';
 
@@ -30,22 +30,20 @@
 </script>
 
 <script lang="ts">
-	import TagList from '$lib/blog/TagList.svelte';
-	import ShortDate from '$lib/ShortDate.svelte';
-	import moment from 'moment';
 	import { onMount } from 'svelte';
+	import { CurrentUser } from '$lib/user';
+	import PostView from '$lib/blog/PostView.svelte';
 
 	export let postId: string | undefined = undefined;
 	export let query: BlogItemQuery;
-	$: data = query?.post ?? {
-		postId: 0,
-		createTime: '',
-		title: 'Not Found',
-		summaryHtml: '',
-		contentHtml: '',
-		tags: []
-	};
-	$: recentPosts = query?.recentPosts ?? [];
+
+	let data: BlogPostView;
+	let recentPosts: BlogPostShortView[];
+
+	$: {
+		data = query?.post ?? EMPTY_POST();
+		recentPosts = query?.recentPosts ?? [];
+	}
 
 	async function fetchPost(post: string) {
 		try {
@@ -71,30 +69,26 @@
 
 <div class="readcol">
 	<div />
-	<div class="readblock">
-		<article class="content">
-			{@html data.contentHtml}
-		</article>
-		<hr />
-		<div class="columns is-size-7 is-gapless">
-			<div class="column">Posted <ShortDate date={moment(data.createTime)} /></div>
-			<div class="column is-narrow">
-				<TagList tags={data.tags} />
+	<PostView {data} />
+	<div class="sidebar">
+		<div class="sticky">
+			<div class="box">
+				<h3 class="title is-4">Recent Posts</h3>
+				<ul>
+					{#each recentPosts as post}
+						<li>
+							<a href={`/blog/post?i=${post.postId}`}>
+								{post.title}
+							</a>
+						</li>
+					{/each}
+				</ul>
 			</div>
-		</div>
-	</div>
-	<div style="display: flex; align-items: start;">
-		<div class="box">
-			<h3 class="title is-4">Recent Posts</h3>
-			<ul>
-				{#each recentPosts as post}
-					<li>
-						<a href={`/blog/post?i=${post.postId}`}>
-							{post.title}
-						</a>
-					</li>
-				{/each}
-			</ul>
+			{#if $CurrentUser}
+				<div class="box">
+					<a href="/blog/editor?post={data.postId}">Edit</a>
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -102,14 +96,17 @@
 <style lang="scss">
 	@import '../../lib/css/_prelude';
 	@import 'bulma/sass/elements/title';
-	@import 'bulma/sass/grid/columns';
 	@import 'bulma/sass/elements/box';
 
-	.content {
-		line-break: anywhere;
-	}
+	.sidebar {
+		display: flex;
+		align-items: start;
+		flex-direction: column;
 
-	hr {
-		background-color: #2a392f;
+		> * {
+			width: 100%;
+			max-width: 20em;
+			min-width: 10em;
+		}
 	}
 </style>

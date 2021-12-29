@@ -1,12 +1,12 @@
 @import "@fontsource/fira-mono/index";
 
-@import "_preset";
-@import "bulma/sass/base/_all";
-@import "bulma/sass/utilities/_all";
+@import "_prelude";
+
+@import "bulma/sass/base/minireset";
+@import "./bulma/base/generic";
 @import "./_util";
-@import "bulma/sass/elements/content";
+@import "./bulma/elements/content";
 @import "bulma/sass/elements/title";
-@import "bulma/sass/elements/other";
 @import "bulma/sass/helpers/typography";
 
 html, body, #svelte {
@@ -38,7 +38,7 @@ a.button {
 	flex-direction: column;
 	display: flex;
 	justify-content: center;
-	margin: auto;
+	margin: 0 auto;
 
 	width: 100%;
 	max-width: 800px;
@@ -71,6 +71,21 @@ h1 {
 
 .icon.padr {
 	margin-right: 0.5em;
+}
+
+.sticky {
+	position: sticky;
+	top: 3rem;
+}
+
+// manual 'other' import since we don't want 'number'
+
+.heading {
+	display: block;
+	font-size: 11px;
+	letter-spacing: 1px;
+	margin-bottom: 5px;
+	text-transform: uppercase;
 }
 
 // manual button + icon fix

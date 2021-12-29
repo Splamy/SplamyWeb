@@ -24,7 +24,7 @@
 
 <script lang="ts">
 	import Icon from '$lib/Icon.svelte';
-	import { BASE_URL } from '$lib/util';
+	import { autosize, BASE_URL } from '$lib/util';
 	import { mdiContentSave, mdiDelete, mdiPlus } from '@mdi/js';
 
 	export let kvpList: KeyValue[] = [];
@@ -38,11 +38,6 @@
 				}
 			}
 		};
-	}
-
-	function auto_grow(this: HTMLElement) {
-		this.style.height = '5px';
-		this.style.height = this.scrollHeight + 'px';
 	}
 
 	async function notify(elem: HTMLElement) {
@@ -95,11 +90,11 @@
 	}
 
 	function protectText(this: HTMLElement) {
-		this.classList.add("protected");
+		this.classList.add('protected');
 	}
 
 	function showText(this: HTMLElement) {
-		this.classList.remove("protected");
+		this.classList.remove('protected');
 	}
 </script>
 
@@ -118,7 +113,7 @@
 	<tbody>
 		{#each kvpList as { key, value }}
 			<tr>
-				<td>
+				<td class="compact">
 					<label class="label" for="key_{key}">{key}</label>
 				</td>
 				<td>
@@ -127,25 +122,27 @@
 						autocomplete="off"
 						class="input protected"
 						type="text"
-						on:mouseenter={showText}
-						on:mouseleave={protectText}
-						on:input={auto_grow}
+						use:autosize
+						on:focus={showText}
+						on:blur={protectText}
 						on:keypress={onenter(() => updateKey(key))}>{value}</textarea
 					>
 				</td>
-				<td>
-					<button class="button" on:click={() => updateKey(key)}>
-						<Icon path={mdiContentSave} />
-					</button>
-					<button class="button" on:click={() => deleteKey(key)}>
-						<Icon path={mdiDelete} />
-					</button>
+				<td class="compact">
+					<div class="buttons" style="flex-wrap: nowrap;">
+						<button class="button" on:click={() => updateKey(key)}>
+							<Icon path={mdiContentSave} />
+						</button>
+						<button class="button" on:click={() => deleteKey(key)}>
+							<Icon path={mdiDelete} />
+						</button>
+					</div>
 				</td>
 			</tr>
 		{/each}
 
 		<tr>
-			<td>
+			<td class="compact">
 				<input
 					id="new_key"
 					autocomplete="off"
@@ -164,11 +161,11 @@
 					type="text"
 					placeholder="value"
 					bind:value={new_kvp_value}
-					on:input={auto_grow}
+					use:autosize
 					on:keypress={onenter(() => createKey())}
 				/>
 			</td>
-			<td>
+			<td class="compact">
 				<button href="#" class="button" on:click={() => createKey()}>
 					<Icon path={mdiPlus} />
 				</button>
@@ -179,13 +176,23 @@
 
 <style lang="scss">
 	@import '../../lib/css/_prelude';
-	@import "bulma/sass/elements/table";
-	@import "bulma/sass/form/shared";
+	@import 'bulma/sass/elements/table';
+	@import 'bulma/sass/form/shared';
 	@import 'bulma/sass/form/tools';
-	@import "bulma/sass/form/input-textarea";
+	@import 'bulma/sass/form/input-textarea';
 	@import 'bulma/sass/elements/button';
 
 	.protected {
-		//filter: blur(2px);
+		text-shadow: 0px 0px 10px lime;
+		color: transparent;
+	}
+
+	.input {
+		width: 100% !important;
+	}
+
+	.compact {
+		width: 1px;
+		white-space: nowrap;
 	}
 </style>

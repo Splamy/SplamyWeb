@@ -27,7 +27,6 @@
 	import swal from 'sweetalert';
 	import type { ProjectInfo } from '$lib/api';
 	import Icon from '$lib/Icon.svelte';
-	import moment from 'moment';
 	import ShortDate from '$lib/ShortDate.svelte';
 	import { mdiClose } from '@mdi/js';
 
@@ -99,7 +98,7 @@
 							{entry.commit.substring(0, 8)}
 						{/if}
 					</td>
-					<td><ShortDate date={moment(entry.uploadTime)} /></td>
+					<td><ShortDate date={entry.uploadTime} /></td>
 					<td>
 						{#if entry.active !== false}
 							<a

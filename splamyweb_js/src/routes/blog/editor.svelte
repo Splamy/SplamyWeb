@@ -128,39 +128,51 @@
 
 <div class="columns">
 	<form class="column is-narrow">
-		<div class="field">
-			<label for="post_visible">Post visible</label>
-			<input class="input" type="checkbox" id="post_visible" bind:checked={data.visible} />
-		</div>
-		<div class="field">
-			<TagEditor bind:tags={data.tags} />
-		</div>
-		<hr />
-		<TextEditorMode bind:view />
-		<div class="field">
-			<button
-				class="button"
-				on:click|preventDefault|stopPropagation={savePost}
-				disabled={updating}>Save</button
-			>
-		</div>
-		<div class="field">
-			<button
-				class="button is-danger is-outlined"
-				on:click|preventDefault|stopPropagation={deletePost}
-				disabled={updating}
-			>
-				{#if data.postId}
-					Delete
-				{:else}
-					Cancel
-				{/if}
-			</button>
+		<div class="sticky">
+			<div class="field">
+				<label for="post_visible">Post visible</label>
+				<input
+					class="input"
+					type="checkbox"
+					id="post_visible"
+					bind:checked={data.visible}
+				/>
+			</div>
+			<div class="field">
+				<TagEditor bind:tags={data.tags} />
+			</div>
+			<hr />
+			<TextEditorMode bind:view />
+			<div class="field">
+				<div class="buttons">
+					<button
+						class="button"
+						on:click|preventDefault|stopPropagation={savePost}
+						disabled={updating}>Save</button
+					>
+					{#if data.postId}
+						<a class="button" href={`/blog/post?i=${data.postId}`}>View</a>
+					{/if}
+				</div>
+			</div>
+			<div class="field">
+				<button
+					class="button is-danger is-outlined"
+					on:click|preventDefault|stopPropagation={deletePost}
+					disabled={updating}
+				>
+					{#if data.postId}
+						Delete
+					{:else}
+						Cancel
+					{/if}
+				</button>
+			</div>
 		</div>
 	</form>
 	<div class="column">
 		<div class="field">
-			<RenderedTextEditor bind:raw={data.contentRaw} bind:view />
+			<RenderedTextEditor bind:raw={data.contentRaw} post={data} bind:view />
 		</div>
 	</div>
 </div>

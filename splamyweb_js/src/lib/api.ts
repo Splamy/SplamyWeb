@@ -56,6 +56,15 @@ export interface BlogPostShortView {
 	tags: string[];
 }
 
+export const EMPTY_POST = () => { return {
+	postId: 0,
+	createTime: '',
+	title: 'Not Found',
+	summaryHtml: '',
+	contentHtml: '',
+	tags: []
+} as BlogPostView; };
+
 export interface BlogPostView extends BlogPostShortView {
 	contentHtml: string;
 }

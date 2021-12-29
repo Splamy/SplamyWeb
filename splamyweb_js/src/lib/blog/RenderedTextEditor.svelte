@@ -1,15 +1,17 @@
 <script lang="ts">
 	import * as signalR from '@microsoft/signalr';
-	import { BASE_URL, debounced } from '../util';
+	import { autosize, BASE_URL, debounced } from '$lib/util';
 	import { onMount } from 'svelte';
 	import { prerendering } from '$app/env';
 	import { View } from './editor';
+	import PostView from './PostView.svelte';
+	import { BlogPostUpdate, BlogPostView, EMPTY_POST } from '$lib/api';
 
 	export let raw: string = '';
+	export let post: BlogPostUpdate = {};
 	export let view: View = View.Edit;
 
-	let textArea: HTMLTextAreaElement;
-	let rendered: string = '';
+	let data: BlogPostView = EMPTY_POST();
 	let connection: signalR.HubConnection | undefined = undefined;
 
 	if (!prerendering) {
@@ -25,39 +27,26 @@
 		}
 	}
 
-	const renderRequest = debounced(
-		async (text: string) => {
-			try {
-				if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-					return;
-				}
-				rendered = await connection.invoke<string>('Render', text);
-			} catch (err) {
-				console.warn('Failed to render text: ', err?.message);
+	async function tryRender() {
+		try {
+			if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+				return;
 			}
-		},
-		100,
-		{
-			resetOnCall: false
+			let rendered = await connection.invoke<string>('Render', raw);
+			data = Object.assign(data, post);
+			data.contentHtml = rendered;
+		} catch (err) {
+			console.warn('Failed to render text: ', err?.message);
 		}
-	);
-
-	$: renderRequest(raw);
-
-	function adaptHeight() {
-		if (!textArea) return;
-		const oldH = 0; //textArea.clientHeight;
-		textArea.style.height = 'auto';
-		textArea.style.height = Math.max(oldH, textArea.scrollHeight) + 'px';
 	}
 
-	$: if (textArea) {
-		let _ = raw;
-		adaptHeight();
-	}
+	const tryRenderDebounced = debounced(tryRender, 100, {
+		resetOnCall: false
+	});
+
+	$: raw, tryRenderDebounced();
 
 	onMount(() => {
-		adaptHeight();
 		return () => {
 			connection?.stop();
 			connection = undefined;
@@ -67,11 +56,11 @@
 
 <div class="editbox">
 	{#if view === View.Edit || view === View.Both}
-		<textarea class="input" bind:this={textArea} bind:value={raw} />
+		<textarea class="input" use:autosize bind:value={raw} />
 	{/if}
 	{#if view === View.Rendered || view === View.Both}
-		<div class="renderSide readblock content box">
-			{@html rendered}
+		<div>
+			<PostView {data} />
 		</div>
 	{/if}
 </div>
@@ -81,11 +70,6 @@
 	@import 'bulma/sass/form/shared';
 	@import 'bulma/sass/form/input-textarea';
 	@import 'bulma/sass/elements/box';
-
-	.renderSide {
-		overflow: hidden;
-		padding: 0.5em;
-	}
 
 	.editbox {
 		display: flex;

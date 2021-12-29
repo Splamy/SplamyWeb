@@ -126,3 +126,13 @@ export function enhance(
 		}
 	};
 }
+
+export function autosize(el: HTMLTextAreaElement) {
+	const setHeight = () => {
+		el.style.height = '5px';
+		el.style.height = `${el.scrollHeight}px`;
+	};
+
+	setHeight();
+	el.addEventListener('input', setHeight);
+}

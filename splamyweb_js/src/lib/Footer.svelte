@@ -15,23 +15,19 @@
 			<div class="column is-4 is-size-7 has-text-left">
 				<div>Powered by <strong>ASP.NET Core 6</strong></div>
 				<div>
-					Presented with <a href="https://kit.svelte.dev/" rel="external" target="_blank"
+					Presented with <a href="https://kit.svelte.dev/" rel="external"
 						><strong>Svelte Kit</strong></a
 					>
 				</div>
 			</div>
 			<div class="column is-4 has-text-centered">
-				<a rel="external" href="https://twitter.com/Splamyn" target="_blank">
+				<a rel="external" href="https://twitter.com/Splamyn">
 					<Icon path={mdiTwitter} />
 				</a>
-				<a rel="external" href="https://github.com/Splamy" target="_blank">
+				<a rel="external" href="https://github.com/Splamy">
 					<Icon path={mdiGithub} />
 				</a>
-				<a
-					rel="external"
-					href="https://www.youtube.com/channel/UCKscpXWxjhPi91rpugutd7Q"
-					target="_blank"
-				>
+				<a rel="external" href="https://www.youtube.com/channel/UCKscpXWxjhPi91rpugutd7Q">
 					<Icon path={mdiYoutube} />
 				</a>
 				<a rel="external" href="mailto:{protectedMail}" on:mouseenter|once={descrambleMail}>

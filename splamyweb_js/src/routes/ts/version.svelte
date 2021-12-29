@@ -127,7 +127,6 @@
 						class="icon-text"
 						rel="external"
 						href="https://github.com/ReSpeak/tsdeclarations/blob/master/Versions.csv"
-						target="_blank"
 					>
 						here <Icon path={mdiOpenInNew} />
 					</a>

@@ -16,12 +16,7 @@
 				<Icon path={mdiTranslate} addclass="padr" />
 				<span>Language Packs</span>
 			</a>
-			<a
-				class="navl"
-				rel="external"
-				href="https://github.com/Splamy/TS3AudioBot"
-				target="_blank"
-			>
+			<a class="navl" rel="external" href="https://github.com/Splamy/TS3AudioBot">
 				<Icon path={mdiGithub} addclass="padr" />
 				<span>Github</span>
 			</a>

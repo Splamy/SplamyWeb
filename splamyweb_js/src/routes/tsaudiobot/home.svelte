@@ -163,7 +163,7 @@
 							<tr>
 								<td colspan="3">
 									For all available downloads check our nightly page
-									<a href="/" class="button is-primary is-rounded is-small">
+									<a href="/nightly" class="button is-primary is-rounded is-small">
 										<Icon path={mdiWeatherNight} />
 									</a>
 								</td>
@@ -174,8 +174,7 @@
 					<span>
 						For installation instructions follow our Readme: <a
 							rel="external"
-							href="https://github.com/Splamy/TS3AudioBot#install"
-							target="_blank">#Install</a
+							href="https://github.com/Splamy/TS3AudioBot#install">#Install</a
 						>
 					</span>
 				</div>
@@ -191,42 +190,37 @@
 							<a
 								rel="external"
 								href="https://github.com/Splamy/TS3AudioBot/wiki/CommandSystem"
-								target="_blank">CommandSystem</a
+								>CommandSystem</a
 							>
 						</li>
 						<li>
 							<a
 								rel="external"
-								href="https://github.com/Splamy/TS3AudioBot/wiki/Plugins"
-								target="_blank">Plugins</a
+								href="https://github.com/Splamy/TS3AudioBot/wiki/Plugins">Plugins</a
 							>
 						</li>
 						<li>
 							<a
 								rel="external"
-								href="https://github.com/Splamy/TS3AudioBot/wiki/WebAPI"
-								target="_blank">Web API</a
+								href="https://github.com/Splamy/TS3AudioBot/wiki/WebAPI">Web API</a
 							>
 						</li>
 						<li>
 							<a
 								rel="external"
-								href="https://github.com/Splamy/TS3AudioBot/wiki/Rights"
-								target="_blank">Rights</a
+								href="https://github.com/Splamy/TS3AudioBot/wiki/Rights">Rights</a
 							>
 						</li>
 						<li>
-							<a
-								rel="external"
-								href="https://github.com/Splamy/TS3AudioBot/wiki/FAQ"
-								target="_blank">FAQ</a
+							<a rel="external" href="https://github.com/Splamy/TS3AudioBot/wiki/FAQ"
+								>FAQ</a
 							>
 						</li>
 						<li>
 							<a
 								rel="external"
 								href="https://github.com/Splamy/TS3AudioBot/wiki/Changelog"
-								target="_blank">Changelog</a
+								>Changelog</a
 							>
 						</li>
 					</ul>
@@ -236,10 +230,8 @@
 				<article class="tile is-child notification is-info">
 					<p class="title">Swagger/OpenApi</p>
 					<p class="subtitle">
-						<a
-							rel="external"
-							href="https://tab.splamy.de/openapi/index.html"
-							target="_blank">Check out our live Swagger/OpenApi documentation</a
+						<a rel="external" href="https://tab.splamy.de/openapi/index.html"
+							>Check out our live Swagger/OpenApi documentation</a
 						>
 					</p>
 					<figure class="image is-4by3">

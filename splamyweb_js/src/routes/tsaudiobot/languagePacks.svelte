@@ -25,7 +25,6 @@
 	import { BASE_URL } from '$lib/util';
 	import type { LangInfo } from '$lib/api';
 	import ShortDate from '$lib/ShortDate.svelte';
-	import moment from 'moment';
 
 	export let langs: LangInfo[] = [];
 </script>
@@ -66,7 +65,7 @@
 		{#each langs as lang}
 			<tr>
 				<td>{lang.displayName}</td>
-				<td><ShortDate date={moment(lang.uploadTime)} /></td>
+				<td><ShortDate date={lang.uploadTime} /></td>
 				<td
 					><a
 						rel="external"

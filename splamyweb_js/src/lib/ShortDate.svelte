@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { Moment } from 'moment';
+	import moment from 'moment';
 
-	// TODO: Allow string or moment
-	export let date: Moment;
+	export let date: string | moment.Moment;
+	$: datem = typeof date === 'string' ? moment(date) : date;
 </script>
 
-<span title={date.toLocaleString()}>{date.toDate().toDateString()}</span>
+<span title={datem.toLocaleString()}>{datem.toDate().toDateString()}</span>

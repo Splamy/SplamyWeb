@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { BlogPostShortView } from '$lib/api';
 	import ShortDate from '$lib/ShortDate.svelte';
-	import moment from 'moment';
 	import { CurrentUser } from '$lib/user';
 	import TagList from './TagList.svelte';
 
@@ -34,7 +33,7 @@
 	</div>
 	<div class="columns is-size-7 is-gapless">
 		<div class="column">
-			Posted <ShortDate date={moment(blogView.createTime)} />
+			Posted <ShortDate date={blogView.createTime} />
 			{#if blogView.visible === false}
 				<span class="tag is-warning">Hidden</span>
 			{/if}
@@ -67,10 +66,6 @@
 		&:not(:last-child) {
 			//border-bottom: 2px solid #2a392f;
 		}
-	}
-
-	.content {
-		line-break: anywhere;
 	}
 
 	.tags {
