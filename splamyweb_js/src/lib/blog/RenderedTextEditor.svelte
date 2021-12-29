@@ -8,10 +8,10 @@
 	import { BlogPostUpdate, BlogPostView, EMPTY_POST } from '$lib/api';
 
 	export let raw: string = '';
-	export let post: BlogPostUpdate = {};
+	export let postEdit: BlogPostUpdate = {};
 	export let view: View = View.Edit;
 
-	let data: BlogPostView = EMPTY_POST();
+	let post: BlogPostView = EMPTY_POST();
 	let connection: signalR.HubConnection | undefined = undefined;
 
 	if (!prerendering) {
@@ -33,8 +33,8 @@
 				return;
 			}
 			let rendered = await connection.invoke<string>('Render', raw);
-			data = Object.assign(data, post);
-			data.contentHtml = rendered;
+			post = Object.assign(post, postEdit);
+			post.contentHtml = rendered;
 		} catch (err) {
 			console.warn('Failed to render text: ', err?.message);
 		}
@@ -60,7 +60,7 @@
 	{/if}
 	{#if view === View.Rendered || view === View.Both}
 		<div>
-			<PostView {data} />
+			<PostView {post} />
 		</div>
 	{/if}
 </div>

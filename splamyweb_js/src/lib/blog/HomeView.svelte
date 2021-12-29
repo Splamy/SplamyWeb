@@ -3,12 +3,12 @@
 	import SummaryView from '$lib/blog/SummaryView.svelte';
 
 	export let query: BlogListQuery;
-	$: blogViews = query?.posts ?? [];
+	$: posts = query?.posts ?? [];
 </script>
 
 <div class="blogbox">
-	{#each blogViews as blogView}
-		<SummaryView {blogView} />
+	{#each posts as post}
+		<SummaryView {post} />
 	{/each}
 </div>
 

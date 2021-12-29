@@ -1,15 +1,14 @@
 <script lang="ts">
-	import TagList from '$lib/blog/TagList.svelte';
-	import ShortDate from '$lib/ShortDate.svelte';
-	import { onMount, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import hl from '$lib/highlight';
 	import type { BlogPostView } from '$lib/api';
+	import PostFooter from './PostFooter.svelte';
 
 	let content: HTMLElement;
-	export let data: BlogPostView;
+	export let post: BlogPostView;
 
 	async function renderCode() {
-		if (!data.contentHtml) {
+		if (!post.contentHtml) {
 			return;
 		}
 		await tick();
@@ -18,25 +17,18 @@
 		}
 	}
 
-	$: data, renderCode();
+	$: post, renderCode();
 </script>
 
 <div class="readblock">
 	<article bind:this={content} class="postbody content line-numbers">
-		{@html data.contentHtml}
+		{@html post.contentHtml}
 	</article>
 	<hr />
-	<div class="columns is-size-7 is-gapless">
-		<div class="column">Posted <ShortDate date={data.createTime} /></div>
-		<div class="column is-narrow">
-			<TagList tags={data.tags} />
-		</div>
-	</div>
+	<PostFooter {post} />
 </div>
 
 <style lang="scss">
-	@import 'bulma/sass/grid/columns';
-
 	hr {
 		background-color: #2a392f;
 	}

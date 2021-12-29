@@ -17,7 +17,7 @@
 			if (res.ok) {
 				return {
 					props: {
-						data: json,
+						postEdit: json,
 						postId: post
 					}
 				};
@@ -39,7 +39,7 @@
 	import type { View } from '$lib/blog/editor';
 
 	export let postId: string | undefined = undefined;
-	export let data: BlogPostUpdate = {
+	export let postEdit: BlogPostUpdate = {
 		visible: true,
 		tags: []
 	};
@@ -58,12 +58,12 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify(data)
+				body: JSON.stringify(postEdit)
 			});
 			if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
 
 			const update = await res.json();
-			data = Object.assign(data, update);
+			postEdit = Object.assign(postEdit, update);
 		} catch (err) {
 			await swal(err);
 		} finally {
@@ -76,8 +76,8 @@
 		updating = true;
 		try {
 			if (!(await confirmDelete())) return;
-			if (data.postId) {
-				const res = await fetch(`${BASE_URL}/api/content/post/${data.postId}`, {
+			if (postEdit.postId) {
+				const res = await fetch(`${BASE_URL}/api/content/post/${postEdit.postId}`, {
 					method: 'DELETE',
 					credentials: 'include'
 				});
@@ -92,8 +92,8 @@
 	}
 
 	async function confirmDelete(): Promise<boolean> {
-		const hasId = data.postId !== undefined;
-		if (!hasId && !data.contentRaw) return true;
+		const hasId = postEdit.postId !== undefined;
+		if (!hasId && !postEdit.contentRaw) return true;
 		const askText = hasId
 			? 'Are you sure you want to delete this post?'
 			: 'Are you sure you want to leave this page?';
@@ -112,7 +112,7 @@
 			const json: BlogPostUpdate = await res.json();
 
 			if (res.ok) {
-				data = json;
+				postEdit = json;
 			}
 		} catch (err) {}
 	}
@@ -135,11 +135,11 @@
 					class="input"
 					type="checkbox"
 					id="post_visible"
-					bind:checked={data.visible}
+					bind:checked={postEdit.visible}
 				/>
 			</div>
 			<div class="field">
-				<TagEditor bind:tags={data.tags} />
+				<TagEditor bind:tags={postEdit.tags} />
 			</div>
 			<hr />
 			<TextEditorMode bind:view />
@@ -150,8 +150,8 @@
 						on:click|preventDefault|stopPropagation={savePost}
 						disabled={updating}>Save</button
 					>
-					{#if data.postId}
-						<a class="button" href={`/blog/post?i=${data.postId}`}>View</a>
+					{#if postEdit.postId}
+						<a class="button" href={`/blog/post?i=${postEdit.postId}`}>View</a>
 					{/if}
 				</div>
 			</div>
@@ -161,7 +161,7 @@
 					on:click|preventDefault|stopPropagation={deletePost}
 					disabled={updating}
 				>
-					{#if data.postId}
+					{#if postEdit.postId}
 						Delete
 					{:else}
 						Cancel
@@ -172,7 +172,7 @@
 	</form>
 	<div class="column">
 		<div class="field">
-			<RenderedTextEditor bind:raw={data.contentRaw} post={data} bind:view />
+			<RenderedTextEditor bind:raw={postEdit.contentRaw} {postEdit} bind:view />
 		</div>
 	</div>
 </div>

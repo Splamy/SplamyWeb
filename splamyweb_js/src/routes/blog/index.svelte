@@ -29,7 +29,7 @@
 	import { mdiRss } from '@mdi/js';
 
 	export let query: BlogListQuery;
-	$: blogViews = query?.posts ?? [];
+	$: posts = query?.posts ?? [];
 </script>
 
 <svelte:head>
@@ -39,8 +39,8 @@
 <div class="readcol">
 	<div />
 	<div class="readblock">
-		{#each blogViews as blogView}
-			<SummaryView {blogView} />
+		{#each posts as post}
+			<SummaryView {post} />
 		{/each}
 	</div>
 	<div style="display: flex; align-items: start;">

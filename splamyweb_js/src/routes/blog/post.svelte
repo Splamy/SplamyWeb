@@ -37,11 +37,11 @@
 	export let postId: string | undefined = undefined;
 	export let query: BlogItemQuery;
 
-	let data: BlogPostView;
+	let post: BlogPostView;
 	let recentPosts: BlogPostShortView[];
 
 	$: {
-		data = query?.post ?? EMPTY_POST();
+		post = query?.post ?? EMPTY_POST();
 		recentPosts = query?.recentPosts ?? [];
 	}
 
@@ -69,7 +69,7 @@
 
 <div class="readcol">
 	<div />
-	<PostView {data} />
+	<PostView {post} />
 	<div class="sidebar">
 		<div class="sticky">
 			<div class="box">
@@ -86,7 +86,7 @@
 			</div>
 			{#if $CurrentUser}
 				<div class="box">
-					<a href="/blog/editor?post={data.postId}">Edit</a>
+					<a href="/blog/editor?post={post.postId}">Edit</a>
 				</div>
 			{/if}
 		</div>
