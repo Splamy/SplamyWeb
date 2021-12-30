@@ -44,7 +44,7 @@
 		],
 		[
 			mdiDotNet,
-			'.NET 5',
+			'.NET 6',
 			'TS3AudioBot.zip',
 			'Soon™',
 			'/api/nightly/projects/ts3ab/develop/download'
