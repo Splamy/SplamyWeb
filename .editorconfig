@@ -22,3 +22,6 @@ dotnet_diagnostic.CA5360.severity=suggestion
 csharp_indent_switch_labels = false
 dotnet_diagnostic.CA1309.severity=warning
 dotnet_diagnostic.CA2016.severity=warning
+
+[*.md]
+trim_trailing_whitespace = false

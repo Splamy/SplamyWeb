@@ -59,6 +59,11 @@ h1 {
 	text-align: center;
 }
 
+code {
+	background-color: #2d2d2d;
+	color: #ccc;
+}
+
 .button {
 	&.is-primary {
 		@include link_shine;

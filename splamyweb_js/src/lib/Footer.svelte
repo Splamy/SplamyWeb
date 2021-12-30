@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
-	import { mdiEmail, mdiGithub, mdiMail, mdiTwitter, mdiYoutube } from '@mdi/js';
-	import { onMount } from 'svelte';
+	import { mdiEmail, mdiGithub, mdiLinkedin, mdiTwitter, mdiYoutube } from '@mdi/js';
 
 	let protectedMail = '<protected>';
 	function descrambleMail() {
@@ -21,17 +20,20 @@
 				</div>
 			</div>
 			<div class="column is-4 has-text-centered">
-				<a rel="external" href="https://twitter.com/Splamyn">
-					<Icon path={mdiTwitter} />
-				</a>
 				<a rel="external" href="https://github.com/Splamy">
 					<Icon path={mdiGithub} />
 				</a>
-				<a rel="external" href="https://www.youtube.com/channel/UCKscpXWxjhPi91rpugutd7Q">
-					<Icon path={mdiYoutube} />
-				</a>
 				<a rel="external" href="mailto:{protectedMail}" on:mouseenter|once={descrambleMail}>
 					<Icon path={mdiEmail} />
+				</a>
+				<a rel="external" href="https://www.linkedin.com/in/lukas-jagemann-3a90b022a/">
+					<Icon path={mdiLinkedin} />
+				</a>
+				<a rel="external" href="https://twitter.com/Splamyn">
+					<Icon path={mdiTwitter} />
+				</a>
+				<a rel="external" href="https://www.youtube.com/channel/UCKscpXWxjhPi91rpugutd7Q">
+					<Icon path={mdiYoutube} />
 				</a>
 			</div>
 			<div class="column is-4 has-text-right">
