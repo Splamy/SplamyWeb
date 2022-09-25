@@ -5,10 +5,11 @@ Writing a C# to MMIX AOT Compiler, because... why not.
 ## No, really, why ???
 
 The IEEE Student Group at my University hosts a fun little advent calender where instead of chocolate you get a coding problem each day. (If you're reading this during December check it out [here](https://advent.ieee.uni-passau.de/advent))  
-Unlike at the popular Advent of Code however you don't submit your precalculated solution, but your source code. From then on it will be compiled in a VM and unit tested with various input. And depending on how many cases it correctly solves you get points.  
-So far so good. But the fun starts when they announced that they had over 25 languages supported on the backed and if you can solve each task with a different language, you get a little bonus.
+Unlike at the popular "Advent of Code" however you don't submit your precalculated solution, but your source code. From then on it will be compiled in a VM and unit tested with various inputs. And depending on how many cases it correctly solves you get points.  
+So far so good. But the fun started when they announced that they had over 25 languages supported on the backed and if you can solve each task with a different language, you get a little bonus.
 
-Sounds like a challenge to me. Now, unlike most high-level languages, where even with little time investment you can get up to speed pretty fast, writing assembly is tedious.  
+Sounds like a challenge to me.  
+Now, unlike most high-level languages, where even with little time investment you can get up to speed pretty fast, writing assembly is tedious.  
 So why not taking a little detour and write a quick-and-dirty compiler myself...  
 [![Automation: expectations vs reality](https://imgs.xkcd.com/comics/automation.png)](https://xkcd.com/1319/)
 
@@ -20,10 +21,10 @@ The interesting part is how the architecture handles registers. Instead of like 
 ## The Idea
 What would be the fastest way to get a simple compiler working?  
 Designing a custom language most definitely is out of question because of all the extra work creating a grammar, lexer, parsing and transforming into processable operations.  
-So something like a intermediate, preprocessed language would be nice, and there are a few that come to my mind. LLVM with it's IR, Java with the JVM Bytecode and C#, or rather the .NET ecosystem where also languages like VB.NET or F# compile to: IL. And since C#'s my favorite language, the choice's obvious.
+So something like an intermediate, preprocessed language would be nice, and there are a few that come to my mind. *LLVM* with it's *IR*, *Java* with the *JVM Bytecode* and *C#*, or rather the *.NET* ecosystem where also languages like *VB.NET* or *F#* compile to: **IL**. And since C#'s my favorite language, the choice's obvious.
 
 ### IL
-Functions in IL simply described work like a stack. So you push data on the stack, then push an operation on the stack and it will consume as many elements as it needs and leave its result on the stack.  
+Simply described: functions in IL work like a stack. You push data on the stack, then push an operation. The operation then will consume as many elements as it needs and leave its result on the stack.  
 A simple example:
 
 ```cil
@@ -43,10 +44,12 @@ But, yeah my plan wasn't to make it the 'normal way'. I wanted the most straight
 ### Memory Layout
 
 Memory layout was pretty simple. While MMIX has 4 predefined regions `TEXT`, `DATA`, `POOL` and `STACK` and some rough guidance on how to use them, we can pretty much do whatever we want.  
-Nonetheless, let's be nice citizens and put compiled code into `TEXT`.  
-`DATA` is where our dynamically allocated data will be.  
-Static fields and constants dive into the `POOL`.  
-And last but not least the `STACK`. This is the only one that is predefined by MMIX how it's used.  
+Nonetheless, let's be nice citizens and follow the guidelines.
+- This means compiled code gets into `TEXT`.
+- `DATA` is where our dynamically allocated data will be.
+- Static fields and constants dive into the `POOL`.
+- And last but not least the `STACK`. This is the only one that is predefined by MMIX how it's used.
+
 Easy enough. Next.
 
 ### Allocation
@@ -56,7 +59,7 @@ Why only almost? Because the simplest solution would be to just keep allocating 
 The doubly-linked list has a nice versatility to it:
 1. Freeing an object is an O(1) operation in every case.  
 2. If we need want to burst allocate, we can just cache the current end and append each allocation.  
-3. If we want to allocate memory-efficient we can iterate though the list and find the first free region that is big enough at the tradeoff that allocating is now a O(n) operation.  
+3. If we want to allocate memory-efficient we can iterate though the list and find the first free region that is big enough. But at the tradeoff that allocating is now a O(n) operation.  
 
 A doubly-linked list, where each node stores the size of the block and a pointer to the previous and next node.  
 Simple enough:
@@ -69,30 +72,34 @@ public unsafe struct MemAllocNode
 }
 ```
 
-We store the size in each node just for case 3. so we can squeeze new allocations in between old allocations:  
+We store the size in each node just for case 3. so we can squeeze new allocations in the *free* space between old allocations:  
 ![memory layout](https://share.splamy.de/21/12/memory.svg)
 
 For C# speaking, pointers to structs might look weird, since that's basically the same as a class without all that `*`-stuff.  
 But in this case a struct has multiple advantages:
-- Reading and writing is by value and not though a pointer indirection.  
-  This means `var foo = bar;` copies all values instead of just the pointer.
 - Being a struct means we can work with it on the stack and don't have to allocate an object inbefore.  
-  (Which is useful when you are writing a `malloc` function to allocate in the first hand, duh!)
+  (Which is useful when you are writing a `malloc` function to allocate in the first place, duh!)
 - It's easy to to get a pointer to a struct in C#, which we will need to write to arbitrary addresses.  
   With classes we'd have a really bad time.
+- Reading and writing is by value and not though a pointer indirection.  
+  This means `var foo = bar;` copies all values instead of just the pointer.
 
 ### Arrays and Strings
 
 Ever noticed that `string`s are basically just `char[]`s? Yeah, me too, that's why I'm implementing both pretty much identically.  
-For an array `T[]` we just need 2 things: the size of the array and the pointer to the first element.  
+For an array `T[]` we just need to store 2 things: the size of the array and the pointer to the first element.  
 The only question is the memory layout. And here we have 2 choices:  
 ![Array layout](https://share.splamy.de/21/12/struct.svg)
 
-A) is as far as I know the way .NET and CoreCLR do it. And usually probably preferable since it's very cheap to pass and copy around. But it's a bit more work to implement and you have to be very careful handling that extra data at `ptr-8`.  
-B) on the other hand has the nice property of easily creating subslices of arrays. As well as another special advantage for MMIX. Some trap (=syscall) instructions, like reading stdin or writing stdout, require a pointer to struct with the buffer size and the buffer pointer.
+Option (A), as far as I know, is the way .NET and CoreCLR do it. And this is usually the preferable way since it's very cheap copy and pass the instance around. The only downside is that it's a bit more work to implement and you have to be very careful handling that extra data at `<ptr>-8`.
+
+Option (B) on the other hand has the nice property of easily creating subslices of arrays. Which makes `Span<T>` easy to implement since it's basically the same as `T[]`.  
+Plus there's another special advantage for MMIX. Some trap (=syscall) instructions, like reading from `stdin` or writing to `stdout`, require a pointer to struct with the buffer size and the buffer pointer, which already is exactly the memory layout this uses.  
 This makes B) a very worthwhile choice.
 
 ## How's it performing?
+
+For that, lets look at a simple example From C# over IL to MMIX.
 
 <table>
 <tr><td>C#</td><td>IL</td><td>MMIX</td></tr>
@@ -152,8 +159,6 @@ C.Add(Int32, Int32)
     L0004: ret
 ```
 
-
-
 ## Problems
 
 Ok, so where does this all break apart?  
@@ -187,7 +192,7 @@ There is a reason self-contained C# binaries are so huge even with trimming and 
 And last but not least: Garbage collection.  
 Yeah, it might be a bit clunky to write `free(...)` in C#, but it saves me from writing a full GC.
 
-# Conclusion
+## Conclusion
 
-All in all it was a very fun project, that I wouldn't do again.  
-Hope you enjoyed it.
+All in all this was a very fun project, that I wouldn't do again.  
+Hope you enjoyed reading :)

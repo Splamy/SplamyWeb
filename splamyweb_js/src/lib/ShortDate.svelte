@@ -1,8 +1,6 @@
 <script lang="ts">
-	import moment from 'moment';
-
-	export let date: string | moment.Moment;
-	$: datem = typeof date === 'string' ? moment(date) : date;
+	export let date: string | Date;
+	$: datem = typeof date === 'string' ? new Date(date) : date;
 </script>
 
-<span title={datem.toLocaleString()}>{datem.toDate().toDateString()}</span>
+<span title={datem.toLocaleString()}>{datem.toDateString()}</span>
