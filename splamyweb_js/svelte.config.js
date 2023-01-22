@@ -10,10 +10,9 @@ const config = {
 
 	kit: {
 		adapter: adapter(),
-
-		// hydrate the <div id="svelte"> element in src/app.html
-		target: '#svelte',
-		router: true,
+		browser: {
+			router: true,
+		},
 		prerender: {
 			crawl: true,
 			enabled: true,

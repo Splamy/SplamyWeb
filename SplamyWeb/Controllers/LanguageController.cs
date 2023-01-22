@@ -11,7 +11,6 @@ using SplamyWeb.Db;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -56,7 +55,7 @@ public class LanguageController : ControllerBase
 
 		var result = await db.LanguageEntries
 			.AsNoTracking()
-			.Where(x => x.Project == project)
+			.Where(x => x.Project == project && x.Active)
 			.ProjectTo<LangInfo>(isAdmin ? AdminMapping : UserMapping)
 			.ToListAsync();
 
@@ -80,7 +79,7 @@ public class LanguageController : ControllerBase
 		var langEntry = await GetLanguageEntry(project, culture);
 		// TODO change when other projects are added
 		var fullPath = new FileInfo(Path.Combine(languageBasePath, project, culture.Name, "TS3AudioBot.resources.dll"));
-		if (langEntry == null || !fullPath.Exists)
+		if (langEntry == null || !langEntry.Active || !fullPath.Exists)
 			return NotFound("The language was not found");
 
 		langEntry.DownloadCount++;
@@ -117,44 +116,67 @@ public class LanguageController : ControllerBase
 		if (downloadFiles)
 		{
 			Log.Info("Requested language update");
-			using var requestM = await TransifexRequest(HttpMethod.Get, "https://www.transifex.com/api/2/project/ts3audiobot/languages");
+			using var requestM = await TransifexRequest(HttpMethod.Get, "https://rest.api.transifex.com/projects/o:respeak:p:ts3audiobot/languages");
 			using var resultM = await httpClient.SendAsync(requestM);
 			if (!resultM.IsSuccessStatusCode)
 				return UnprocessableEntity("Error from transifex");
-			var languages = await resultM.Content.ReadFromJsonAsync<TransifexLanguage[]>(JsonDefault);
+			var languages = (await resultM.Content.ReadFromJsonAsync<TransifexOf<TransifexLanguage[]>>(JsonDefault))
+				?.data
+				?.Select(d => d.attributes?.code!)
+				.Where(code => code != null)
+				.ToArray();
 			if (languages is null)
 				return Problem("Could not get languages");
 
-			await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE nightly_lang");
+			//await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE nightly_lang");
+
+			var oldLangs = await db.LanguageEntries.ToListAsync();
+			oldLangs.ForEach(lang => lang.Active = false);
 
 			Log.Info("Fetching all localization files from transifex");
-			await Task.WhenAll(languages.Select(async lang =>
+
+			var langs = await Task.WhenAll(languages.Select(async language_code =>
 			{
 				string language;
 				try
 				{
-					language = CultureInfo.GetCultureInfo(lang.language_code.Replace("_", "-", StringComparison.Ordinal)).Name;
+					language = CultureInfo.GetCultureInfo(language_code.Replace("_", "-", StringComparison.Ordinal)).Name;
 					if (string.Equals(language, "BS-BA", StringComparison.OrdinalIgnoreCase))
 						language = "bs";
 				}
-				catch { return; }
+				catch { return null; }
 
-				using var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{lang.language_code}/?file");
+				using var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language_code}/?file");
 				using var result = await httpClient.SendAsync(request);
 				if (!result.IsSuccessStatusCode)
-					return;
+					return null;
 
 				using var demoDataStream = System.IO.File.Open(Path.Combine(projectPath, $"strings.{language}.resx"), FileMode.Create, FileAccess.Write);
 				using var stream = await result.Content.ReadAsStreamAsync();
 				await stream.CopyToAsync(demoDataStream);
 
-				await db.LanguageEntries.AddAsync(new LanguageEntry
+				return new LanguageEntry
 				{
 					Language = language,
 					Project = project,
+					Active = true,
 					UploadTime = DateTime.UtcNow
-				});
+				};
 			}));
+
+			foreach (var newLang in langs.Where(lang => lang != null))
+			{
+				var oldLang = oldLangs.FirstOrDefault(lang => lang.Project == newLang!.Project && lang.Language == newLang.Language);
+				if (oldLang != null)
+				{
+					oldLang.UploadTime = newLang!.UploadTime;
+					oldLang.Active = true;
+				}
+				else
+				{
+					await db.LanguageEntries.AddAsync(newLang!);
+				}
+			}
 
 			await db.SaveChangesAsync();
 		}
@@ -222,8 +244,7 @@ public class LanguageController : ControllerBase
 	{
 		var request = new HttpRequestMessage(method, link);
 		var auth = await store.GetTransifexAuth();
-		request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-			Convert.ToBase64String(Encoding.UTF8.GetBytes($"api:{auth}")));
+		request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth);
 		return request;
 	}
 
@@ -252,10 +273,20 @@ public class LanguageController : ControllerBase
 }
 
 #pragma warning disable IDE1006, CS8618 // Naming Styles
+
+internal class TransifexOf<T>
+{
+	public T data { get; set; }
+}
+
 internal class TransifexLanguage
 {
-	//public object coordinators { get; set; }
-	public string language_code { get; set; }
+	public TransifexLanguageAttributes attributes { get; set; }
+}
+
+internal class TransifexLanguageAttributes
+{
+	public string code { get; set; }
 }
 
 class LangInfo

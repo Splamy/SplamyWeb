@@ -106,7 +106,7 @@ public class NightlyController : ControllerBase
 
 		nProject = new NightlyProject() { Project = project };
 		nProject.ProjectName = name ?? project;
-		nProject.CommitUrl = commit_url ?? ""; // TODO real null ?
+		nProject.CommitUrl = commit_url;
 
 		await db.NightlyProjects.AddAsync(nProject);
 		await db.SaveChangesAsync();

@@ -138,11 +138,13 @@ public class ContentController : ControllerBase
 	public async Task<ActionResult<BlogPostUpdate>> SaveOrUpdatePost([FromBody] BlogPostUpdate blogPostUpdate)
 	{
 		BlogPost? blogPost;
+		bool wasVisible;
 		if (blogPostUpdate.PostId is { } postId)
 		{
 			blogPost = await db.BlogPosts.FindAsync(postId);
 			if (blogPost is null)
 				return BadRequest("Post to update not found");
+			wasVisible = blogPost.Visible;
 		}
 		else
 		{
@@ -153,11 +155,14 @@ public class ContentController : ControllerBase
 				CreateTime = DateTime.UtcNow,
 			};
 			await db.BlogPosts.AddAsync(blogPost);
+			wasVisible = true;
 		}
 
 		if (blogPostUpdate.Visible is { } visible) blogPost.Visible = visible;
 		if (blogPostUpdate.ContentRaw is not null) blogPost.ContentRaw = blogPostUpdate.ContentRaw;
 		if (blogPostUpdate.Tags is not null) blogPost.Tags = blogPostUpdate.Tags;
+		// If a post is published the first time set the create time
+		if (!wasVisible && blogPost.Visible) blogPost.CreateTime = DateTime.UtcNow;
 
 		TransformPostData(blogPost);
 

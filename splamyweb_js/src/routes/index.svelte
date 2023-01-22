@@ -1,6 +1,6 @@
 <script context="module" lang="ts">
 	import { BASE_URL } from '$lib/util';
-	import type { BlogListQuery, BlogViewData } from '$lib/api';
+	import type { BlogListQuery } from '$lib/api';
 	import type { Load } from '@sveltejs/kit';
 	import { prerendering } from '$app/env';
 

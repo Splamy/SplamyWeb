@@ -98,9 +98,10 @@
 			{/each}
 
 			<div class="field">
-				<label class="label">Current Password</label>
+				<label for="pass_old" class="label">Current Password</label>
 				<div class="control">
 					<input
+						id="pass_old"
 						name="pass_old"
 						class="input"
 						type="password"
@@ -110,16 +111,27 @@
 			</div>
 
 			<div class="field">
-				<label class="label">New Password</label>
+				<label for="pass" class="label">New Password</label>
 				<div class="control">
-					<input name="pass" class="input" type="password" placeholder="Enter Password" />
+					<input
+						id="pass"
+						name="pass"
+						class="input"
+						type="password"
+						placeholder="Enter Password"
+					/>
 				</div>
 			</div>
 
 			<div class="field">
-				<label class="label">Confirm Password</label>
+				<label for="confirm_pass" class="label">Confirm Password</label>
 				<div class="control">
-					<input class="input" type="password" placeholder="Confirm Password" />
+					<input
+						id="confirm_pass"
+						class="input"
+						type="password"
+						placeholder="Confirm Password"
+					/>
 				</div>
 			</div>
 

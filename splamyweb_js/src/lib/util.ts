@@ -136,3 +136,15 @@ export function autosize(el: HTMLTextAreaElement) {
 	setHeight();
 	el.addEventListener('input', setHeight);
 }
+
+export function isEqual<T>(a: T, b: T): boolean {
+	if (a === b) return true;
+	if (a == null || b == null) return false;
+	if (typeof a !== 'object' || typeof b !== 'object') return false;
+	const keys = Object.keys(a);
+	if (keys.length !== Object.keys(b).length) return false;
+	for (const key of keys) {
+		if (!isEqual(a[key], b[key])) return false;
+	}
+	return true;
+}

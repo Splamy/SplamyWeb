@@ -4,10 +4,10 @@
 	import type { Load } from '@sveltejs/kit';
 	import { prerendering } from '$app/env';
 
-	export const load: Load = async ({ fetch, page }) => {
+	export const load: Load = async ({ fetch, url }) => {
 		if (prerendering) return {};
 
-		const post = page.query.get('i');
+		const post = url.searchParams.get('i');
 		if (post) {
 			const res = await fetch(`${BASE_URL}/api/content/post/${post}`, {
 				credentials: 'include'

@@ -1,13 +1,13 @@
 <script context="module" lang="ts">
-	import { BASE_URL } from '$lib/util';
+	import { BASE_URL, isEqual } from '$lib/util';
 	import type { BlogPostUpdate } from '$lib/api';
 	import type { Load } from '@sveltejs/kit';
 	import { prerendering } from '$app/env';
 
-	export const load: Load = async ({ fetch, page }) => {
+	export const load: Load = async ({ fetch, url }) => {
 		if (prerendering) return {};
 
-		const post = page.query.get('post');
+		const post = url.searchParams.get('post');
 		if (post) {
 			const res = await fetch(`${BASE_URL}/api/content/post/${post}/raw`, {
 				credentials: 'include'
@@ -30,7 +30,7 @@
 </script>
 
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import RenderedTextEditor from '$lib/blog/RenderedTextEditor.svelte';
 	import swal from 'sweetalert';
@@ -40,9 +40,11 @@
 
 	export let postId: string | undefined = undefined;
 	export let postEdit: BlogPostUpdate = {
+		contentRaw: "",
 		visible: true,
-		tags: []
+		tags: [],
 	};
+	let original = freeze(postEdit);
 
 	// ?post=<number>
 	let view: View;
@@ -64,6 +66,7 @@
 
 			const update = await res.json();
 			postEdit = Object.assign(postEdit, update);
+			original = freeze(postEdit);
 		} catch (err) {
 			await swal(err);
 		} finally {
@@ -104,17 +107,22 @@
 		return answer as boolean;
 	}
 
-	async function fetchPost(post: string) {
+	async function fetchPost(postId: string) {
 		try {
-			const res = await fetch(`${BASE_URL}/api/content/post/${post}/raw`, {
+			const res = await fetch(`${BASE_URL}/api/content/post/${postId}/raw`, {
 				credentials: 'include'
 			});
 			const json: BlogPostUpdate = await res.json();
 
 			if (res.ok) {
 				postEdit = json;
+				original = freeze(postEdit);
 			}
 		} catch (err) {}
+	}
+
+	function freeze<T>(obj: T): Readonly<T> {
+		return JSON.parse(JSON.stringify(obj));
 	}
 
 	onMount(() => {
@@ -123,6 +131,24 @@
 		if (postId !== queryPostId && queryPostId) {
 			fetchPost(queryPostId);
 		}
+	});
+
+	let wantDiscard = false;
+	beforeNavigate(({ from, to, cancel }) => {
+		//console.log("inchange", from, to);
+		if (wantDiscard || isEqual(postEdit, original)) return;
+		cancel();
+		const hasId = postEdit.postId !== undefined;
+		swal('Wanna leave, you have changes?', {
+			dangerMode: true,
+			buttons: ['Stay', 'Discard']
+		}).then((answer) => {
+			console.log("answer", answer);
+			if (answer === true) {
+				wantDiscard = true;
+				goto(to.href);
+			}
+		});
 	});
 </script>
 

@@ -15,7 +15,7 @@ public class NightlyProject
 	[Key]
 	public string Project { get; set; } // Something like "ts3ab", "ts3hook"
 	public string ProjectName { get; set; }
-	public string CommitUrl { get; set; } // https://github.com/Splamy/TS3AudioBot/commit/{0}
+	public string? CommitUrl { get; set; } // https://github.com/Splamy/TS3AudioBot/commit/{0}
 }
 
 [DebuggerDisplay("{Project},{Branch}: Active:{Active}")]
@@ -53,6 +53,7 @@ public class LanguageEntry
 	public string Project { get; set; }
 	public string Language { get; set; }
 
+	public bool Active { get; set; }
 	public DateTime UploadTime { get; set; }
 	public int DownloadCount { get; set; }
 }

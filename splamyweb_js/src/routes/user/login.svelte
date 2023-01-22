@@ -25,8 +25,8 @@
 			result: async (res, form) => {
 				applyLoginResult(await res.json());
 
-				let queryParams = new URLSearchParams(window.location.search);
-				let returnUrl = queryParams.get('return');
+				const queryParams = new URLSearchParams(window.location.search);
+				const returnUrl = queryParams.get('return');
 				form.reset();
 				goto(returnUrl ?? `/`);
 			},

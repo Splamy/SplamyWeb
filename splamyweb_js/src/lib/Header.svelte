@@ -66,7 +66,7 @@
 			</label>
 		</form>
 	{:else}
-		<a class="navl navuser" href="/user/login?return={$page.path}">Login</a>
+		<a class="navl navuser" href="/user/login?return={$page.url.pathname}">Login</a>
 	{/if}
 </nav>
 
