@@ -317,7 +317,7 @@ public class ContentController : ControllerBase
 
 	public class BlogItemQuery
 	{
-		public BlogPostView Post { get; init; }
+		public required BlogPostView Post { get; init; }
 		public IList<BlogPostShortView>? RecentPosts { get; init; }
 	}
 

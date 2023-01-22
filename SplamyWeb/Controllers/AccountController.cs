@@ -71,7 +71,12 @@ public class AccountController : ControllerBase
 		[FromForm] string? pass_old)
 	{
 		var currentUser = await userManager.GetUserAsync(User);
-		LoginData editedUser;
+		if (currentUser is null)
+		{
+			return Forbid();
+		}
+
+		LoginData? editedUser;
 		if (id == currentUser.Id)
 		{
 			editedUser = currentUser;
@@ -83,7 +88,9 @@ public class AccountController : ControllerBase
 			// Admin feature
 			editedUser = await userManager.FindByIdAsync(id.ToString());
 			if (editedUser is null)
+			{
 				return NotFound("User to edit not found");
+			}
 		}
 
 		if (!string.IsNullOrWhiteSpace(name))

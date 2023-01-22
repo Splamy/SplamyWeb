@@ -120,6 +120,7 @@ ORDER BY Date").ToArrayAsync();
 	}
 }
 
+[Keyless]
 public class CachedDayStats
 {
 	public DateTime Date { get; set; }
@@ -128,6 +129,7 @@ public class CachedDayStats
 	public TimeSpan PlaybackTime { get; set; }
 }
 
+[Keyless]
 public class PlaytimeDto
 {
 	public TimeSpan? Playtime { get; set; }

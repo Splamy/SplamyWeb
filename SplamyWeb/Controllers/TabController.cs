@@ -46,7 +46,7 @@ public class TabController : ControllerBase
 		}
 		catch (Exception jsonEx)
 		{
-			string jsonPeek = "";
+			string jsonPeek;
 			try
 			{
 				CleanNewlines(readSlice.Span);

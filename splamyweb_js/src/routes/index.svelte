@@ -55,7 +55,7 @@
 <div class="easteregg">
 	<span class="icon-text" style="cursor: pointer;" on:click={init}>
 		<Icon path={mdiRobotHappy} addclass="padr" />
-		woking on more stuff...
+		working on more stuff...
 	</span>
 </div>
 

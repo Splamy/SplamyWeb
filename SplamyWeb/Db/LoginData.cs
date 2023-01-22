@@ -9,8 +9,8 @@ public class LoginData
 {
 	[Key]
 	public int Id { get; set; }
-	public string Name { get; set; }
-	public string NameNormalized { get; set; }
+	public string? Name { get; set; }
+	public string? NameNormalized { get; set; }
 	public byte[] Password { get; set; }
 	public byte[] Salt { get; set; }
 	public string Token { get; set; }
@@ -18,7 +18,7 @@ public class LoginData
 
 	public LoginData() { }
 
-	public LoginData(string name, byte[] password, byte[] salt, string token, UserType rank)
+	public LoginData(string? name, byte[] password, byte[] salt, string token, UserType rank)
 	{
 		Name = name;
 		NameNormalized = NormalizeName(name);
@@ -34,7 +34,7 @@ public class LoginData
 		NameNormalized = NormalizeName(name);
 	}
 
-	public static string NormalizeName(string name) => name.ToUpperInvariant();
+	public static string? NormalizeName(string? name) => name?.ToUpperInvariant();
 
 	public bool CanEditOtherUser() => Rank.AtLeast(UserType.Admin);
 	public bool CanSetRankUpTo(UserType targetRank) => targetRank <= Rank.CanSetRankUpTo();

@@ -23,11 +23,13 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 
 	public async Task<LoginData?> GetUserByToken(string token)
 	{
-		if (token == null)
+		if (string.IsNullOrWhiteSpace(token))
+		{
 			return null;
-		return await (from user in context.User.AsNoTracking()
-					  where user.Token == token
-					  select user).FirstOrDefaultAsync();
+		}
+		return await context.User.AsNoTracking()
+			.Where(user => user.Token == token)
+			.FirstOrDefaultAsync();
 	}
 
 	public static async Task InitializeAccountWhenEmpty(SplamyContext db, NLog.Logger logger)
@@ -84,26 +86,26 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 		return user.Id.ToString(CultureInfo.InvariantCulture);
 	}
 
-	public async Task<string> GetUserNameAsync(LoginData user, CancellationToken cancellationToken)
+	public async Task<string?> GetUserNameAsync(LoginData user, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		return user.Name;
 	}
 
-	public async Task SetUserNameAsync(LoginData user, string userName, CancellationToken cancellationToken)
+	public async Task SetUserNameAsync(LoginData user, string? userName, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		user.Name = userName;
 		await context.SaveChangesAsync(cancellationToken);
 	}
 
-	public async Task<string> GetNormalizedUserNameAsync(LoginData user, CancellationToken cancellationToken)
+	public async Task<string?> GetNormalizedUserNameAsync(LoginData user, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		return user.NameNormalized;
 	}
 
-	public async Task SetNormalizedUserNameAsync(LoginData user, string normalizedName, CancellationToken cancellationToken)
+	public async Task SetNormalizedUserNameAsync(LoginData user, string? normalizedName, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		user.NameNormalized = normalizedName;
@@ -147,60 +149,65 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 		return role.Rank.ToString().ToUpperInvariant();
 	}
 
-	public async Task<string> GetRoleNameAsync(LoginData role, CancellationToken cancellationToken)
+	public async Task<string?> GetRoleNameAsync(LoginData role, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		return role.Rank.ToString();
 	}
 
-	public async Task SetRoleNameAsync(LoginData role, string roleName, CancellationToken cancellationToken)
+	public async Task SetRoleNameAsync(LoginData role, string? roleName, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		role.Rank = Enum.Parse<UserType>(roleName);
+		role.Rank = string.IsNullOrEmpty(roleName)
+			? UserType.User
+			: Enum.Parse<UserType>(roleName);
 		await context.SaveChangesAsync(cancellationToken);
 	}
 
-	public async Task<string> GetNormalizedRoleNameAsync(LoginData role, CancellationToken cancellationToken)
+	public async Task<string?> GetNormalizedRoleNameAsync(LoginData role, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		return role.Rank.ToString().ToUpperInvariant();
 	}
 
-	public async Task SetNormalizedRoleNameAsync(LoginData role, string normalizedName, CancellationToken cancellationToken)
+	public async Task SetNormalizedRoleNameAsync(LoginData role, string? normalizedName, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		role.Rank = Enum.Parse<UserType>(normalizedName, true);
+		role.Rank = string.IsNullOrEmpty(normalizedName)
+			? UserType.User
+			: Enum.Parse<UserType>(normalizedName, true);
 		await context.SaveChangesAsync(cancellationToken);
 	}
 
-	public async Task<LoginData> FindByIdAsync(string roleId, CancellationToken cancellationToken)
+	public async Task<LoginData?> FindByIdAsync(string roleId, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		var irole = int.Parse(roleId, CultureInfo.InvariantCulture);
 		// Using ! to ignor nullability warning since the interface for some reason doesn't declare it nullable
 		return (await (from user in context.User.AsNoTracking()
-					  where user.Id == irole
-					  select user).FirstOrDefaultAsync(cancellationToken))!;
+					   where user.Id == irole
+					   select user).FirstOrDefaultAsync(cancellationToken))!;
 	}
 
 	// TODO split up role <-> user
-	public async Task<LoginData> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
+	public async Task<LoginData?> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		// Using ! to ignor nullability warning since the interface for some reason doesn't declare it nullable
 		return (await (from user in context.User.AsNoTracking()
-					  where user.NameNormalized == normalizedRoleName
-					  select user).FirstOrDefaultAsync(cancellationToken))!;
+					   where user.NameNormalized == normalizedRoleName
+					   select user).FirstOrDefaultAsync(cancellationToken))!;
 	}
 
-	public async Task SetPasswordHashAsync(LoginData user, string passwordHash, CancellationToken cancellationToken)
+	public async Task SetPasswordHashAsync(LoginData user, string? passwordHash, CancellationToken cancellationToken)
 	{
+		ArgumentNullException.ThrowIfNull(passwordHash);
 		cancellationToken.ThrowIfCancellationRequested();
 		user.Password = Convert.FromBase64String(passwordHash);
 		await context.SaveChangesAsync(cancellationToken);
 	}
 
-	public async Task<string> GetPasswordHashAsync(LoginData user, CancellationToken cancellationToken)
+	public async Task<string?> GetPasswordHashAsync(LoginData user, CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		return Convert.ToBase64String(user.Password);
@@ -212,7 +219,7 @@ public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginD
 		return user.Password != null;
 	}
 
-	public async Task<IdentityResult> ValidateAsync(UserManager<LoginData> manager, LoginData user, string password)
+	public async Task<IdentityResult> ValidateAsync(UserManager<LoginData> manager, LoginData user, string? password)
 	{
 		return IdentityResult.Success;
 	}

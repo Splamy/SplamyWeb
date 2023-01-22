@@ -37,6 +37,7 @@ public static class ServerLog
 	}
 }
 
+#pragma warning disable CA1036 // Override methods on comparable types
 public class ServerLogEntry : IComparable<ServerLogEntry>
 {
 	public int SequenceID { get; init; }
@@ -58,6 +59,7 @@ public class ServerLogEntry : IComparable<ServerLogEntry>
 
 	public int CompareTo(ServerLogEntry? other) => other != null ? SequenceID - other.SequenceID : 0;
 }
+#pragma warning restore CA1036 // Override methods on comparable types
 
 public class ServerLogEntryProfile : Profile
 {

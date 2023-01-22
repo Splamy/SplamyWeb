@@ -14,7 +14,7 @@ using System.Xml.Serialization;
 
 namespace SplamyWeb;
 
-public static class Util
+public static partial class Util
 {
 	public const string AuthScheme = "BasicAuthentication,Identity.Application";
 
@@ -28,8 +28,11 @@ public static class Util
 		httpClient.DefaultRequestHeaders.UserAgent.Add(new("SplamyWeb", "1.0.0"));
 	}
 
-	private static readonly Regex saveRegex = new(@"^[\w\d-_]*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript);
-	public static readonly Regex fileCleanRegex = new(@"[^\w\d-_]", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript);
+
+	[GeneratedRegex("""^[\w\d-_]*$""", RegexOptions.IgnoreCase)]
+	private static partial Regex saveRegex();
+	[GeneratedRegex("""[^\w\d-_]""", RegexOptions.IgnoreCase)]
+	private static partial Regex fileCleanRegex();
 
 	public static readonly JsonSerializerOptions JsonDefault = new()
 	{
@@ -41,10 +44,10 @@ public static class Util
 		Converters = { new TimeSpanConverter(TimeSpanFormatting.ToString) },
 	};
 
-	public static bool IsSave(string param) => saveRegex.IsMatch(param);
+	public static bool IsSave(string param) => saveRegex().IsMatch(param);
 	public static string CleanFilenameForPath(string name)
 	{
-		var clean = fileCleanRegex.Replace(name, "");
+		var clean = fileCleanRegex().Replace(name, "");
 		if (clean.Contains('.') || clean.Contains('/') || clean.Contains('\\'))
 		{
 			throw new Exception($"This shouldn't happen. Source: <{name}> Clean: <{clean}>");
@@ -91,7 +94,7 @@ public static class Util
 	}
 }
 
-internal class TimeSpanConverter : JsonConverter<TimeSpan>
+internal partial class TimeSpanConverter : JsonConverter<TimeSpan>
 {
 	private readonly TimeSpanFormatting format;
 
@@ -148,7 +151,9 @@ internal class TimeSpanConverter : JsonConverter<TimeSpan>
 			?? ParseTimeAsToString(value);
 	}
 
-	private static readonly Regex TimeReg = new(@"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?(?:(\d+)ms)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript);
+
+	[GeneratedRegex("^(?:(\\d+)d)?(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?(?:(\\d+)ms)?$", RegexOptions.IgnoreCase)]
+	private static partial Regex TimeReg();
 
 	private static TimeSpan? ParseTimeAsSimple(string value)
 	{
@@ -159,7 +164,7 @@ internal class TimeSpanConverter : JsonConverter<TimeSpan>
 			return int.TryParse(svalue, out var num) ? num : 0;
 		}
 
-		var match = TimeReg.Match(value);
+		var match = TimeReg().Match(value);
 		if (match.Success)
 		{
 			try

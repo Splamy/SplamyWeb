@@ -45,6 +45,10 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 			var username = credentials[0];
 			var password = credentials[1];
 			var getUser = await userManager.FindByNameAsync(username);
+			if (getUser is null)
+			{
+				return AuthenticateResult.Fail("Invalid Username or Password");
+			}
 			var signInCheck = await signInManager.CheckPasswordSignInAsync(getUser, password, false);
 			if (signInCheck.Succeeded)
 			{
@@ -60,9 +64,9 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 			return AuthenticateResult.Fail("Invalid Username or Password");
 
 		var claims = new[] {
-				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture)),
-				new Claim(ClaimTypes.Name, user.Name),
-			};
+			new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture)),
+			new Claim(ClaimTypes.Name, user.Name),
+		};
 		var identity = new ClaimsIdentity(claims, Scheme.Name);
 		var principal = new ClaimsPrincipal(identity);
 		var ticket = new AuthenticationTicket(principal, Scheme.Name);

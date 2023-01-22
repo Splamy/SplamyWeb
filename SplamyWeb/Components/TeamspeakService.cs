@@ -17,12 +17,16 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public class TeamspeakService
+public partial class TeamspeakService
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
-	private static readonly Regex diffMatch = new("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript);
-	private static readonly Regex versionClean = new(@"[^a-zA-Z0-9\+=/]");
+	[GeneratedRegex("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript)]
+	private static partial Regex diffMatch();
+	
+	[GeneratedRegex("[^a-zA-Z0-9\\+=/]")]
+	private static partial Regex versionClean();
+	
 	public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
 
 	private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
@@ -55,7 +59,7 @@ public class TeamspeakService
 
 			using var response = await Util.httpClient.GetAsync(url);
 			var diff = await response.Content.ReadAsStringAsync();
-			foreach (var item in (IEnumerable<Match>)diffMatch.Matches(diff))
+			foreach (var item in (IEnumerable<Match>)diffMatch().Matches(diff))
 			{
 				if (item.Value == "diff --git a/Version.csv b/Version.csv")
 				{
@@ -243,7 +247,7 @@ public class TeamspeakService
 
 	public static VersionError? CheckVersion(VersionSign sign)
 	{
-		var tryFixSignStr = versionClean.Replace(sign.Sign, "");
+		var tryFixSignStr = versionClean().Replace(sign.Sign, "");
 		if (tryFixSignStr != sign.Sign)
 		{
 			var tryFixSign = new VersionSign(sign.Build, sign.Platform, tryFixSignStr);
@@ -488,14 +492,15 @@ public class VersionError
 	}
 }
 
-public sealed class VersionSign : IEquatable<VersionSign>
+public sealed partial class VersionSign : IEquatable<VersionSign>
 {
 	public string Sign { get; }
 	public string Build { get; }
 	public long BuildNumber { get; }
 	public string Platform { get; }
 
-	private static readonly Regex buildMatch = new(@"\[Build: (\d+)\]", RegexOptions.Compiled | RegexOptions.ECMAScript);
+	[GeneratedRegex("\\[Build: (\\d+)\\]")]
+	private static partial Regex BuildMatch();
 
 	public VersionSign(string build, string platform, string sign)
 	{
@@ -503,7 +508,7 @@ public sealed class VersionSign : IEquatable<VersionSign>
 		Platform = platform ?? throw new ArgumentNullException(nameof(platform));
 		Sign = sign ?? throw new ArgumentNullException(nameof(sign));
 
-		var match = buildMatch.Match(Build);
+		var match = BuildMatch().Match(Build);
 		if (match.Success && long.TryParse(match.Groups[1].Value, out var buildNum))
 			BuildNumber = buildNum;
 		else

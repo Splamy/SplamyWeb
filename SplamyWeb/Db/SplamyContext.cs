@@ -6,17 +6,16 @@ namespace SplamyWeb.Db;
 
 public class SplamyContext : DbContext
 {
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-	public DbSet<RamsesSongDto> RamsesSongs { get; set; }
-	public DbSet<StoreEntry> StoreTable { get; set; }
-	public DbSet<TabStatsPingDto> TabStatsPings { get; set; }
-	public DbSet<TabStatsFactoryDto> TabStatsFactories { get; set; }
-	public DbSet<LoginData> User { get; set; }
-	public DbSet<NightlyProject> NightlyProjects { get; set; }
-	public DbSet<NightlyBranch> NightlyBranches { get; set; }
-	public DbSet<NightlyBuild> NightlyBuilds { get; set; }
-	public DbSet<LanguageEntry> LanguageEntries { get; set; }
-	public DbSet<BlogPost> BlogPosts { get; set; }
+	public required DbSet<RamsesSongDto> RamsesSongs { get; set; }
+	public required DbSet<StoreEntry> StoreTable { get; set; }
+	public required DbSet<TabStatsPingDto> TabStatsPings { get; set; }
+	public required DbSet<TabStatsFactoryDto> TabStatsFactories { get; set; }
+	public required DbSet<LoginData> User { get; set; }
+	public required DbSet<NightlyProject> NightlyProjects { get; set; }
+	public required DbSet<NightlyBranch> NightlyBranches { get; set; }
+	public required DbSet<NightlyBuild> NightlyBuilds { get; set; }
+	public required DbSet<LanguageEntry> LanguageEntries { get; set; }
+	public required DbSet<BlogPost> BlogPosts { get; set; }
 
 	// https://docs.microsoft.com/en-us/ef/core/miscellaneous/logging?tabs=v3
 	public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
@@ -26,7 +25,6 @@ public class SplamyContext : DbContext
 	{
 		this.conf = conf;
 	}
-#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
 	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 	{
@@ -66,8 +64,8 @@ public class SplamyContext : DbContext
 
 		// This tells EF to not create a table for this Type (We only want to query with it)
 		// see https://stackoverflow.com/questions/60076606/net-core-3-x-keyless-entity-types-avoid-table-creation
-		modelBuilder.Entity<CachedDayStats>().HasNoKey().ToTable(null, t => t.ExcludeFromMigrations());
-		modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToTable(null, t => t.ExcludeFromMigrations());
+		modelBuilder.Entity<CachedDayStats>().HasNoKey().ToTable(t => t.ExcludeFromMigrations()).ToView(null);
+		modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToTable(t => t.ExcludeFromMigrations()).ToView(null);
 
 		// *** Nightly
 
