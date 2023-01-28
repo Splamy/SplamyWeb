@@ -2,10 +2,11 @@
 	import * as signalR from '@microsoft/signalr';
 	import { autosize, BASE_URL, debounced } from '$lib/util';
 	import { onMount } from 'svelte';
-	import { prerendering } from '$app/env';
+	import { building } from "$app/environment";
 	import { View } from './editor';
 	import PostView from './PostView.svelte';
-	import { BlogPostUpdate, BlogPostView, EMPTY_POST } from '$lib/api';
+	import type { BlogPostUpdate, BlogPostView } from '$lib/api';
+	import { EMPTY_POST } from '$lib/api';
 
 	export let raw: string = '';
 	export let postEdit: BlogPostUpdate = {};
@@ -14,7 +15,7 @@
 	let post: BlogPostView = EMPTY_POST();
 	let connection: signalR.HubConnection | undefined = undefined;
 
-	if (!prerendering) {
+	if (!building) {
 		init();
 	}
 

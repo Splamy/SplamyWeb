@@ -1,33 +1,11 @@
-<script context="module" lang="ts">
-	import type { Load } from '@sveltejs/kit';
-	import type { KeyValue } from '$lib/api';
-	import { browser } from '$app/env';
-
-	export const load: Load = async ({ fetch }) => {
-		if (!browser) return {};
-		const res = await fetch(`${BASE_URL}/api/store/all`, {
-			credentials: 'include'
-		});
-		const kvpList = (await res.json()) as KeyValue[];
-
-		if (res.ok) {
-			return {
-				props: {
-					kvpList
-				}
-			};
-		}
-
-		return { status: res.status };
-	};
-</script>
-
 <script lang="ts">
 	import Icon from '$lib/Icon.svelte';
 	import { autosize, BASE_URL } from '$lib/util';
 	import { mdiContentSave, mdiDelete, mdiPlus } from '@mdi/js';
+	import type { KeyValue } from '$lib/api';
+	import type { PageData } from './$types';
 
-	export let kvpList: KeyValue[] = [];
+	export let data: PageData;
 
 	function onenter(func: () => void) {
 		return (e: KeyboardEvent) => {
@@ -86,7 +64,7 @@
 		const res = await fetch(`${BASE_URL}/api/store/all`, {
 			credentials: 'include'
 		});
-		kvpList = (await res.json()) as KeyValue[];
+		data.kvpList = (await res.json()) as KeyValue[];
 	}
 
 	function protectText(this: HTMLElement) {
@@ -111,7 +89,7 @@
 		</tr>
 	</thead>
 	<tbody>
-		{#each kvpList as { key, value }}
+		{#each data.kvpList as { key, value }}
 			<tr>
 				<td class="compact">
 					<label class="label" for="key_{key}">{key}</label>
@@ -158,7 +136,6 @@
 					id="new_value"
 					autocomplete="off"
 					class="input"
-					type="text"
 					placeholder="value"
 					bind:value={new_kvp_value}
 					use:autosize
@@ -166,7 +143,7 @@
 				/>
 			</td>
 			<td class="compact">
-				<button href="#" class="button" on:click={() => createKey()}>
+				<button class="button" on:click={() => createKey()}>
 					<Icon path={mdiPlus} />
 				</button>
 			</td>
@@ -175,7 +152,7 @@
 </table>
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/elements/table';
 	@import 'bulma/sass/form/shared';
 	@import 'bulma/sass/form/tools';

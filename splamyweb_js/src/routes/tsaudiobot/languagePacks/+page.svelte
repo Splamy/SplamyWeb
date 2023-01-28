@@ -1,32 +1,9 @@
-<script context="module" lang="ts">
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-
-	export const load: Load = async ({ fetch }) => {
-		if (prerendering) return {};
-		const res = await fetch(`${BASE_URL}/api/language/project/ts3ab/languages`, {
-			credentials: 'include'
-		});
-		const langs = (await res.json()) as LangInfo[];
-
-		if (res.ok) {
-			return {
-				props: {
-					langs
-				}
-			};
-		}
-
-		return { status: res.status };
-	};
-</script>
-
 <script lang="ts">
 	import { BASE_URL } from '$lib/util';
-	import type { LangInfo } from '$lib/api';
 	import ShortDate from '$lib/ShortDate.svelte';
+	import type { PageData } from './$types';
 
-	export let langs: LangInfo[] = [];
+	export let data: PageData;
 </script>
 
 <svelte:head>
@@ -62,7 +39,7 @@
 			<th>Link</th>
 		</tr>
 
-		{#each langs as lang}
+		{#each data.langs as lang}
 			<tr>
 				<td>{lang.displayName}</td>
 				<td><ShortDate date={lang.uploadTime} /></td>
@@ -79,8 +56,8 @@
 </article>
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/elements/title';
 	@import 'bulma/sass/elements/table';
-	@import "bulma/sass/elements/notification";
+	@import 'bulma/sass/elements/notification';
 </style>

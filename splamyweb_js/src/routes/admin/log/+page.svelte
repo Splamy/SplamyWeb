@@ -1,9 +1,5 @@
-<script context="module">
-	export const prerender = false;
-</script>
-
 <script lang="ts">
-	import { browser, prerendering } from '$app/env';
+	import { browser, building } from "$app/environment";
 	import { BASE_URL } from '$lib/util';
 	import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 	import VirtualList from 'svelte-tiny-virtual-list';
@@ -19,7 +15,7 @@
 	init();
 
 	async function init() {
-		if (!browser || prerendering) return;
+		if (!browser || building) return;
 
 		connection = new HubConnectionBuilder().withUrl(`${BASE_URL}/livelog`).build();
 

@@ -1,0 +1,21 @@
+import { BASE_URL } from '$lib/util';
+import type { BlogListQuery } from '$lib/api';
+import type { PageLoad } from './$types';
+import { building } from "$app/environment";
+import { error } from '@sveltejs/kit';
+
+export const load: PageLoad = async ({ fetch }) => {
+	if (building) return {};
+	const res = await fetch(`${BASE_URL}/api/content/posts`, {
+		credentials: 'include'
+	});
+	const json: BlogListQuery = await res.json();
+
+	if (res.ok) {
+		return {
+			query: json
+		};
+	}
+
+	throw error(res.status, "Load Error XXX TODO");
+};

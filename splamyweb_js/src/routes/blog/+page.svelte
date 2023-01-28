@@ -1,35 +1,11 @@
-<script context="module" lang="ts">
-	import { BASE_URL } from '$lib/util';
-	import type { BlogListQuery } from '$lib/api';
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-
-	export const load: Load = async ({ fetch }) => {
-		if (prerendering) return {};
-		const res = await fetch(`${BASE_URL}/api/content/posts`, {
-			credentials: 'include'
-		});
-		const json: BlogListQuery = await res.json();
-
-		if (res.ok) {
-			return {
-				props: {
-					query: json
-				}
-			};
-		}
-
-		return { status: res.status };
-	};
-</script>
-
 <script lang="ts">
 	import SummaryView from '$lib/blog/SummaryView.svelte';
 	import Icon from '$lib/Icon.svelte';
 	import { mdiRss } from '@mdi/js';
+	import type { PageData } from './$types';
 
-	export let query: BlogListQuery;
-	$: posts = query?.posts ?? [];
+	export let data: PageData;
+	$: posts = data.query?.posts ?? [];
 </script>
 
 <svelte:head>

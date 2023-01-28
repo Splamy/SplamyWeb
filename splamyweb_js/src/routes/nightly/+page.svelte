@@ -1,36 +1,13 @@
-<script context="module" lang="ts">
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-	import { BASE_URL } from '$lib/util';
-
-	// see https://kit.svelte.dev/docs#loading
-	export const load: Load = async ({ fetch }) => {
-		if (prerendering) return {};
-		const res = await fetch(`${BASE_URL}/api/nightly/projects`, {
-			credentials: 'include'
-		});
-		const projects = (await res.json()) as ProjectInfo[];
-
-		if (res.ok) {
-			return {
-				props: {
-					projects
-				}
-			};
-		}
-
-		return { status: res.status };
-	};
-</script>
-
 <script lang="ts">
 	import swal from 'sweetalert';
 	import type { ProjectInfo } from '$lib/api';
 	import Icon from '$lib/Icon.svelte';
 	import ShortDate from '$lib/ShortDate.svelte';
 	import { mdiClose } from '@mdi/js';
+	import { BASE_URL } from '$lib/util';
+	import type { PageData } from './$types';
 
-	export let projects: ProjectInfo[] = [];
+	export let data: PageData;
 
 	async function askDeleteNightly(project: string, branch: string) {
 		const answer = await swal(`Delete ${project}/${branch} ?`, {
@@ -67,7 +44,7 @@
 <h1 class="title">Nightly Builds</h1>
 
 <!-- {@debug projects} -->
-{#each projects as project}
+{#each data.projects as project}
 	<div class="box">
 		<h2 id={project.project} class="is-size-4">{project.projectName ?? '<unnamed>'}:</h2>
 		{#if project.notification}
@@ -132,7 +109,7 @@
 {/each}
 
 <style lang="scss">
-	@import '../lib/css/_prelude';
+	@import '../../lib/css/_prelude';
 	@import 'bulma/sass/elements/title';
 	@import 'bulma/sass/elements/table';
 	@import 'bulma/sass/elements/button';

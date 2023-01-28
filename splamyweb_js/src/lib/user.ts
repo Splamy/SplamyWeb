@@ -1,4 +1,4 @@
-import { prerendering } from "$app/env";
+import { building } from "$app/environment";
 import { writable } from "svelte/store";
 import type { LoginResult } from "./api";
 import { BASE_URL } from "./util";
@@ -24,7 +24,7 @@ export function applyLoginResult(result: LoginResult | null) {
 }
 
 export async function fetchCurrentUser() {
-	if (prerendering) return;
+	if (building) return;
 	try {
 		const res = await fetch(`${BASE_URL}/account/whoami`, {
 			credentials: "include",

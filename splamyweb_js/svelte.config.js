@@ -1,36 +1,25 @@
 import adapter from '@sveltejs/adapter-static';
-import preprocess from 'svelte-preprocess';
+import { vitePreprocess } from '@sveltejs/kit/vite';
 
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	// Consult https://github.com/sveltejs/svelte-preprocess
 	// for more information about preprocessors
-	preprocess: preprocess(),
+	preprocess: vitePreprocess(),
 
 	kit: {
-		adapter: adapter(),
-		browser: {
-			router: true,
-		},
+		adapter: adapter({
+			fallback: 'app.html',
+		}),
 		prerender: {
 			crawl: true,
-			enabled: true,
-			onError: "continue",
+			handleHttpError: "warn",
 		},
 
-		vite: {
-			build: {
-				rollupOptions: {
-					output: {
-						// https://github.com/sveltejs/kit/issues/1632
-						// https://github.com/sveltejs/kit/issues/1571
-						// https://github.com/vitejs/vite/issues/3731
-						manualChunks: undefined
-					}
-				}
-			}
-		}
+		alias: {
+			//"@": resolve(projectRootDir, "src"),
+		},
 	},
 };
 

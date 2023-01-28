@@ -72,7 +72,7 @@
 </div>
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/form/shared';
 	@import 'bulma/sass/form/tools';
 	@import 'bulma/sass/form/input-textarea';

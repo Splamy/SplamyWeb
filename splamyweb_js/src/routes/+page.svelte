@@ -1,26 +1,3 @@
-<script context="module" lang="ts">
-	import { BASE_URL } from '$lib/util';
-	import type { BlogListQuery } from '$lib/api';
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-
-	export const load: Load = async ({ fetch }) => {
-		if (prerendering) return {};
-		const res = await fetch(`${BASE_URL}/api/content/home`);
-		const json: BlogListQuery = await res.json();
-
-		if (res.ok) {
-			return {
-				props: {
-					query: json
-				}
-			};
-		}
-
-		return { status: res.status };
-	};
-</script>
-
 <script lang="ts">
 	import HomeView from '$lib/blog/HomeView.svelte';
 	import Icon from '$lib/Icon.svelte';
@@ -28,8 +5,9 @@
 	import type MiniGame from '$lib/mini/MiniGame.svelte';
 	import { mdiRobotHappy } from '@mdi/js';
 	import { tick } from 'svelte';
+	import type { PageData } from './$types';
 
-	export let query: BlogListQuery;
+	export let data: PageData;
 
 	let minigameComponent: any = undefined;
 	let minigame: MiniGame;
@@ -50,7 +28,7 @@
 
 <h1 class="title">Splamy</h1>
 
-<HomeView {query} />
+<HomeView query={data.query} />
 
 <div class="easteregg">
 	<span class="icon-text" style="cursor: pointer;" on:click={init}>

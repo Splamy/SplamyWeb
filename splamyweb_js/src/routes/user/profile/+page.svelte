@@ -1,26 +1,8 @@
-<script context="module" lang="ts">
-	import type { Load } from '@sveltejs/kit';
-	import { CurrentUser, User } from '$lib/user';
-	import { get } from 'svelte/store';
-
-	// see https://kit.svelte.dev/docs#loading
-	export const load: Load = async ({}) => {
-		const user = prerendering ? User.DUMMY : get(CurrentUser);
-		if (user == null) {
-			return {
-				status: 300,
-				redirect: '/user/login'
-			};
-		} else {
-			return {};
-		}
-	};
-</script>
-
 <script lang="ts">
 	import { BASE_URL, enhance } from '$lib/util';
+	import { CurrentUser } from '$lib/user';
 	import { goto } from '$app/navigation';
-	import { browser, prerendering } from '$app/env';
+	import { browser } from "$app/environment";
 
 	$: if (browser && $CurrentUser == null) goto('/user/login');
 
@@ -145,7 +127,7 @@
 {/if}
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/form/shared';
 	@import 'bulma/sass/form/tools';
 	@import 'bulma/sass/form/input-textarea';

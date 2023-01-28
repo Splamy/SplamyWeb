@@ -18,20 +18,18 @@
 		max-width: 1200px;
 		margin: auto;
 
-		:global {
-			.blogentry {
-				max-width: 800px;
-				&:nth-child(even) {
-					margin-left: auto;
-				}
+		.blogentry:global() {
+			max-width: 800px;
+			&:nth-child(even) {
+				margin-left: auto;
+			}
 
-				&:nth-child(odd) {
-					h2 {
-						text-align: right;
-					}
-					.topline {
-						flex-direction: row-reverse;
-					}
+			&:nth-child(odd) {
+				h2 {
+					text-align: right;
+				}
+				.topline {
+					flex-direction: row-reverse;
 				}
 			}
 		}

@@ -137,7 +137,7 @@
 </article>
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/elements/icon';
 	@import 'bulma/sass/form/shared';
 	@import 'bulma/sass/form/tools';

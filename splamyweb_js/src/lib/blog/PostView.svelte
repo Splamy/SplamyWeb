@@ -33,10 +33,8 @@
 		background-color: #2a392f;
 	}
 
-	:global {
-		.postbody img {
-			display: block;
-			margin: 1em auto;
-		}
+	:global(.postbody img) {
+		display: block;
+		margin: 1em auto;
 	}
 </style>

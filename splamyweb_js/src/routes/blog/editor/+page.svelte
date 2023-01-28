@@ -1,34 +1,3 @@
-<script context="module" lang="ts">
-	import { BASE_URL, isEqual } from '$lib/util';
-	import type { BlogPostUpdate } from '$lib/api';
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-
-	export const load: Load = async ({ fetch, url }) => {
-		if (prerendering) return {};
-
-		const post = url.searchParams.get('post');
-		if (post) {
-			const res = await fetch(`${BASE_URL}/api/content/post/${post}/raw`, {
-				credentials: 'include'
-			});
-			const json: BlogPostUpdate = await res.json();
-
-			if (res.ok) {
-				return {
-					props: {
-						postEdit: json,
-						postId: post
-					}
-				};
-			}
-
-			return { status: res.status };
-		}
-		return {};
-	};
-</script>
-
 <script lang="ts">
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -37,13 +6,14 @@
 	import TagEditor from '$lib/blog/TagEditor.svelte';
 	import TextEditorMode from '$lib/blog/TextEditorMode.svelte';
 	import type { View } from '$lib/blog/editor';
+	import type { PageData } from './$types';
+	import { BASE_URL, isEqual } from '$lib/util';
+	import type { BlogPostUpdate } from '$lib/api';
 
-	export let postId: string | undefined = undefined;
-	export let postEdit: BlogPostUpdate = {
-		contentRaw: "",
-		visible: true,
-		tags: [],
-	};
+	export let data: PageData;
+	let postId: string | undefined = data.postId;
+	let postEdit: BlogPostUpdate = data.postEdit;
+
 	let original = freeze(postEdit);
 
 	// ?post=<number>
@@ -143,10 +113,10 @@
 			dangerMode: true,
 			buttons: ['Stay', 'Discard']
 		}).then((answer) => {
-			console.log("answer", answer);
+			console.log('answer', answer);
 			if (answer === true) {
 				wantDiscard = true;
-				goto(to.href);
+				goto(to.url);
 			}
 		});
 	});
@@ -204,7 +174,7 @@
 </div>
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/grid/columns';
 	@import 'bulma/sass/elements/button';
 	@import 'bulma/sass/form/shared';

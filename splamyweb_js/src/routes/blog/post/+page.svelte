@@ -1,41 +1,15 @@
-<script context="module" lang="ts">
-	import { BASE_URL } from '$lib/util';
-	import { BlogItemQuery, BlogPostShortView, BlogPostView, EMPTY_POST } from '$lib/api';
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-
-	export const load: Load = async ({ fetch, url }) => {
-		if (prerendering) return {};
-
-		const post = url.searchParams.get('i');
-		if (post) {
-			const res = await fetch(`${BASE_URL}/api/content/post/${post}`, {
-				credentials: 'include'
-			});
-			const json: BlogItemQuery = await res.json();
-
-			if (res.ok) {
-				return {
-					props: {
-						query: json,
-						postId: post
-					}
-				};
-			}
-
-			return { status: res.status };
-		}
-		return {};
-	};
-</script>
-
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { CurrentUser } from '$lib/user';
 	import PostView from '$lib/blog/PostView.svelte';
+	import { BASE_URL } from '$lib/util';
+	import { EMPTY_POST } from '$lib/api';
+	import type { BlogItemQuery, BlogPostShortView, BlogPostView } from '$lib/api';
+	import type { PageData } from './$types';
 
-	export let postId: string | undefined = undefined;
-	export let query: BlogItemQuery;
+	export let data: PageData;
+	let postId: string | undefined = data.postId;
+	let query: BlogItemQuery = data.query;
 
 	let post: BlogPostView;
 	let recentPosts: BlogPostShortView[];
@@ -94,7 +68,7 @@
 </div>
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/elements/title';
 	@import 'bulma/sass/elements/box';
 

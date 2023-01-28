@@ -1,5 +1,5 @@
 <script lang="ts">
-	export let date: string | Date;
+	export let date: string;
 	$: datem = typeof date === 'string' ? new Date(date) : date;
 </script>
 

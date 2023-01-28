@@ -1,37 +1,16 @@
-<script context="module" lang="ts">
-	import type { Load } from '@sveltejs/kit';
-	import { prerendering } from '$app/env';
-
-	export const load: Load = async ({ fetch }) => {
-		if (prerendering) return {};
-		const res = await fetch(`${BASE_URL}/api/tab/stats/header`);
-		const json: TabStatsHeader = await res.json();
-
-		if (res.ok) {
-			return {
-				props: {
-					stat_downloads: json.downloads,
-					stat_instances: json.runningInstances,
-					stat_bots: json.runningBots,
-					stat_playtime: json.playbackTime
-				}
-			};
-		}
-
-		return { status: res.status };
-	};
-</script>
-
 <script lang="ts">
 	import type { TabStatsHeader } from '$lib/api';
 	import Icon from '$lib/Icon.svelte';
 	import { BASE_URL } from '$lib/util';
 	import { mdiDotNet, mdiDownload, mdiLinux, mdiMicrosoft, mdiWeatherNight } from '@mdi/js';
+	import type { PageData } from './$types';
 
-	export let stat_downloads: string = 'did';
-	export let stat_instances: string = 'you';
-	export let stat_bots: string = 'disable';
-	export let stat_playtime: string = 'javascript?';
+	export let data: PageData = {
+		stat_downloads : 'did',
+		stat_instances : 'you',
+		stat_bots : 'disable',
+		stat_playtime : 'javascript?',
+	};
 
 	// [Icon, Name, donwload name, URL stable, URL preview]
 	let table: [string, string, string, string, string][] = [
@@ -93,25 +72,25 @@
 					<div class="level-item has-text-centered">
 						<div>
 							<p class="heading">Downloads</p>
-							<p class="title">{stat_downloads}</p>
+							<p class="title">{data.stat_downloads}</p>
 						</div>
 					</div>
 					<div class="level-item has-text-centered">
 						<div>
 							<p class="heading">Instances</p>
-							<p class="title">{stat_instances}</p>
+							<p class="title">{data.stat_instances}</p>
 						</div>
 					</div>
 					<div class="level-item has-text-centered">
 						<div>
 							<p class="heading">Bots</p>
-							<p class="title">{stat_bots}</p>
+							<p class="title">{data.stat_bots}</p>
 						</div>
 					</div>
 					<div class="level-item has-text-centered">
 						<div>
 							<p class="heading">Playtime</p>
-							<p class="title">{stat_playtime}</p>
+							<p class="title">{data.stat_playtime}</p>
 						</div>
 					</div>
 				</div>
@@ -244,7 +223,7 @@
 </section>
 
 <style lang="scss">
-	@import '../../lib/css/_prelude';
+	@import '../../../lib/css/_prelude';
 	@import 'bulma/sass/elements/title';
 	@import 'bulma/sass/layout/hero';
 	@import 'bulma/sass/elements/content';
