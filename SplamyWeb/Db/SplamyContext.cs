@@ -64,8 +64,8 @@ public class SplamyContext : DbContext
 
 		// This tells EF to not create a table for this Type (We only want to query with it)
 		// see https://stackoverflow.com/questions/60076606/net-core-3-x-keyless-entity-types-avoid-table-creation
-		modelBuilder.Entity<CachedDayStats>().HasNoKey().ToTable(t => t.ExcludeFromMigrations()).ToView(null);
-		modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToTable(t => t.ExcludeFromMigrations()).ToView(null);
+		modelBuilder.Entity<CachedDayStats>().HasNoKey().ToView(null);
+		modelBuilder.Entity<PlaytimeDto>().HasNoKey().ToView(null);
 
 		// *** Nightly
 

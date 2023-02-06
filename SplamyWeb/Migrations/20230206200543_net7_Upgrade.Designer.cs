@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SplamyWeb.Db;
@@ -11,9 +12,11 @@ using SplamyWeb.Db;
 namespace SplamyWeb.Migrations
 {
     [DbContext(typeof(SplamyContext))]
-    partial class SplamyContextModelSnapshot : ModelSnapshot
+    [Migration("20230206200543_net7_Upgrade")]
+    partial class net7Upgrade
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -91,7 +94,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasIndex("CreateTime");
 
-                    b.ToTable("blog", (string)null);
+                    b.ToTable("blog");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LanguageEntry", b =>
@@ -113,7 +116,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project", "Language");
 
-                    b.ToTable("nightly_lang", (string)null);
+                    b.ToTable("nightly_lang");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LoginData", b =>
@@ -150,7 +153,7 @@ namespace SplamyWeb.Migrations
                     b.HasIndex("NameNormalized")
                         .IsUnique();
 
-                    b.ToTable("user", (string)null);
+                    b.ToTable("user");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.NightlyBranch", b =>
@@ -166,7 +169,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project", "Branch");
 
-                    b.ToTable("nightly_branch", (string)null);
+                    b.ToTable("nightly_branch");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.NightlyBuild", b =>
@@ -199,7 +202,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project", "Branch", "Commit");
 
-                    b.ToTable("nightly_build", (string)null);
+                    b.ToTable("nightly_build");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.NightlyProject", b =>
@@ -216,7 +219,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Project");
 
-                    b.ToTable("nightly_project", (string)null);
+                    b.ToTable("nightly_project");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.RamsesMapDto", b =>
@@ -242,7 +245,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("RamsesId", "Characteristic", "IndexDifficulty");
 
-                    b.ToTable("ramses_map", (string)null);
+                    b.ToTable("ramses_map");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.RamsesSongDto", b =>
@@ -259,7 +262,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ramses_song", (string)null);
+                    b.ToTable("ramses_song");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.StoreEntry", b =>
@@ -273,7 +276,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("kvp_store", (string)null);
+                    b.ToTable("kvp_store");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.TabStatsFactoryDto", b =>
@@ -301,7 +304,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasKey("TabStatsId", "FactoryName");
 
-                    b.ToTable("tabstats_factory", (string)null);
+                    b.ToTable("tabstats_factory");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.TabStatsPingDto", b =>
@@ -346,7 +349,7 @@ namespace SplamyWeb.Migrations
 
                     b.HasIndex("Time");
 
-                    b.ToTable("tabstats_entry", (string)null);
+                    b.ToTable("tabstats_entry");
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.LanguageEntry", b =>

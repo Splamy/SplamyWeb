@@ -70,11 +70,10 @@ public class RamsesBackingData
 		using var scope = scopeFactory.CreateScope();
 		using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-		var entry = await (from entries in db.RamsesSongs
-						   where entries.Id == request.MapId
-						   select entries)
-					 .Include(e => e.Maps)
-					 .FirstOrDefaultAsync();
+		var entry = await db.RamsesSongs
+			.Where(entries => entries.Id == request.MapId)
+			.Include(entries => entries.Maps)
+			.FirstOrDefaultAsync();
 
 		if (entry != null && entry.Version == RamsesVersion)
 		{

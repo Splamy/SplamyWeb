@@ -78,8 +78,10 @@ public class QintController : ControllerBase
 
 			await PushJson(new StateBody(CiStatusSuccess, CiContext, CiDescription, ciBuildUrl), commit);
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException ex)
 		{
+			Log.Error(ex, "Build {0} cancelled: {1}", commit, ex.Message);
+
 			await Cli.Wrap("sudo")
 				.WithArguments("systemctl kill buildqint")
 				.WithValidation(CommandResultValidation.None)
@@ -89,7 +91,7 @@ public class QintController : ControllerBase
 		}
 		catch (Exception ex)
 		{
-			Log.Error("Build {0} failed: {1}", commit, ex.Message);
+			Log.Error(ex, "Build {0} failed: {1}", commit, ex.Message);
 			await PushJson(new StateBody(CiStatusFailure, CiContext, "Failed", ciBuildUrl), commit);
 		}
 		finally
