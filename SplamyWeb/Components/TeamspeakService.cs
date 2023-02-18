@@ -8,6 +8,7 @@ using ProtoBuf;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -23,10 +24,10 @@ public partial class TeamspeakService
 
 	[GeneratedRegex("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript)]
 	private static partial Regex diffMatch();
-	
+
 	[GeneratedRegex("[^a-zA-Z0-9\\+=/]")]
 	private static partial Regex versionClean();
-	
+
 	public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
 
 	private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
@@ -421,13 +422,15 @@ public partial class TeamspeakService
 	{
 		try
 		{
-			var request = new HttpRequestMessage(HttpMethod.Get, "https://badges-content.teamspeak.com/list");
+			var uri = new Uri("https://badges-content.teamspeak.com/list");
+			var request = new HttpRequestMessage(HttpMethod.Get, uri);
 			request.Headers.UserAgent.Clear();
 			request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0");
-			var cook = request.Headers.GetCookies();
-			cook.Add(new CookieHeaderValue("__cfduid", "d10e713663dd1405a7d4055a1cb37436c1560562132"));
-			cook.Add(new CookieHeaderValue("bb_lastvisit", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)));
-			cook.Add(new CookieHeaderValue("bb_lastactivity", "0"));
+			var cc = new CookieContainer();
+			cc.Add(uri, new Cookie("__cfduid", "d10e713663dd1405a7d4055a1cb37436c1560562132"));
+			cc.Add(uri, new Cookie("bb_lastvisit", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)));
+			cc.Add(uri, new Cookie("bb_lastactivity", "0"));
+			request.Headers.Add("Cookie", cc.GetCookieHeader(uri));
 			using var response = await Util.httpClient.SendAsync(request);
 			using var stream = await response.Content.ReadAsStreamAsync();
 

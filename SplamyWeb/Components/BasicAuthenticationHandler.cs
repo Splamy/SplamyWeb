@@ -63,10 +63,12 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 		if (user is null)
 			return AuthenticateResult.Fail("Invalid Username or Password");
 
-		var claims = new[] {
-			new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture)),
-			new Claim(ClaimTypes.Name, user.Name),
+		var claims = new List<Claim>
+		{
+			new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture))
 		};
+		if (user.Name is not null) claims.Add(new Claim(ClaimTypes.Name, user.Name));
+
 		var identity = new ClaimsIdentity(claims, Scheme.Name);
 		var principal = new ClaimsPrincipal(identity);
 		var ticket = new AuthenticationTicket(principal, Scheme.Name);

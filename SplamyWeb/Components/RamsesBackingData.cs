@@ -12,6 +12,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -175,22 +176,20 @@ public class RamsesBackingData
 		var sourceFiles = BSMapIO.ZipProvider(sourceZip);
 		var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
 
-		var jbm = new JBMConverter(new() { UseFloats = UseFloats.None });
+		var jbm = new JBMConverter(new() { UseDict = UseDict.Simple, UseFloats = UseFloats.Single | UseFloats.Double });
 
 		using var mem = new MemoryStream();
 		using (var zip = new ZipArchive(mem, ZipArchiveMode.Create, true, Util.Utf8Encoding))
 		{
-			var mapDict = new Dictionary<string, byte[]>();
+			var mapDict = new Dictionary<string, JsonElement>();
 
 			void AddToCompressionDict(string file)
 			{
-				using var mem = new MemoryStream();
 				using var fs = sourceFiles(file);
 				if (fs is null) return;
-				fs.CopyTo(mem);
-				var fileData = mem.ToArray();
-				mapDict.Add(file, fileData);
-				jbm.AddToDictionary(fileData);
+				var json = JsonSerializer.Deserialize<JsonElement>(fs);
+				mapDict.Add(file, json);
+				jbm.AddToDictionary(json);
 			}
 
 			AddToCompressionDict("info.dat");
@@ -209,7 +208,7 @@ public class RamsesBackingData
 		}
 		mem.Position = 0;
 
-		var output = new MemoryStream();
+		using var output = new MemoryStream();
 		using (var compressor = new BrotliStream(output, CompressionMode.Compress, true))
 		{
 			mem.CopyTo(compressor);
@@ -236,7 +235,8 @@ public class RamsesBackingData
 		var intermediateZip = new ZipArchive(output, ZipArchiveMode.Read);
 		return (string file) =>
 		{
-			var mem = new MemoryStream();
+			using var mem = new MemoryStream();
+			using (intermediateZip)
 			using (var stream = intermediateZip.Entries.FirstOrDefault((ZipArchiveEntry e) => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase))?.Open())
 			{
 				if (stream is null) return null;
@@ -260,7 +260,7 @@ public class RamsesBackingData
 
 	public static byte[] PackScoreObject(RamsesMap map)
 	{
-		return JBMConverter.EncodeObject(map, new JBMOptions() { UseDict = false, UseFloats = UseFloats.None, Compress = true });
+		return JBMConverter.EncodeObject(map, new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.None, Compress = true });
 	}
 
 	public static RamsesMap UnpackScoreObject(byte[] data)
