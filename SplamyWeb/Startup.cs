@@ -127,7 +127,7 @@ public class Startup
 		services.AddAutoMapper(typeof(Startup));
 
 		services.AddSingleton<TimerService>();
-		services.AddSingleton<IHostedService>(p => p.GetRequiredService<TimerService>());
+		services.AddHostedService(p => p.GetRequiredService<TimerService>());
 
 		services.AddScoped<StoreService>();
 		services.AddSingleton<TabBackingData>();
@@ -136,6 +136,8 @@ public class Startup
 		services.AddSingleton<TeamspeakService>();
 		services.AddSingleton<LogNotifierService>();
 		services.AddSingleton<MinigameServer>();
+
+		services.AddHostedService<RamsesService>();
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
