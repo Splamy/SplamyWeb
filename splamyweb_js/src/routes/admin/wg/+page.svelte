@@ -194,7 +194,7 @@
 
 		const template = await fetchTemplate();
 
-		let rendered_template = template.replace(/{(\w+)}/gi, function (x) {
+		let rendered_template = template.replaceAll(/{(\w+)}/gi, function (x) {
 			const key = x.substring(1, x.length - 1);
 			switch (key) {
 				case 'privateKey':
