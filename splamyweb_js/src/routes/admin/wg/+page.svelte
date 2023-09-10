@@ -182,12 +182,7 @@
 	async function showQRCode(peer: EditWgPeer) {
 		const size = 512;
 
-		if (!privateKeyValid) {
-			swal('Invalid private key');
-			return;
-		}
-
-		if (privateKey == '') {
+		if (peer.privateKey == '') {
 			swal('No private key specified');
 			return;
 		}
@@ -203,7 +198,7 @@
 			const key = x.substring(1, x.length - 1);
 			switch (key) {
 				case 'privateKey':
-					return privateKey;
+					return peer.privateKey;
 				case 'publicKey':
 					return peer.publicKey;
 				case 'allowedIPs':
@@ -232,6 +227,21 @@
 		swal('Tunnel config', {
 			content: img
 		});
+	}
+
+	function showCreateQRCode() {
+		if (!privateKeyValid) {
+			swal('Invalid private key');
+			return;
+		}
+
+		if (privateKey == '') {
+			swal('No private key specified');
+			return;
+		}
+
+		createPeer.privateKey = privateKey;
+		showQRCode(createPeer);
 	}
 
 	function clearCreatePeer() {
@@ -328,7 +338,7 @@
 						<Icon path={mdiClose} />
 					</button>
 					{#if privateKeyValid && privateKey != ''}
-						<button class="button" on:click={() => showQRCode(createPeer)}>
+						<button class="button" on:click={() => showCreateQRCode()}>
 							<Icon path={mdiQrcode} />
 						</button>
 					{/if}
