@@ -6,6 +6,7 @@ export interface WgPeer {
 
 export interface EditWgPeer {
 	publicKey: string;
+	privateKey?: string;
 	friendlyName?: string;
 	allowedIPs: string;
 }

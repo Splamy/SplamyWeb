@@ -1,23 +1,17 @@
 <script lang="ts">
 	import Icon from '$lib/Icon.svelte';
 	import { BASE_URL } from '$lib/util';
-	import { mdiContentSave, mdiDelete, mdiPlus, mdiRefresh, mdiQrcode } from '@mdi/js';
+	import { mdiContentSave, mdiDelete, mdiPlus, mdiRefresh, mdiQrcode, mdiClose } from '@mdi/js';
 	import type { KeyValue } from '$lib/api';
 	import type { PageData } from './$types';
-	import {
-		type WgPeer,
-		type EditWgPeer,
-		arrayToB64,
-		b64ToArray,
-		toEditPeerList,
-		fromEditPeer
-	} from './defs';
+	import { type WgPeer, type EditWgPeer, arrayToB64, b64ToArray, fromEditPeer } from './defs';
 	import { generateKeyPair } from './wg';
 	import swal from 'sweetalert';
 	import QRious from 'qrious';
 
 	export let data: PageData;
 
+	let pkMap = new Map<string, string>();
 	let editPeers = toEditPeerList(data.peers);
 
 	let createPeer = emptyWgPeer();
@@ -59,11 +53,25 @@
 		}
 	}
 
+	function toEditPeerList(peers: WgPeer[]) {
+		return peers.map(toEditPeer);
+	}
+
+	function toEditPeer(peer: WgPeer): EditWgPeer {
+		return {
+			publicKey: peer.publicKey,
+			privateKey: pkMap.get(peer.publicKey),
+			friendlyName: peer.friendlyName,
+			allowedIPs: peer.allowedIPs.join(', ')
+		};
+	}
+
 	async function putPeer(peer: EditWgPeer) {
 		const peerDef = fromEditPeer(peer);
 		if (peerDef.publicKey == '') {
 			return;
 		}
+
 		try {
 			let response = await fetch(`${BASE_URL}/api/wireguard/peers`, {
 				credentials: 'include',
@@ -80,12 +88,27 @@
 			}
 
 			await refresh();
+			return true;
 		} catch (e) {
 			swal({
 				title: 'Failed to save peer',
 				text: e.toString(),
 				icon: 'error'
 			});
+			return false;
+		}
+	}
+
+	async function putCreatePeer() {
+		if (!createPeerIsValid()) {
+			swal('Invalid public key');
+			return;
+		}
+		if (privateKeyValid && privateKey != '') {
+			pkMap.set(createPeer.publicKey, privateKey);
+		}
+		if (await putPeer(createPeer)) {
+			clearCreatePeer();
 		}
 	}
 
@@ -156,7 +179,7 @@
 		return await res.text();
 	}
 
-	async function showQRCode() {
+	async function showQRCode(peer: EditWgPeer) {
 		const size = 512;
 
 		if (!privateKeyValid) {
@@ -164,7 +187,12 @@
 			return;
 		}
 
-		if (createPeer.allowedIPs.trim() == '') {
+		if (privateKey == '') {
+			swal('No private key specified');
+			return;
+		}
+
+		if (peer.allowedIPs.trim() == '') {
 			swal('No IPs specified');
 			return;
 		}
@@ -177,11 +205,11 @@
 				case 'privateKey':
 					return privateKey;
 				case 'publicKey':
-					return createPeer.publicKey;
+					return peer.publicKey;
 				case 'allowedIPs':
-					return createPeer.allowedIPs;
+					return peer.allowedIPs;
 				case 'friendlyName':
-					return createPeer.friendlyName;
+					return peer.friendlyName;
 				default:
 					return x;
 			}
@@ -205,6 +233,11 @@
 			content: img
 		});
 	}
+
+	function clearCreatePeer() {
+		createPeer = emptyWgPeer();
+		privateKey = '';
+	}
 </script>
 
 <svelte:head>
@@ -225,15 +258,23 @@
 					<input type="text" class="input" bind:value={peer.publicKey} readonly />
 					<input type="text" class="input" bind:value={peer.friendlyName} />
 					<input type="text" class="input" value={peer.allowedIPs} />
+					{#if peer.privateKey != null}
+						<input type="text" class="input" value={peer.privateKey} readonly />
+					{/if}
 				</td>
 				<td class="compact">
-					<div class="buttons" style="flex-wrap: nowrap;">
+					<div class="buttons" style="flex-direction: column; align-items: start;">
 						<button class="button" on:click={() => putPeer(peer)}>
 							<Icon path={mdiContentSave} />
 						</button>
 						<button class="button" on:click={() => deletePeer(peer)}>
 							<Icon path={mdiDelete} />
 						</button>
+						{#if peer.privateKey != null}
+							<button class="button" on:click={() => showQRCode(peer)}>
+								<Icon path={mdiQrcode} />
+							</button>
+						{/if}
 					</div>
 				</td>
 			</tr>
@@ -279,13 +320,18 @@
 				</div>
 			</td>
 			<td class="compact">
-				<div class="buttons" style="flex-wrap: nowrap;">
-					<button class="button" on:click={() => putPeer(createPeer)}>
+				<div class="buttons" style="flex-direction: column; align-items: start;">
+					<button class="button" on:click={() => putCreatePeer()}>
 						<Icon path={mdiPlus} />
 					</button>
-					<button class="button" on:click={() => showQRCode()}>
-						<Icon path={mdiQrcode} />
+					<button class="button" on:click={() => clearCreatePeer()}>
+						<Icon path={mdiClose} />
 					</button>
+					{#if privateKeyValid && privateKey != ''}
+						<button class="button" on:click={() => showQRCode(createPeer)}>
+							<Icon path={mdiQrcode} />
+						</button>
+					{/if}
 				</div>
 			</td>
 		</tr>
