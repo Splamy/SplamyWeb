@@ -141,6 +141,13 @@
 		editPeers = toEditPeerList((await res.json()) as WgPeer[]);
 	}
 
+	async function fetchTemplate() {
+		const res = await fetch(`${BASE_URL}/api/store/value/wg_template`, {
+			credentials: 'include'
+		});
+		return await res.text();
+	}
+
 	async function showQRCode() {
 		const size = 512;
 
@@ -154,17 +161,20 @@
 			return;
 		}
 
-		// TODO via API variable
-		const template = `
-[Interface]
-Address = ${createPeer.allowedIPs}
-PrivateKey = ${privateKey}
+		const template = await fetchTemplate();
 
-[Peer]
-AllowedIPs = 10.0.0.0/24, fc::/16
-Endpoint = splamy.de:51820
-PublicKey = EAB38TK5XEATr1c+S2PO40nOsRf953GIYT71ZPY3qzQ=
-`;
+		let rendered_template = template.replace(/{(\w+)}/gi, function (x) {
+			const key = x.substring(1, x.length - 1);
+			switch (key) {
+				case 'privateKey': return privateKey;
+				case 'publicKey': return createPeer.publicKey;
+				case 'allowedIPs': return createPeer.allowedIPs;
+				case 'friendlyName': return createPeer.friendlyName;
+				default: return x;
+			}
+		});
+
+		console.log("Rendered Template", rendered_template);
 
 		var canvas = document.createElement('canvas');
 		canvas.width = size;
