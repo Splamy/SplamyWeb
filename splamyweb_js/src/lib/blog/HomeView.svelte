@@ -18,7 +18,8 @@
 		max-width: 1200px;
 		margin: auto;
 
-		.blogentry:global() {
+		// TODO :global()
+		.blogentry {
 			max-width: 800px;
 			&:nth-child(even) {
 				margin-left: auto;

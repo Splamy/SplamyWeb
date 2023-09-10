@@ -48,6 +48,7 @@
 			<div class="navdrop-list">
 				<a class="navl" href="/admin/log">Log</a>
 				<a class="navl" href="/admin/store">Store</a>
+				<a class="navl" href="/admin/wg">Wireguard</a>
 			</div>
 		</div>
 		<a class="navl navuser" href="/user/profile">User: {$CurrentUser.name}</a>

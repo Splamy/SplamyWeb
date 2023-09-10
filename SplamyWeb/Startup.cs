@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SplamyWeb.Components;
+using SplamyWeb.Controllers;
 using SplamyWeb.Db;
 using SplamyWeb.Mock;
 using System.Net.Http;
@@ -62,6 +63,8 @@ public class Startup
 					});
 			});
 		}
+
+		services.Configure<WireguardConfig>(Configuration.GetSection("Wireguard"));
 
 		services.AddSignalR().AddJsonProtocol(options =>
 		{
