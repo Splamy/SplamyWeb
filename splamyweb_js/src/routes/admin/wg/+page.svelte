@@ -111,10 +111,18 @@
 	}
 
 	async function reloadService() {
-		await fetch(`${BASE_URL}/api/wireguard/reload`, {
-			credentials: 'include',
-			method: 'POST'
-		});
+		try {
+			await fetch(`${BASE_URL}/api/wireguard/reload`, {
+				credentials: 'include',
+				method: 'POST'
+			});
+		} catch (e) {
+			swal({
+				title: 'Failed to reload service',
+				text: e.toString(),
+				icon: 'error'
+			});
+		}
 	}
 
 	function randomPrivateKey() {
@@ -166,15 +174,20 @@
 		let rendered_template = template.replace(/{(\w+)}/gi, function (x) {
 			const key = x.substring(1, x.length - 1);
 			switch (key) {
-				case 'privateKey': return privateKey;
-				case 'publicKey': return createPeer.publicKey;
-				case 'allowedIPs': return createPeer.allowedIPs;
-				case 'friendlyName': return createPeer.friendlyName;
-				default: return x;
+				case 'privateKey':
+					return privateKey;
+				case 'publicKey':
+					return createPeer.publicKey;
+				case 'allowedIPs':
+					return createPeer.allowedIPs;
+				case 'friendlyName':
+					return createPeer.friendlyName;
+				default:
+					return x;
 			}
 		});
 
-		console.log("Rendered Template", rendered_template);
+		console.log('Rendered Template', rendered_template);
 
 		var canvas = document.createElement('canvas');
 		canvas.width = size;

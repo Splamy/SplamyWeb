@@ -1,15 +1,15 @@
+using CliWrap;
+using CliWrap.Buffered;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-using static SplamyWeb.Util;
 using Microsoft.Extensions.Options;
 using SplamyWeb.Modules;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Configuration;
-using System.ComponentModel.DataAnnotations;
-using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
+using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers;
 
@@ -74,6 +74,28 @@ public class WireguardController : ControllerBase
 
 		return Ok();
 	});
+
+	[HttpPost("reload")]
+	public async Task<IActionResult> ReloadAsync()
+	{
+		try
+		{
+			var result = await Cli.Wrap("sudo")
+					.WithArguments("systemctl restart systemd-networkd")
+					.ExecuteBufferedAsync();
+
+			if (result.ExitCode != 0)
+			{
+				return StatusCode(StatusCodes.Status500InternalServerError, result.StandardOutput);
+			}
+		}
+		catch (Exception ex)
+		{
+			return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+		}
+
+		return Ok();
+	}
 
 	private static WireguardPeerDto? FromSection(IniSection section)
 	{
