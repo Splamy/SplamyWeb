@@ -218,7 +218,7 @@
 		var qr = new QRious({
 			element: canvas,
 			size,
-			value: template
+			value: rendered_template
 		});
 		const imgData = canvas.toDataURL('image/png');
 		const img = document.createElement('img');
