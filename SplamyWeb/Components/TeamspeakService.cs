@@ -423,7 +423,7 @@ public partial class TeamspeakService
 		try
 		{
 			var uri = new Uri("https://badges-content.teamspeak.com/list");
-			var request = new HttpRequestMessage(HttpMethod.Get, uri);
+			using var request = new HttpRequestMessage(HttpMethod.Get, uri);
 			request.Headers.UserAgent.Clear();
 			request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0");
 			var cc = new CookieContainer();

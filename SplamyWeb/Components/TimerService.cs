@@ -5,28 +5,12 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public sealed class TimerService : IHostedService, IDisposable
+public sealed class TimerService : BackgroundService, IDisposable
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-	private Timer? timer;
 
 	private readonly ConcurrentBag<Func<Task>> tick = new();
-
-	public Task StartAsync(CancellationToken cancellationToken)
-	{
-		Log.Info("HTask service is starting.");
-
-		async void StartTimerDelayed()
-		{
-			// Wait a second for other services to register first
-			await Task.Delay(1000, cancellationToken);
-
-			timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromHours(1));
-		}
-		StartTimerDelayed();
-
-		return Task.CompletedTask;
-	}
+	private readonly PeriodicTimer timer = new(TimeSpan.FromHours(1));
 
 	public void Register(Func<Task> func)
 	{
@@ -34,7 +18,19 @@ public sealed class TimerService : IHostedService, IDisposable
 		tick.Add(func);
 	}
 
-	private async void DoWork(object? state)
+	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+	{
+		Log.Info("HTask service is starting.");
+
+		await Task.Delay(1000, stoppingToken);
+
+		while (await timer.WaitForNextTickAsync(stoppingToken))
+		{
+			await ExecuteTickAsync();
+		}
+	}
+
+	private async Task ExecuteTickAsync()
 	{
 		Log.Info("Running HTask");
 
@@ -50,17 +46,10 @@ public sealed class TimerService : IHostedService, IDisposable
 		Log.Info("HTask done");
 	}
 
-	public Task StopAsync(CancellationToken cancellationToken)
+	public override void Dispose()
 	{
-		Log.Info("HTask service is stopping.");
-
-		timer?.Change(Timeout.Infinite, 0);
-
-		return Task.CompletedTask;
+		timer.Dispose();
+		base.Dispose();
 	}
 
-	public void Dispose()
-	{
-		timer?.Dispose();
-	}
 }
