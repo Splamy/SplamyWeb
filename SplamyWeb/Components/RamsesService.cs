@@ -1,10 +1,13 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -43,6 +46,8 @@ namespace SplamyWeb.Components
 						ReadPipe(pipe.Reader, cts.Token));
 
 					cts.Cancel();
+
+					await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
 				}
 				catch (Exception ex)
 				{
@@ -69,7 +74,7 @@ namespace SplamyWeb.Components
 					return;
 				}
 
-				writer.Write(buffer[..result.Count].Span);
+				writer.Write(buffer.Span[..result.Count]);
 				if (result.EndOfMessage)
 				{
 					writer.Write(Lf);
@@ -93,7 +98,6 @@ namespace SplamyWeb.Components
 
 				while (TryReadLine(ref buffer, out var message))
 				{
-					logger.LogInformation("New Map Info {MapId}", message.Msg.Id);
 					await TriggerEvent(message);
 				}
 
@@ -107,48 +111,71 @@ namespace SplamyWeb.Components
 			}
 		}
 
-		bool TryReadLine(ref ReadOnlySequence<byte> buffer, out BsMessage message)
+		bool TryReadLine(ref ReadOnlySequence<byte> buffer, [MaybeNullWhen(false)] out BsMessageBase message)
 		{
 			// Look for a EOL in the buffer.
-			if (buffer.PositionOf(Lf[0]) is { } position)
+			while (buffer.PositionOf(Lf[0]) is { } position)
 			{
 				try
 				{
 					var line = buffer.Slice(0, position);
 					var utf8JsonReader = new Utf8JsonReader(line);
-					message = JsonSerializer.Deserialize<BsMessage>(ref utf8JsonReader, jsonSerializerOptions);
+					message = JsonSerializer.Deserialize<BsMessageBase>(ref utf8JsonReader, jsonSerializerOptions);
 				}
 				catch (Exception ex)
 				{
 					logger.LogError(ex, "Failed to read wss message");
-					message = default;
 				}
 
 				buffer = buffer.Slice(buffer.GetPosition(1, position));
-				return true;
 			}
-			else
-			{
-				message = default;
-				return false;
-			}
+
+			message = default;
+			return false;
 		}
 
-		private async ValueTask TriggerEvent(BsMessage message)
+		private async ValueTask TriggerEvent(BsMessageBase message)
 		{
-			if (message.Msg.Versions.Any(x => x.State == "Published"))
+			switch (message)
 			{
-				await ramses.Get(message.Msg.Id);
+			case BsMessageMapUpdate mapUpdate:
+				logger.LogInformation("New Map Update {@MapId}", mapUpdate.Msg.Id);
+				if (mapUpdate.Msg.Versions.Any(x => x.State == "Published"))
+				{
+					await ramses.Get(mapUpdate.Msg.Id);
+				}
+				break;
+
+			case BsMessageMapDelete mapDelete:
+				logger.LogInformation("Map Deleted {@MapId}", mapDelete.Map);
+				break;
+
+			default:
+				logger.LogInformation("BS wss event {@Type}", message.Type);
+				break;
 			}
 		}
 
-		private readonly struct BsMessage
+		[JsonPolymorphic(TypeDiscriminatorPropertyName = nameof(Type), UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
+		[JsonDerivedType(typeof(BsMessageMapUpdate), typeDiscriminator: "MAP_UPDATE")]
+		[JsonDerivedType(typeof(BsMessageMapDelete), typeDiscriminator: "MAP_DELETE")]
+		private class BsMessageBase
 		{
-			public required readonly string Type { get; init; }
-			public required readonly BsMessageMsg Msg { get; init; }
+			public required string Type { get; init; }
 		}
 
-		private readonly struct BsMessageMsg
+		private class BsMessageMapDelete : BsMessageBase
+		{
+			[JsonPropertyName("msg")]
+			public required string Map { get; init; }
+		}
+
+		private class BsMessageMapUpdate : BsMessageBase
+		{
+			public required MsgUpdate Msg { get; init; }
+		}
+
+		private readonly struct MsgUpdate
 		{
 			public required readonly string Id { get; init; }
 			public required readonly BsMessageMsgVersions[] Versions { get; init; }
