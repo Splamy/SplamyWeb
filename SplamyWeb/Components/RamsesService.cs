@@ -114,20 +114,21 @@ namespace SplamyWeb.Components
 		bool TryReadLine(ref ReadOnlySequence<byte> buffer, [MaybeNullWhen(false)] out BsMessageBase message)
 		{
 			// Look for a EOL in the buffer.
-			while (buffer.PositionOf(Lf[0]) is { } position)
+			if (buffer.PositionOf(Lf[0]) is { } position)
 			{
+				var line = buffer.Slice(0, position);
+				buffer = buffer.Slice(buffer.GetPosition(1, position));
+
 				try
 				{
-					var line = buffer.Slice(0, position);
 					var utf8JsonReader = new Utf8JsonReader(line);
-					message = JsonSerializer.Deserialize<BsMessageBase>(ref utf8JsonReader, jsonSerializerOptions);
+					message = JsonSerializer.Deserialize<BsMessageBase>(ref utf8JsonReader, jsonSerializerOptions) ?? throw new Exception("Message was null");
+					return true;
 				}
 				catch (Exception ex)
 				{
 					logger.LogError(ex, "Failed to read wss message");
 				}
-
-				buffer = buffer.Slice(buffer.GetPosition(1, position));
 			}
 
 			message = default;
@@ -151,17 +152,17 @@ namespace SplamyWeb.Components
 				break;
 
 			default:
-				logger.LogInformation("BS wss event {@Type}", message.Type);
+				logger.LogInformation("BS wss event {@Type}", message.type);
 				break;
 			}
 		}
 
-		[JsonPolymorphic(TypeDiscriminatorPropertyName = nameof(Type), UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
+		[JsonPolymorphic(TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
 		[JsonDerivedType(typeof(BsMessageMapUpdate), typeDiscriminator: "MAP_UPDATE")]
 		[JsonDerivedType(typeof(BsMessageMapDelete), typeDiscriminator: "MAP_DELETE")]
 		private class BsMessageBase
 		{
-			public required string Type { get; init; }
+			public string type { get; init; }
 		}
 
 		private class BsMessageMapDelete : BsMessageBase
