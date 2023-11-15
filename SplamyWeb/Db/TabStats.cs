@@ -1,4 +1,4 @@
-using AutoMapper;
+using Riok.Mapperly.Abstractions;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -76,14 +76,22 @@ public class TabStatsFactoryDto
 	public TimeSpan Playtime { get; set; }
 }
 
-public class TabStatsProfile : Profile
+[Mapper]
+public static partial class TabStatsMapper
 {
-	public TabStatsProfile()
+	[MapperIgnoreTarget(nameof(TabStatsPingDto.Id))]
+	[MapperIgnoreTarget(nameof(TabStatsPingDto.Time))]
+	public static partial TabStatsPingDto ToDto(TabStatsData obj);
+
+	[MapperIgnoreTarget(nameof(TabStatsFactoryDto.TabStatsId))]
+	[MapperIgnoreTarget(nameof(TabStatsFactoryDto.TabStatsEntry))]
+	[MapperIgnoreTarget(nameof(TabStatsFactoryDto.FactoryName))]
+	private static partial TabStatsFactoryDto ToDto(TabStatsFactory obj);
+
+	public static TabStatsFactoryDto FlatToDto(KeyValuePair<string, TabStatsFactory> obj)
 	{
-		CreateMap<TabStatsData, TabStatsPingDto>(MemberList.Source);
-		CreateMap<KeyValuePair<string, TabStatsFactory>, TabStatsFactoryDto>(MemberList.Source)
-			.IncludeMembers(src => src.Value)
-			.ForMember(dest => dest.FactoryName, opt => opt.MapFrom(src => src.Key));
-		CreateMap<TabStatsFactory, TabStatsFactoryDto>(MemberList.Source); // Flatten
+		var dto = ToDto(obj.Value);
+		dto.FactoryName = obj.Key;
+		return dto;
 	}
 }

@@ -28,6 +28,13 @@ public class RamsesSongDto
 	}
 }
 
+public class RamsesSongLightDto
+{
+	/// <summary>Version of the ramses engine this result was generated with.</summary>
+	public required string Version { get; set; }
+	public List<RamsesMapDto> Maps { get; set; } = new();
+}
+
 [Table("ramses_map")]
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 public class RamsesMapDto

@@ -1,14 +1,14 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net;
 using System.Net.Mime;
 using System.Threading.Tasks;
 using static SplamyWeb.Util;
@@ -199,7 +199,7 @@ public class NightlyController : ControllerBase
 	{
 		var nBranch = await db.NightlyBranches.FindAsync(project, branch);
 		if (nBranch is null)
-			return StatusCode(304);
+			return StatusCode((int)HttpStatusCode.NotModified);
 		nBranch.Active = null;
 		await db.SaveChangesAsync();
 		return Ok();
@@ -230,27 +230,38 @@ public class NightlyController : ControllerBase
 		else
 			orderBy = build => build.Branch;
 
-		IQueryable<ProjectInfoMapper> query = (
-			from nProject in db.NightlyProjects
-			orderby nProject.ProjectName
-			select new ProjectInfoMapper
+		IQueryable<ProjectInfo> query = db.NightlyProjects
+			.OrderBy(nProject => nProject.ProjectName)
+			.Select(nProject => new ProjectInfo
 			{
-				NightlyProject = nProject,
+				Project = nProject.Project,
+				ProjectName = nProject.ProjectName,
+				CommitUrl = nProject.CommitUrl,
 				Notification = db.StoreTable
 					.Where(kvp => kvp.Id == "notify_project_" + nProject.Project)
 					.Select(kvp => kvp.Value)
 					.AsSplitQuery()
 					.FirstOrDefault(),
+				Extended = isAdmin ? true : null,
 				Builds = db.NightlyBuilds
 					.Where(build => build.Project == nProject.Project && (includeInactive || build.NightlyBranch.Active == build.Commit))
 					.OrderBy(orderBy)
-					.Select(build => new BuildInfoMapper { Build = build, Active = (!includeInactive || build.NightlyBranch.Active == build.Commit) })
+					.Select(build => new BuildInfo()
+					{
+						Active = isAdmin ? (!includeInactive || build.NightlyBranch.Active == build.Commit) : null,
+						Branch = build.Branch,
+						Commit = build.Commit,
+						Version = build.Version,
+						ZipContent = build.ZipContent,
+						FileName = build.FileName,
+						UploadTime = build.UploadTime,
+						DownloadCount = isAdmin ? build.DownloadCount : null,
+					})
 					.Take(PageBuildCount)
 					.ToList(),
 				BuildCount = db.NightlyBuilds.Count(build => build.Project == nProject.Project && (includeInactive || build.NightlyBranch.Active == build.Commit))
 			});
-		IQueryable<ProjectInfo> mappedQuery = query.ProjectTo<ProjectInfo>(isAdmin ? AdminMapping : UserMapping);
-		return mappedQuery;
+		return query;
 	}
 
 	private IQueryable<BuildInfo> GetNightlyProjectBuilds(string project, bool includeInactive, bool isAdmin)
@@ -261,52 +272,35 @@ public class NightlyController : ControllerBase
 		else
 			orderBy = build => build.Branch;
 
-		IQueryable<BuildInfoMapper> query = db.NightlyBuilds
+		var query = db.NightlyBuilds
 			.Where(build => build.Project == project && (includeInactive || build.NightlyBranch.Active == build.Commit))
 			.OrderBy(orderBy)
-			.Select(build => new BuildInfoMapper { Build = build, Active = (!includeInactive || build.NightlyBranch.Active == build.Commit) });
+			.ProjectToView(includeInactive, isAdmin);
 
-		IQueryable<BuildInfo> mappedQuery = query.ProjectTo<BuildInfo>(isAdmin ? AdminMapping : UserMapping);
-		return mappedQuery;
+		return query;
 	}
-
-	static readonly MapperConfiguration AdminMapping = new(cfg =>
-	{
-		cfg.CreateMap<NightlyProject, ProjectInfo>(MemberList.None)
-			.ForMember(x => x.Extended, opt => opt.MapFrom((_) => true));
-		cfg.CreateMap<NightlyBuild, BuildInfo>(MemberList.None);
-
-		cfg.CreateMap<ProjectInfoMapper, ProjectInfo>(MemberList.None)
-			.IncludeMembers(src => src.NightlyProject);
-		cfg.CreateMap<BuildInfoMapper, BuildInfo>(MemberList.Destination)
-			.IncludeMembers(src => src.Build);
-	});
-
-	static readonly MapperConfiguration UserMapping = new(cfg =>
-	{
-		cfg.CreateMap<NightlyProject, ProjectInfo>(MemberList.None)
-			.ForMember(x => x.Extended, opt => opt.MapFrom((_) => (bool?)null));
-		cfg.CreateMap<NightlyBuild, BuildInfo>(MemberList.None)
-			.ForMember(x => x.Active, opt => opt.MapFrom((_) => (bool?)null))
-			.ForMember(x => x.DownloadCount, opt => opt.MapFrom((_) => (int?)null));
-
-		cfg.CreateMap<ProjectInfoMapper, ProjectInfo>(MemberList.None)
-			.IncludeMembers(src => src.NightlyProject);
-		cfg.CreateMap<BuildInfoMapper, BuildInfo>(MemberList.Destination)
-			.IncludeMembers(src => src.Build)
-			.ForMember(x => x.Active, opt => opt.MapFrom((_) => (bool?)null));
-	});
 }
 
+public static class NightlyMapper
+{
+	// TODO somehow deduplicate this with EF Core
+	public static IQueryable<BuildInfo> ProjectToView(this IQueryable<NightlyBuild> query, bool includeInactive, bool isAdmin)
+	{
+		return query.Select(build => new BuildInfo()
+		{
+			Active = isAdmin ? (!includeInactive || build.NightlyBranch.Active == build.Commit) : null,
+			Branch = build.Branch,
+			Commit = build.Commit,
+			Version = build.Version,
+			ZipContent = build.ZipContent,
+			FileName = build.FileName,
+			UploadTime = build.UploadTime,
+			DownloadCount = isAdmin ? build.DownloadCount : null,
+		});
+	}
+}
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-public class ProjectInfoMapper
-{
-	public NightlyProject NightlyProject { get; set; }
-	public string? Notification { get; set; }
-	public IList<BuildInfoMapper> Builds { get; set; }
-	public int BuildCount { get; set; }
-};
 
 public record ProjectInfo
 {
@@ -317,12 +311,6 @@ public record ProjectInfo
 	public bool? Extended { get; set; }
 	public IList<BuildInfo> Builds { get; set; }
 	public int BuildCount { get; set; }
-}
-
-public record BuildInfoMapper
-{
-	public NightlyBuild Build { get; set; }
-	public bool? Active { get; set; }
 }
 
 public class BuildInfo

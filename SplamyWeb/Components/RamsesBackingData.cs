@@ -1,9 +1,10 @@
-using AutoMapper;
 using JsonBinMin;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using RateMapSeveritySaber;
+using Riok.Mapperly.Abstractions;
 using SplamyWeb.Db;
 using System.Diagnostics;
 using System.Globalization;
@@ -14,33 +15,31 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public class RamsesBackingData
+public class RamsesBackingData : BackgroundService
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 	private readonly Channel<ProcessEntry> _bufferBlockChannel = Channel.CreateBounded<ProcessEntry>(1024);
 	private readonly IServiceScopeFactory scopeFactory;
 	private readonly IHttpClientFactory clientFactory;
-	private readonly IMapper mapper;
 	private readonly string RamsesVersion;
 
-	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory, IMapper mapper)
+	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory)
 	{
 		var ver = typeof(RateMapSeveritySaber.Analyzer).Assembly.GetName().Version!;
 		RamsesVersion = $"{ver.Major}.{ver.Minor}";
 		this.scopeFactory = scopeFactory;
 		this.clientFactory = clientFactory;
-		this.mapper = mapper;
-		_ = Process();
 	}
 
-	private async Task Process()
+	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		await foreach (var req in _bufferBlockChannel.Reader.ReadAllAsync())
+		await foreach (var req in _bufferBlockChannel.Reader.ReadAllAsync(stoppingToken))
 		{
 			try
 			{
@@ -62,7 +61,7 @@ public class RamsesBackingData
 		if (mapId == null) return null;
 		var req = new ProcessEntry(key, mapId.Value);
 		if (!_bufferBlockChannel.Writer.TryWrite(req))
-			return ToError("The request queue is full. Please wait a few minutes");
+			return ToError("The request queue is full. Please wait a few minutes", HttpStatusCode.ServiceUnavailable);
 		return await req.Task.Task;
 	}
 
@@ -71,14 +70,20 @@ public class RamsesBackingData
 		using var scope = scopeFactory.CreateScope();
 		using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-		var entry = await db.RamsesSongs
+		var query = db.RamsesSongs
 			.Where(entries => entries.Id == request.MapId)
-			.Include(entries => entries.Maps)
-			.FirstOrDefaultAsync();
+			.Include(entries => entries.Maps);
 
-		if (entry != null && entry.Version == RamsesVersion)
+		var entryLight = await query.MapToLight().FirstOrDefaultAsync();
+		if (entryLight != null && entryLight.Version == RamsesVersion)
 		{
-			return mapper.Map<RamsesSong>(entry);
+			return RamsesMapper.FromDto(entryLight);
+		}
+
+		RamsesSongDto? entry = null;
+		if (entryLight != null)
+		{
+			entry = await query.FirstOrDefaultAsync();
 		}
 
 		BSMapIO.FileProvider fileProvider;
@@ -123,36 +128,39 @@ public class RamsesBackingData
 		var swProcess = Stopwatch.StartNew();
 		var maps = BSMapIO.Read(fileProvider);
 
-		entry.Maps.AddRange(maps.Where(map => map.Characteristic == MapCharacteristic.Standard).Select(map =>
-		{
-			SongScore score;
-			try
+		entry.Maps = maps
+			.Where(map => map.Characteristic == MapCharacteristic.Standard)
+			.Select(map =>
 			{
-				score = RateMapSeveritySaber.Analyzer.AnalyzeMap(map);
-			}
-			catch (Exception ex)
-			{
-				Log.Warn(ex, "Failed to analyze map '{0}'", request.Key);
-				score = new SongScore(-1, -1, Array.Empty<AggregatedHit>());
-			}
+				SongScore score;
+				try
+				{
+					score = RateMapSeveritySaber.Analyzer.AnalyzeMap(map);
+				}
+				catch (Exception ex)
+				{
+					Log.Warn(ex, "Failed to analyze map '{0}'", request.Key);
+					score = new SongScore(-1, -1, Array.Empty<AggregatedHit>());
+				}
 
-			var ramsesMap = ResultToJsonObject(score, map);
-			var packedScore = PackScoreObject(ramsesMap);
+				var ramsesMap = ResultToJsonObject(score, map);
+				var packedScore = PackScoreObject(ramsesMap);
 
-			return new RamsesMapDto(
-				map.Characteristic,
-				(byte)map.DifficultyIndex,
-				(byte)map.MapInfo.DifficultyRank,
-				score.Average,
-				packedScore);
-		}));
+				return new RamsesMapDto(
+					map.Characteristic,
+					(byte)map.DifficultyIndex,
+					(byte)map.MapInfo.DifficultyRank,
+					score.Average,
+					packedScore);
+			})
+			.ToList();
 		timeProcess = swProcess.Elapsed;
 
 		Log.Info("RaMSeS Key:{0} Download:{1} (Un)Pack:{2} Process:{3} Cachesize:{4}", request.Key, timeDownload, timePackOrUnpack, timeProcess, entry.RawMap?.Length);
 
 		await db.SaveChangesAsync();
 
-		return mapper.Map<RamsesSong>(entry);
+		return RamsesMapper.FromDto(entry);
 	}
 
 	private static long? GetMapIdFromKey(string key)
@@ -273,11 +281,11 @@ public class RamsesBackingData
 		return new OkObjectResult(content);
 	}
 
-	private static IActionResult ToError(string error)
+	private static IActionResult ToError(string error, HttpStatusCode errorCode = HttpStatusCode.BadRequest)
 	{
 		return new ObjectResult(new RamsesError(error))
 		{
-			StatusCode = (int)HttpStatusCode.BadRequest,
+			StatusCode = (int)errorCode,
 		};
 	}
 }
@@ -334,13 +342,17 @@ public class RamsesError
 	}
 }
 
-public class RamsesProfile : Profile
+[Mapper]
+public static partial class RamsesMapper
 {
-	public RamsesProfile()
-	{
-		CreateMap<RamsesSongDto, RamsesSong>(MemberList.Destination);
-		CreateMap<RamsesMapDto, RamsesMap>(MemberList.None)
-			.ConstructUsing(x => RamsesBackingData.UnpackScoreObject(x.RatingDetail))
-			.ForAllMembers(opt => opt.Ignore());
-	}
+	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
+	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
+	public static partial RamsesSong FromDto(this RamsesSongDto song);
+	public static partial RamsesSong FromDto(this RamsesSongLightDto song);
+	public static partial IQueryable<RamsesSongLightDto> MapToLight(this IQueryable<RamsesSongDto> song);
+	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
+	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
+	private static partial RamsesSongLightDto MapToLight(this RamsesSongDto song);
+	public static RamsesMap FromDto(this RamsesMapDto map) => RamsesBackingData.UnpackScoreObject(map.RatingDetail);
+	private static partial List<RamsesMap> MapToList(List<RamsesMapDto> source);
 }

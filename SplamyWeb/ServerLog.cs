@@ -1,8 +1,8 @@
-using AutoMapper;
 using NLog;
 using NLog.Config;
 using NLog.Layouts;
 using NLog.Targets;
+using Riok.Mapperly.Abstractions;
 
 namespace SplamyWeb;
 
@@ -61,10 +61,10 @@ public class ServerLogEntry : IComparable<ServerLogEntry>
 }
 #pragma warning restore CA1036 // Override methods on comparable types
 
-public class ServerLogEntryProfile : Profile
+[Mapper]
+public static partial class ServerLogMapper
 {
-	public ServerLogEntryProfile()
-	{
-		CreateMap<LogEventInfo, ServerLogEntry>(MemberList.Destination);
-	}
+#pragma warning disable RMG020
+	public static partial ServerLogEntry ToEntry(LogEventInfo ev);
+#pragma warning restore RMG020
 }

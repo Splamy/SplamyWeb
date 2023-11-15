@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SplamyWeb.Db;
@@ -11,7 +10,6 @@ public class TabBackingData
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 	private readonly IServiceScopeFactory scopeFactory;
-	private readonly IMapper mapper;
 	private const int MaxRunningBots = 10_000;
 	private const int MaxDaysCalculation = 2; // Aim to send stats once per day. So 10 days should be the maximum for values calculation
 	private static readonly TimeSpan MaxTotalUptime = TimeSpan.FromDays(MaxDaysCalculation);
@@ -24,10 +22,9 @@ public class TabBackingData
 	public TimeSpan PlaybackTime { get; set; }
 	public CachedDayStats[] CachedDayStats { get; set; } = Array.Empty<CachedDayStats>();
 
-	public TabBackingData(IServiceScopeFactory scopeFactory, IMapper mapper, TimerService timer)
+	public TabBackingData(IServiceScopeFactory scopeFactory, TimerService timer)
 	{
 		this.scopeFactory = scopeFactory;
-		this.mapper = mapper;
 		timer.Register(UpdateAggregates);
 	}
 
@@ -38,7 +35,7 @@ public class TabBackingData
 
 		Log.Info("Stats: {@stats}", obj);
 
-		var dto = mapper.Map<TabStatsData, TabStatsPingDto>(obj);
+		var dto = TabStatsMapper.ToDto(obj);
 		dto.Time = DateTime.UtcNow;
 
 		using var scope = scopeFactory.CreateScope();

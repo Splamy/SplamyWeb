@@ -1,11 +1,10 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using CliWrap;
 using CliWrap.Buffered;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Riok.Mapperly.Abstractions;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
 using System.Globalization;
@@ -56,7 +55,7 @@ public class LanguageController : ControllerBase
 		var result = await db.LanguageEntries
 			.AsNoTracking()
 			.Where(x => x.Project == project && x.Active)
-			.ProjectTo<LangInfo>(isAdmin ? AdminMapping : UserMapping)
+			.ProjectToLangInfo(isAdmin)
 			.ToListAsync();
 
 		result.ForEach(x => x.DisplayName = CultureInfo.GetCultureInfo(x.Language).DisplayName);
@@ -259,17 +258,6 @@ public class LanguageController : ControllerBase
 
 		return user.Rank.AtLeast(UserType.Admin);
 	}
-
-	static readonly MapperConfiguration AdminMapping = new(cfg =>
-	{
-		cfg.CreateMap<LanguageEntry, LangInfo>(MemberList.None);
-	});
-
-	static readonly MapperConfiguration UserMapping = new(cfg =>
-	{
-		cfg.CreateMap<LanguageEntry, LangInfo>(MemberList.None)
-			.ForMember(x => x.DownloadCount, opt => opt.MapFrom((_) => (int?)null));
-	});
 }
 
 #pragma warning disable IDE1006, CS8618 // Naming Styles
@@ -289,11 +277,42 @@ internal class TransifexLanguageAttributes
 	public string code { get; set; }
 }
 
-class LangInfo
+public class LangInfo
 {
 	public string Project { get; set; }
 	public string Language { get; set; }
 	public DateTime UploadTime { get; set; }
 	public string DisplayName { get; set; }
 	public int? DownloadCount { get; set; }
+}
+
+[Mapper]
+public static partial class LanguageMapper
+{
+	public static IQueryable<LangInfo> ProjectToLangInfo(this IQueryable<LanguageEntry> query, bool isAdmin)
+		=> isAdmin ? query.ToAdminDto() : query.ToUserDto();
+}
+
+[Mapper]
+public static partial class LanguageUserMapper
+{
+	public static partial IQueryable<LangInfo> ToUserDto(this IQueryable<LanguageEntry> entry);
+
+	[MapperIgnoreSource(nameof(LanguageEntry.NightlyProject))]
+	[MapperIgnoreSource(nameof(LanguageEntry.Active))]
+	[MapperIgnoreTarget(nameof(LangInfo.DisplayName))]
+	[MapperIgnoreSource(nameof(LanguageEntry.DownloadCount))] // Hide download count from user
+	[MapperIgnoreTarget(nameof(LangInfo.DownloadCount))] // Hide download count from user
+	private static partial LangInfo ToUserDto(this LanguageEntry entry);
+}
+
+[Mapper]
+public static partial class LanguageAdminMapper
+{
+	public static partial IQueryable<LangInfo> ToAdminDto(this IQueryable<LanguageEntry> entry);
+
+	[MapperIgnoreSource(nameof(LanguageEntry.NightlyProject))]
+	[MapperIgnoreSource(nameof(LanguageEntry.Active))]
+	[MapperIgnoreTarget(nameof(LangInfo.DisplayName))]
+	private static partial LangInfo ToAdminDto(this LanguageEntry entry);
 }

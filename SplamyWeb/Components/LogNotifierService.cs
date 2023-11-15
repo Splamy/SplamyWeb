@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NLog;
@@ -11,18 +10,16 @@ public class LogNotifierService
 	private readonly object listLock = new();
 	private readonly List<ServerLogEntry> logHistory = new();
 	private readonly IHubContext<LogNotifier> hub;
-	private readonly IMapper mapper;
 
-	public LogNotifierService(IHubContext<LogNotifier> hub, IMapper mapper)
+	public LogNotifierService(IHubContext<LogNotifier> hub)
 	{
 		this.hub = hub;
-		this.mapper = mapper;
 		ServerLog.OnLog += NotifyLog;
 	}
 
 	private async void NotifyLog(LogEventInfo ev)
 	{
-		var entry = mapper.Map<ServerLogEntry>(ev);
+		var entry = ServerLogMapper.ToEntry(ev);
 		lock (listLock)
 		{
 			logHistory.Add(entry);

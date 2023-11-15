@@ -13,8 +13,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AutoMapper" Version="12.0.1" />
-		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.0" />
 		<PackageReference Include="CliWrap" Version="3.6.0" />
 		<PackageReference Include="CsvHelper" Version="30.0.1" />
 		<PackageReference Include="Markdig" Version="0.30.4" />
@@ -28,6 +26,7 @@
 		<PackageReference Include="NLog.Web.AspNetCore" Version="5.2.2" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.3" />
 		<PackageReference Include="protobuf-net" Version="3.1.33" />
+		<PackageReference Include="Riok.Mapperly" Version="3.2.0" PrivateAssets="all" ExcludeAssets="runtime" />
 		<PackageReference Include="Splamy.Ed25519.Toolkit" Version="1.0.3" />
 		<PackageReference Include="Splamy.JsonBinMin" Version="1.4.1" />
 		<PackageReference Include="Splamy.RateMapSeveritySaber" Version="1.0.10" />

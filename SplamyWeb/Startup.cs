@@ -127,8 +127,6 @@ public class Startup
 			ValidationAlgorithm = ValidationAlgorithm.HMACSHA256,
 		});
 
-		services.AddAutoMapper(typeof(Startup));
-
 		services.AddSingleton<TimerService>();
 		services.AddHostedService(p => p.GetRequiredService<TimerService>());
 
@@ -141,6 +139,7 @@ public class Startup
 		services.AddSingleton<MinigameServer>();
 
 		services.AddHostedService<RamsesService>();
+		services.AddHostedService(x => x.GetRequiredService<RamsesBackingData>());
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -152,11 +151,7 @@ public class Startup
 
 		if (env.IsDevelopment())
 		{
-			var mapper = provider.GetRequiredService<AutoMapper.IMapper>();
-			mapper.ConfigurationProvider.AssertConfigurationIsValid();
-
 			app.UseDeveloperExceptionPage();
-
 		}
 		else
 		{

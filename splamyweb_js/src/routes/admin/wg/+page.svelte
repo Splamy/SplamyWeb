@@ -14,7 +14,7 @@
 	let pkMap = new Map<string, string>();
 	let editPeers = toEditPeerList(data.peers);
 
-	let createPeer = emptyWgPeer();
+	let createPeer: EditWgPeer = emptyWgPeer();
 	let privateKey = '';
 	let privateKeyValid = true;
 

@@ -1,5 +1,3 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Markdig;
 using Markdig.Syntax;
 using Microsoft.AspNetCore.Authorization;
@@ -23,14 +21,12 @@ public class ContentController : ControllerBase
 	private readonly UserManager<LoginData> userManager;
 	private readonly SplamyContext db;
 	private readonly StoreService store;
-	private readonly IMapper mapper;
 	private const int EntriesPerPage = 10;
 
-	public ContentController(SplamyContext db, StoreService store, IMapper mapper, UserManager<LoginData> userManager)
+	public ContentController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
 	{
 		this.db = db;
 		this.store = store;
-		this.mapper = mapper;
 		this.userManager = userManager;
 	}
 
@@ -44,12 +40,11 @@ public class ContentController : ControllerBase
 
 		var isAdmin = await ExtendedPermission();
 
-		IQueryable<BlogPostShortView> posts = (
-			from post in db.BlogPosts.AsNoTracking()
-			where post.Visible || isAdmin
-			where post.Tags.Contains(tagName)
-			select post)
-			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider);
+		IQueryable<BlogPostShortView> posts = db.BlogPosts
+			.AsNoTracking()
+			.IsVisible(isAdmin)
+			.Where(post => post.Tags.Contains(tagName))
+			.ProjectToShortView();
 
 		var result = await posts.ToListAsync();
 		return new BlogListQuery()
@@ -65,12 +60,11 @@ public class ContentController : ControllerBase
 	{
 		var isAdmin = await ExtendedPermission();
 
-		IQueryable<BlogPostShortView> posts = (
-			from post in db.BlogPosts.AsNoTracking()
-			where post.Visible || isAdmin
-			orderby post.CreateTime descending
-			select post)
-			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider);
+		IQueryable<BlogPostShortView> posts = db.BlogPosts
+			.AsNoTracking()
+			.IsVisible(isAdmin)
+			.OrderByDescending(p => p.CreateTime)
+			.ProjectToShortView();
 
 		if (page is { } offsetNum)
 			posts = posts.Skip(offsetNum * EntriesPerPage);
@@ -94,22 +88,22 @@ public class ContentController : ControllerBase
 	{
 		var isAdmin = await ExtendedPermission();
 
-		BlogPostView? postView = await (
-			from post in db.BlogPosts.AsNoTracking()
-			where post.PostId == id
-			where post.Visible || isAdmin
-			select post)
-			.ProjectTo<BlogPostView>(mapper.ConfigurationProvider)
+		BlogPostView? postView = await db.BlogPosts
+			.AsNoTracking()
+			.Where(post => post.PostId == id)
+			.IsVisible(isAdmin)
+			.ProjectToView()
 			.FirstOrDefaultAsync();
 
 		if (postView == null)
 			return NotFound();
 
-		var recentPosts = await db.BlogPosts.AsNoTracking()
+		var recentPosts = await db.BlogPosts
+			.AsNoTracking()
 			.OrderByDescending(p => p.CreateTime)
 			.Where(p => p.Visible && p.PostId != postView.PostId)
 			.Take(3)
-			.ProjectTo<BlogPostShortView>(mapper.ConfigurationProvider)
+			.ProjectToShortView()
 			.ToListAsync();
 
 		return new BlogItemQuery
@@ -122,11 +116,9 @@ public class ContentController : ControllerBase
 	[HttpGet("post/{id}/raw")]
 	public async Task<ActionResult<BlogPostUpdate>> GetEditablePostById(int id)
 	{
-		BlogPostUpdate? postView = await (
-			from post in db.BlogPosts.AsNoTracking()
-			where post.PostId == id
-			select post)
-			.ProjectTo<BlogPostUpdate>(mapper.ConfigurationProvider)
+		BlogPostUpdate? postView = await db.BlogPosts.AsNoTracking()
+			.Where(post => post.PostId == id)
+			.ProjectToUpdate()
 			.FirstOrDefaultAsync();
 
 		if (postView == null)
@@ -198,12 +190,10 @@ public class ContentController : ControllerBase
 	[Produces("text/xml")]
 	public async Task<ActionResult<RssFeed>> GetFeedRss()
 	{
-		var posts = await (
-			from post in db.BlogPosts.AsNoTracking()
-			where post.Visible
-			orderby post.CreateTime descending
-			select post)
-			.ProjectTo<BlogPostView>(mapper.ConfigurationProvider)
+		var posts = await db.BlogPosts.AsNoTracking()
+			.IsVisible(isAdmin: false)
+			.OrderByDescending(p => p.CreateTime)
+			.ProjectToView()
 			.Take(EntriesPerPage)
 			.ToArrayAsync();
 

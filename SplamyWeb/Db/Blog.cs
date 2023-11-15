@@ -1,6 +1,7 @@
-using AutoMapper;
+using Riok.Mapperly.Abstractions;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace SplamyWeb.Db;
 
@@ -46,15 +47,36 @@ public class BlogPostUpdate
 	public string[]? Tags { get; set; }
 }
 
-public class BlogProfile : Profile
-{
-	public BlogProfile()
-	{
-		CreateMap<BlogPost, BlogPostShortView>(MemberList.Destination);
-		CreateMap<BlogPost, BlogPostView>(MemberList.Destination);
-		CreateMap<BlogPost, BlogPostUpdate>(MemberList.Destination);
-	}
-}
-
-
 #pragma warning restore CS8618
+
+[Mapper]
+public static partial class BlogMapper
+{
+	public static IQueryable<BlogPost> IsVisible(this IQueryable<BlogPost> query, bool isAdmin) => isAdmin ? query : query.Where(post => post.Visible);
+
+	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
+	public static partial BlogPostView ToView(BlogPost blogPost);
+
+	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
+	public static partial IQueryable<BlogPostView> ProjectToView(this IQueryable<BlogPost> blogPost);
+
+	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
+	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
+	public static partial BlogPostShortView ToShortView(BlogPost blogPost);
+
+	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
+	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
+	public static partial IQueryable<BlogPostShortView> ProjectToShortView(this IQueryable<BlogPost> blogPost);
+
+	[MapperIgnoreSource(nameof(BlogPost.CreateTime))]
+	[MapperIgnoreSource(nameof(BlogPost.Title))]
+	[MapperIgnoreSource(nameof(BlogPost.SummaryHtml))]
+	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
+	public static partial BlogPostUpdate ToUpdate(BlogPost blogPostUpdate);
+
+	[MapperIgnoreSource(nameof(BlogPost.CreateTime))]
+	[MapperIgnoreSource(nameof(BlogPost.Title))]
+	[MapperIgnoreSource(nameof(BlogPost.SummaryHtml))]
+	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
+	public static partial IQueryable<BlogPostUpdate> ProjectToUpdate(this IQueryable<BlogPost> blogPostUpdate);
+}
