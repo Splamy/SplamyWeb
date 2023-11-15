@@ -21,7 +21,7 @@ public class BlogPost
 	// Important:
 	// Gets a gin index via migration
 	// http://www.databasesoup.com/2015/01/tag-all-things.html
-	public string[] Tags { get; set; } = Array.Empty<string>();
+	public string[] Tags { get; set; } = [];
 }
 
 public class BlogPostView : BlogPostShortView

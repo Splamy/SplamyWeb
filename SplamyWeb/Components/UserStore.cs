@@ -12,15 +12,9 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public sealed class UserStore : IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
+public sealed class UserStore(SplamyContext context)
+	: IRoleStore<LoginData>, IUserPasswordStore<LoginData>, IPasswordValidator<LoginData>, IPasswordHasher<LoginData>
 {
-	private readonly SplamyContext context;
-
-	public UserStore(SplamyContext context)
-	{
-		this.context = context;
-	}
-
 	public async Task<LoginData?> GetUserByToken(string token)
 	{
 		if (string.IsNullOrWhiteSpace(token))

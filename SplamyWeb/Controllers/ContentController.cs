@@ -16,19 +16,10 @@ namespace SplamyWeb.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = Util.AuthScheme)]
 [Route("api/[controller]")]
-public class ContentController : ControllerBase
+public class ContentController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
+	: ControllerBase
 {
-	private readonly UserManager<LoginData> userManager;
-	private readonly SplamyContext db;
-	private readonly StoreService store;
 	private const int EntriesPerPage = 10;
-
-	public ContentController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
-	{
-		this.db = db;
-		this.store = store;
-		this.userManager = userManager;
-	}
 
 	[AllowAnonymous]
 	[HttpGet("home")]
@@ -338,7 +329,7 @@ public class ContentController : ControllerBase
 		public string? LastBuildDate { get; set; }
 
 		[XmlElement("item")]
-		public RssItem[] Items { get; set; } = Array.Empty<RssItem>();
+		public RssItem[] Items { get; set; } = [];
 	}
 
 	public class RssItem

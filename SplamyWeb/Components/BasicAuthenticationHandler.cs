@@ -12,32 +12,24 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+public class BasicAuthenticationHandler(
+	IOptionsMonitor<AuthenticationSchemeOptions> options,
+	ILoggerFactory logger,
+	UrlEncoder encoder,
+	UserManager<LoginData> userManager,
+	SignInManager<LoginData> signInManager)
+	: AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
-	private readonly UserManager<LoginData> userManager;
-	private readonly SignInManager<LoginData> signInManager;
-
-	public BasicAuthenticationHandler(
-		IOptionsMonitor<AuthenticationSchemeOptions> options,
-		ILoggerFactory logger,
-		UrlEncoder encoder,
-		ISystemClock clock,
-		UserManager<LoginData> userManager,
-		SignInManager<LoginData> signInManager) : base(options, logger, encoder, clock)
-	{
-		this.userManager = userManager;
-		this.signInManager = signInManager;
-	}
 
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
-		if (!Request.Headers.ContainsKey("Authorization"))
+		if (!Request.Headers.TryGetValue("Authorization", out var authorization))
 			return AuthenticateResult.Fail("Missing Authorization header");
 
 		LoginData? user = null;
 		try
 		{
-			var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
+			var authHeader = AuthenticationHeaderValue.Parse(authorization);
 			if (authHeader.Parameter is null)
 				return AuthenticateResult.Fail("Missing or empty Authorization header");
 			var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
@@ -63,10 +55,11 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 		if (user is null)
 			return AuthenticateResult.Fail("Invalid Username or Password");
 
-		var claims = new List<Claim>
-		{
+		List<Claim> claims =
+		[
 			new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture))
-		};
+		];
+
 		if (user.Name is not null) claims.Add(new Claim(ClaimTypes.Name, user.Name));
 
 		var identity = new ClaimsIdentity(claims, Scheme.Name);

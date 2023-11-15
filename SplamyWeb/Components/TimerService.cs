@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public sealed class TimerService : BackgroundService, IDisposable
+public sealed class TimerService(TimeProvider timeProvider) : BackgroundService, IDisposable
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
-	private readonly ConcurrentBag<Func<Task>> tick = new();
-	private readonly PeriodicTimer timer = new(TimeSpan.FromHours(1));
+	private readonly ConcurrentBag<Func<Task>> tick = [];
+	private readonly PeriodicTimer timer = new(TimeSpan.FromHours(1), timeProvider);
 
 	public void Register(Func<Task> func)
 	{
@@ -22,7 +22,7 @@ public sealed class TimerService : BackgroundService, IDisposable
 	{
 		Log.Info("HTask service is starting.");
 
-		await Task.Delay(1000, stoppingToken);
+		await Task.Delay(TimeSpan.FromSeconds(1), timeProvider, stoppingToken);
 
 		while (await timer.WaitForNextTickAsync(stoppingToken))
 		{

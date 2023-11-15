@@ -1,30 +1,36 @@
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
 public class SpamBackingData
 {
-	private readonly Dictionary<IPAddress, SpamCacheEntry> spamCache = new();
+	private readonly Dictionary<IPAddress, SpamCacheEntry> spamCache = [];
 
 	private const int MaxIpRequests = 1_000;
 	private static readonly TimeSpan ResetIpRequestsAfter = TimeSpan.FromHours(1);
+	private readonly TimeProvider timeProvider;
 
-	public SpamBackingData(TimerService timer)
+	public SpamBackingData(TimerService timer, TimeProvider timeProvider)
 	{
 		timer.Register(CleanIpTables);
+		this.timeProvider = timeProvider;
 	}
 
 	public bool Check(IPAddress reqIp)
 	{
+		var now = timeProvider.GetUtcNow();
 		lock (spamCache)
 		{
+			ref var spamCacheEntry = ref CollectionsMarshal.GetValueRefOrAddDefault(spamCache, reqIp, out var exists);
+
 			//var reqIp = Request.HttpContext.Connection.RemoteIpAddress;
-			if (!spamCache.TryGetValue(reqIp, out var spamCacheEntry) || spamCacheEntry.CreateTime < DateTime.UtcNow - ResetIpRequestsAfter)
+			if (!exists || spamCacheEntry.CreateTime < now - ResetIpRequestsAfter)
 			{
-				spamCacheEntry = new SpamCacheEntry(DateTime.UtcNow);
-				spamCache[reqIp] = spamCacheEntry;
+				spamCacheEntry.CreateTime = now;
+				spamCacheEntry.Count = 0;
 			}
 			if (spamCacheEntry.Count > MaxIpRequests)
 			{
@@ -53,15 +59,9 @@ public class SpamBackingData
 		}
 	}
 
-	class SpamCacheEntry
+	struct SpamCacheEntry
 	{
-		public DateTime CreateTime { get; }
+		public DateTimeOffset CreateTime { get; set; }
 		public int Count { get; set; }
-
-		public SpamCacheEntry(DateTime createTime)
-		{
-			CreateTime = createTime;
-			Count = 0;
-		}
 	}
 }

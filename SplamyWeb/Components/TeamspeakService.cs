@@ -32,9 +32,10 @@ public partial class TeamspeakService
 
 	private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
 	private const string CsvHeader = "version,platform,hash\n";
+	private static readonly char[] NicknamesSplit = [',', ';', ' '];
 
 	private readonly object cacheLock = new();
-	private HashSet<VersionSign> cachedVersions = new();
+	private HashSet<VersionSign> cachedVersions = [];
 	private string? cachedFileSha;
 	private long LastBadgeUpdate = -1;
 	private readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
@@ -119,7 +120,7 @@ public partial class TeamspeakService
 			}
 			else
 			{
-				versions = new HashSet<VersionSign>();
+				versions = [];
 				recalculate = true;
 			}
 		}
@@ -149,8 +150,7 @@ public partial class TeamspeakService
 			versions
 			.Concat(newEntries)
 			.OrderBy(x => x.BuildNumber)
-			.ThenBy(x => x.Platform)
-			.Select(x => x.ToString()));
+			.ThenBy(x => x.Platform));
 		var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(newContent));
 
 		var strb = new StringBuilder();
@@ -451,7 +451,7 @@ public partial class TeamspeakService
 
 		var nickList = await store.Get("check_nicknames");
 		if (string.IsNullOrEmpty(nickList)) return;
-		var checkNicknames = nickList.Split(new char[] { ',', ';', ' ' }, StringSplitOptions.TrimEntries);
+		var checkNicknames = nickList.Split(NicknamesSplit, StringSplitOptions.TrimEntries);
 
 		foreach (var name in checkNicknames)
 		{
@@ -479,20 +479,12 @@ public partial class TeamspeakService
 #pragma warning restore CS8618, IDE1006
 }
 
-public class VersionError
+public class VersionError(int line, string error, VersionSign? version = null)
 {
-	public int Line { get; set; }
-	public string Error { get; }
-	public VersionSign? Version { get; }
+	public int Line { get; set; } = line;
+	public string Error { get; } = error;
+	public VersionSign? Version { get; } = version;
 	public VersionSign? FixedVersion { get; set; }
-
-	public VersionError(int line, string error, VersionSign? version = null)
-	{
-		FixedVersion = null;
-		Line = line;
-		Error = error;
-		Version = version;
-	}
 }
 
 public sealed partial class VersionSign : IEquatable<VersionSign>

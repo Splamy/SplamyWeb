@@ -8,7 +8,7 @@ namespace SplamyWeb.Components;
 public class LogNotifierService
 {
 	private readonly object listLock = new();
-	private readonly List<ServerLogEntry> logHistory = new();
+	private readonly List<ServerLogEntry> logHistory = [];
 	private readonly IHubContext<LogNotifier> hub;
 
 	public LogNotifierService(IHubContext<LogNotifier> hub)
@@ -50,15 +50,8 @@ public class LogNotifierService
 }
 
 [Authorize]
-public class LogNotifier : Hub
+public class LogNotifier(LogNotifierService logNotifierService) : Hub
 {
-	private readonly LogNotifierService logNotifierService;
-
-	public LogNotifier(LogNotifierService logNotifierService)
-	{
-		this.logNotifierService = logNotifierService;
-	}
-
 	public ServerLogEntry[] GetTop() => logNotifierService.GetTop();
 
 	public ServerLogEntry[] GetLog(int fromId, int length) => logNotifierService.GetLog(fromId, length);

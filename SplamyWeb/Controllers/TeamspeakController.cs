@@ -6,16 +6,9 @@ namespace SplamyWeb.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TeamspeakController : ControllerBase
+public class TeamspeakController(TeamspeakService tsService) : ControllerBase
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-
-	private readonly TeamspeakService tsService;
-
-	public TeamspeakController(TeamspeakService tsService)
-	{
-		this.tsService = tsService;
-	}
 
 	[HttpPost("github")]
 	[Consumes("application/json")] // , "text/csv"

@@ -1,29 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SplamyWeb.Db;
-using System.Linq;
+using System.Collections.Frozen;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public class StoreService
+public class StoreService(IServiceScopeFactory scopeFactory)
 {
-	private (Dictionary<string, string> dict, List<StoreEntry> list)? _cache;
-	private readonly IServiceScopeFactory scopeFactory;
+	private (FrozenDictionary<string, string> dict, List<StoreEntry> list)? _cache;
 
-	public StoreService(IServiceScopeFactory scopeFactory)
-	{
-		this.scopeFactory = scopeFactory;
-	}
-
-	private async ValueTask<(Dictionary<string, string> dict, List<StoreEntry> list)> GetAllInternal()
+	private async ValueTask<(FrozenDictionary<string, string> dict, List<StoreEntry> list)> GetAllInternal()
 	{
 		if (!_cache.HasValue)
 		{
 			using var scope = scopeFactory.CreateScope();
 			var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 			var list = await db.StoreTable.AsNoTracking().ToListAsync();
-			var dict = list.ToDictionary(x => x.Id, x => x.Value);
+			var dict = list.ToFrozenDictionary(x => x.Id, x => x.Value);
 			_cache = (dict, list);
 		}
 		return _cache.Value;

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using SplamyWeb.Modules;
+using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
@@ -16,15 +17,8 @@ namespace SplamyWeb.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = AuthScheme)]
 [Route("api/[controller]")]
-public class WireguardController : ControllerBase
+public class WireguardController(IOptionsMonitor<WireguardConfig> config) : ControllerBase
 {
-	private readonly IOptionsMonitor<WireguardConfig> config;
-
-	public WireguardController(IOptionsMonitor<WireguardConfig> config)
-	{
-		this.config = config;
-	}
-
 	[HttpGet("peers")]
 	public Task<IActionResult> GetPeers() => Transfrom((data) =>
 	{
@@ -113,7 +107,7 @@ public class WireguardController : ControllerBase
 		{
 			FriendlyName = friendlyName,
 			PublicKey = publicKey,
-			AllowedIPs = section.Entries.OfType<IniValue>().Where(e => e.Key == "AllowedIPs").Select(e => e.Value).ToList(),
+			AllowedIPs = section.Entries.OfType<IniValue>().Where(e => e.Key == "AllowedIPs").Select(e => e.Value).ToImmutableArray(),
 		};
 	}
 
@@ -168,15 +162,16 @@ public class WireguardConfig
 public class WireguardPeerDto : IEquatable<WireguardPeerDto>
 {
 	[RegularExpression(@"^[a-zA-Z0-9+/]{43}=$")]
-	public required string PublicKey { get; set; }
+	public required string PublicKey { get; init; }
 	[RegularExpression(@"^[a-zA-Z0-9_\- ]{0,32}$")]
-	public string? FriendlyName { get; set; }
-	public List<string> AllowedIPs { get; set; } = new();
+	public string? FriendlyName { get; init; }
+	public ImmutableArray<string> AllowedIPs { get; init; } = [];
 
 	public bool Equals(WireguardPeerDto? other) => other != null &&
 		PublicKey == other.PublicKey &&
 		FriendlyName == other.FriendlyName &&
 		AllowedIPs.SequenceEqual(other.AllowedIPs);
 
-	public override bool Equals(object obj) => Equals(obj as WireguardPeerDto);
+	public override bool Equals(object? obj) => Equals(obj as WireguardPeerDto);
+	public override int GetHashCode() => HashCode.Combine(PublicKey, FriendlyName, AllowedIPs);
 }

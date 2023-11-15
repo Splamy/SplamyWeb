@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,18 +11,9 @@ namespace SplamyWeb.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TabController : ControllerBase
+public class TabController(TabBackingData tab, SpamBackingData spam) : ControllerBase
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-
-	private readonly TabBackingData tab;
-	private readonly SpamBackingData spam;
-
-	public TabController(TabBackingData tab, SpamBackingData spam)
-	{
-		this.tab = tab;
-		this.spam = spam;
-	}
 
 	[HttpPost("stats")]
 	[Consumes("application/json")]
@@ -72,10 +64,10 @@ public class TabController : ControllerBase
 			data[i] = data[i] is (byte)'\r' or (byte)'\n' ? (byte)' ' : data[i];
 	}
 
-	public static readonly string[] ImpMod = { "", "K", "M", "G" };
+	public static readonly ImmutableArray<string> ImpMod = [ "", "K", "M", "G" ];
 	public static string FormatMetric(uint number)
 	{
-		uint pow = number > 0 ? (uint)Math.Log10(number) : 0;
+		int pow = number > 0 ? (int)Math.Log10(number) : 0;
 		string unit = ImpMod[pow / 3];
 		double trimmedNumber = number / Math.Pow(1000, pow / 3);
 

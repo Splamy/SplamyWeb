@@ -4,7 +4,7 @@ using SplamyWeb.Components;
 
 namespace SplamyWeb.Db;
 
-public class SplamyContext : DbContext
+public class SplamyContext(DbContextOptions options, DbContextConfig conf) : DbContext(options)
 {
 	public required DbSet<RamsesSongDto> RamsesSongs { get; set; }
 	public required DbSet<StoreEntry> StoreTable { get; set; }
@@ -19,12 +19,6 @@ public class SplamyContext : DbContext
 
 	// https://docs.microsoft.com/en-us/ef/core/miscellaneous/logging?tabs=v3
 	public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
-	private readonly DbContextConfig conf;
-
-	public SplamyContext(DbContextOptions options, DbContextConfig conf) : base(options)
-	{
-		this.conf = conf;
-	}
 
 	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 	{

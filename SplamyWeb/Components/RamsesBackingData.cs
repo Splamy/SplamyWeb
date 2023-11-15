@@ -140,7 +140,7 @@ public class RamsesBackingData : BackgroundService
 				catch (Exception ex)
 				{
 					Log.Warn(ex, "Failed to analyze map '{0}'", request.Key);
-					score = new SongScore(-1, -1, Array.Empty<AggregatedHit>());
+					score = new SongScore(-1, -1, []);
 				}
 
 				var ramsesMap = ResultToJsonObject(score, map);
@@ -166,17 +166,11 @@ public class RamsesBackingData : BackgroundService
 	private static long? GetMapIdFromKey(string key)
 		=> long.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var mapId) ? mapId : null;
 
-	class ProcessEntry
+	class ProcessEntry(string key, long mapId)
 	{
-		public string Key { get; }
-		public long MapId { get; }
+		public string Key { get; } = key;
+		public long MapId { get; } = mapId;
 		public TaskCompletionSource<IActionResult> Task { get; } = new();
-
-		public ProcessEntry(string key, long mapId)
-		{
-			Key = key;
-			MapId = mapId;
-		}
 	}
 
 	private static byte[]? PackMap(ZipArchive sourceZip)
@@ -276,12 +270,12 @@ public class RamsesBackingData : BackgroundService
 		return JBMConverter.DecodeObject<RamsesMap>(data)!;
 	}
 
-	private static IActionResult ToResult(object content)
+	private static OkObjectResult ToResult(object content)
 	{
 		return new OkObjectResult(content);
 	}
 
-	private static IActionResult ToError(string error, HttpStatusCode errorCode = HttpStatusCode.BadRequest)
+	private static ObjectResult ToError(string error, HttpStatusCode errorCode = HttpStatusCode.BadRequest)
 	{
 		return new ObjectResult(new RamsesError(error))
 		{
@@ -290,56 +284,36 @@ public class RamsesBackingData : BackgroundService
 	}
 }
 
-public class RamsesSong
+public class RamsesSong(string version, List<RamsesMap> maps)
 {
 	[JsonPropertyName("ramsesVersion")]
-	public string Version { get; set; }
+	public string Version { get; set; } = version;
 	[JsonPropertyName("maps")]
-	public List<RamsesMap> Maps { get; set; }
-
-	public RamsesSong(string version, List<RamsesMap> maps)
-	{
-		Version = version;
-		Maps = maps;
-	}
+	public List<RamsesMap> Maps { get; set; } = maps;
 }
 
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-public class RamsesMap
+public class RamsesMap(string difficulty, string characteristic, float maxDifficulty, float avgDifficulty, float[] graph)
 {
 	[JsonPropertyName("difficulty")]
-	public string Difficulty { get; set; }
+	public string Difficulty { get; set; } = difficulty;
 	/// <summary>Internal mode name (Standard, 90°, 360°,...)</summary>
 	[JsonPropertyName("characteristic")]
-	public string Characteristic { get; set; }
+	public string Characteristic { get; set; } = characteristic;
 	[JsonPropertyName("maxDifficulty")]
-	public float MaxDifficulty { get; set; }
+	public float MaxDifficulty { get; set; } = maxDifficulty;
 	[JsonPropertyName("avgDifficulty")]
-	public float AvgDifficulty { get; set; }
+	public float AvgDifficulty { get; set; } = avgDifficulty;
 	[JsonPropertyName("graph")]
-	public float[] Graph { get; set; }
-
-	public RamsesMap(string difficulty, string characteristic, float maxDifficulty, float avgDifficulty, float[] graph)
-	{
-		Difficulty = difficulty;
-		Characteristic = characteristic;
-		MaxDifficulty = maxDifficulty;
-		AvgDifficulty = avgDifficulty;
-		Graph = graph;
-	}
+	public float[] Graph { get; set; } = graph;
 
 	private string GetDebuggerDisplay() => $"{Characteristic}|{Difficulty}: Max:{MaxDifficulty} Avg:{AvgDifficulty}";
 }
 
-public class RamsesError
+public class RamsesError(string error)
 {
 	[JsonPropertyName("error")]
-	public string Error { get; set; }
-
-	public RamsesError(string error)
-	{
-		Error = error;
-	}
+	public string Error { get; set; } = error;
 }
 
 [Mapper]

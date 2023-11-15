@@ -17,21 +17,13 @@ using System.Text.Json;
 
 namespace SplamyWeb;
 
-public class Startup
+public class Startup(IConfiguration configuration)
 {
 	public const string CorsAny = "corsAllowAny";
 
-	public Startup(IConfiguration configuration)
-	{
-		Configuration = configuration;
-	}
-
-	public IConfiguration Configuration { get; }
-
-	// This method gets called by the runtime. Use this method to add services to the container.
 	public void ConfigureServices(IServiceCollection services)
 	{
-		if (Configuration.GetValue<bool>("Mock:Web"))
+		if (configuration.GetValue<bool>("Mock:Web"))
 		{
 			services.AddSingleton<IHttpClientFactory, MockedHttpClientFactory>();
 		}
@@ -44,7 +36,7 @@ public class Startup
 			});
 		}
 
-		if (Configuration.GetValue<bool>("Dev:UseCors"))
+		if (configuration.GetValue<bool>("Dev:UseCors"))
 		{
 			services.AddCors(options =>
 			{
@@ -64,7 +56,7 @@ public class Startup
 			});
 		}
 
-		services.Configure<WireguardConfig>(Configuration.GetSection("Wireguard"));
+		services.Configure<WireguardConfig>(configuration.GetSection("Wireguard"));
 
 		services.AddSignalR().AddJsonProtocol(options =>
 		{
@@ -158,7 +150,7 @@ public class Startup
 			app.UseExceptionHandler("/InternalError");
 		}
 
-		if (Configuration.GetValue<bool>("Dev:UseCors"))
+		if (configuration.GetValue<bool>("Dev:UseCors"))
 		{
 			app.UseCors();
 		}

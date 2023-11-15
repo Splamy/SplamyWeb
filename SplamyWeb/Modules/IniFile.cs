@@ -7,7 +7,7 @@ namespace SplamyWeb.Modules;
 [DebuggerDisplay("{Sections.Count} Sections")]
 public class IniFile
 {
-	public List<IniSection> Sections { get; } = new();
+	public List<IniSection> Sections { get; } = [];
 
 	public static IniFile Parse(Stream stream)
 	{
@@ -27,7 +27,7 @@ public class IniFile
 				continue;
 			}
 
-			if (line.StartsWith("[", StringComparison.Ordinal) && line.EndsWith("]", StringComparison.Ordinal))
+			if (line.StartsWith('[') && line.EndsWith(']'))
 			{
 				section = new IniSection { Name = line[1..^1] };
 				file.Sections.Add(section);
@@ -39,7 +39,7 @@ public class IniFile
 				continue;
 			}
 
-			if (line.StartsWith("#", StringComparison.Ordinal))
+			if (line.StartsWith('#'))
 			{
 				var comment = line[1..].TrimStart();
 				section.Entries.Add(new IniComment(comment));
@@ -94,7 +94,7 @@ public class IniFile
 public class IniSection
 {
 	public required string Name { get; set; }
-	public List<IniEntry> Entries { get; } = new();
+	public List<IniEntry> Entries { get; } = [];
 }
 
 public record IniEntry;

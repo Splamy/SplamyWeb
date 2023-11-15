@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SplamyWeb.Components;
 using SplamyWeb.Db;
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -18,27 +19,15 @@ namespace SplamyWeb.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = AuthScheme)] // , Roles = "Admin"
 [Route("api/[controller]")]
-public class NightlyController : ControllerBase
+public class NightlyController(UserManager<LoginData> userManager, SplamyContext db) : ControllerBase
 {
-	private readonly UserManager<LoginData> userManager;
-	private readonly SplamyContext db;
-	private readonly StoreService store;
-
 	const int PageBuildCount = 20;
 
-	private static readonly string[] AcceptedContentTypes =
-	{
+	private static readonly FrozenSet<string> AcceptedContentTypes = FrozenSet.ToFrozenSet([
 		MediaTypeNames.Application.Octet, // Binary
 		MediaTypeNames.Application.Zip,
 		"application/gzip"
-	};
-
-	public NightlyController(UserManager<LoginData> userManager, SplamyContext db, StoreService store)
-	{
-		this.userManager = userManager;
-		this.db = db;
-		this.store = store;
-	}
+	]);
 
 	private readonly string nightlyPath = Path.Combine(Util.DataPath, "nightly");
 
@@ -50,7 +39,7 @@ public class NightlyController : ControllerBase
 		project = project.ToLowerInvariant();
 		branch = branch.ToLowerInvariant();
 
-		if (!IsSave(project) || !IsSave(branch))
+		if (!IsSafe(project) || !IsSafe(branch))
 			return BadRequest("Invalid path");
 
 		var entry = await GetActive(project, branch);
@@ -146,7 +135,7 @@ public class NightlyController : ControllerBase
 		project = project.ToLowerInvariant();
 		branch = branch.ToLowerInvariant();
 
-		if (!IsSave(project) || !IsSave(branch))
+		if (!IsSafe(project) || !IsSafe(branch))
 			return BadRequest("Invalid path");
 
 		if (!AcceptedContentTypes.Contains(HttpContext.Request.ContentType))

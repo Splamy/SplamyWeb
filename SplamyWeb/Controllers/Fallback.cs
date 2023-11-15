@@ -7,14 +7,10 @@ using System.Linq;
 namespace SplamyWeb.Controllers
 {
 	[AllowAnonymous]
-	public class Fallback : ControllerBase
+	public class Fallback(IWebHostEnvironment appEnvironment)
+		: ControllerBase
 	{
-		private readonly IWebHostEnvironment appEnvironment;
-
-		public Fallback(IWebHostEnvironment appEnvironment)
-		{
-			this.appEnvironment = appEnvironment;
-		}
+		private static readonly char[] PathSeparators = ['\\', '/'];
 
 		public IActionResult Index()
 		{
@@ -35,7 +31,7 @@ namespace SplamyWeb.Controllers
 					targetPath = targetPath[appEnvironment.WebRootPath.Length..];
 					if (targetPath.EndsWith(IndexEndStrip, StringComparison.OrdinalIgnoreCase))
 						targetPath = targetPath[..^IndexEndStrip.Length];
-					targetPath = targetPath.TrimEnd(new char[] { '\\', '/' });
+					targetPath = targetPath.TrimEnd([ '\\', '/' ]);
 					return RedirectPermanent(targetPath.ToString().Replace('\\', '/'));
 				}
 			}
@@ -46,7 +42,7 @@ namespace SplamyWeb.Controllers
 
 		public string? TryFindFilePath(string reqPath)
 		{
-			var reqPathSplit = reqPath.TrimStart(new char[] { '\\', '/' }).Split('/');
+			var reqPathSplit = reqPath.TrimStart(PathSeparators).Split('/');
 			var pathParts = reqPathSplit.Take(..^1);
 			var filePart = reqPathSplit.Last();
 

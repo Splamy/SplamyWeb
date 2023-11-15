@@ -30,9 +30,9 @@ public static partial class Util
 
 
 	[GeneratedRegex("""^[\w\d-_]*$""", RegexOptions.IgnoreCase)]
-	private static partial Regex saveRegex();
+	private static partial Regex SafeRegex();
 	[GeneratedRegex("""[^\w\d-_]""", RegexOptions.IgnoreCase)]
-	private static partial Regex fileCleanRegex();
+	private static partial Regex FileCleanRegex();
 
 	public static readonly JsonSerializerOptions JsonDefault = new()
 	{
@@ -44,37 +44,15 @@ public static partial class Util
 		Converters = { new TimeSpanConverter(TimeSpanFormatting.ToString) },
 	};
 
-	public static bool IsSave(string param) => saveRegex().IsMatch(param);
+	public static bool IsSafe(string param) => SafeRegex().IsMatch(param);
 	public static string CleanFilenameForPath(string name)
 	{
-		var clean = fileCleanRegex().Replace(name, "");
+		var clean = FileCleanRegex().Replace(name, "");
 		if (clean.Contains('.') || clean.Contains('/') || clean.Contains('\\'))
 		{
 			throw new Exception($"This shouldn't happen. Source: <{name}> Clean: <{clean}>");
 		}
 		return clean;
-	}
-
-	public static string Truncate(this string value, int maxLength)
-	{
-		if (string.IsNullOrEmpty(value)) return value;
-		return value.Length <= maxLength ? value : value[..maxLength];
-	}
-
-	public static uint Sum(this IEnumerable<uint> source)
-	{
-		uint sum = 0;
-		foreach (var v in source)
-			sum += v;
-		return sum;
-	}
-	public static uint Sum(this IEnumerable<uint?> source)
-	{
-		uint sum = 0;
-		foreach (var v in source)
-			if (v != null)
-				sum += v.GetValueOrDefault();
-		return sum;
 	}
 
 	public static bool MatchPrefix(this string str, string prefix, [MaybeNullWhen(false)] out string rest)
@@ -94,15 +72,8 @@ public static partial class Util
 	}
 }
 
-internal partial class TimeSpanConverter : JsonConverter<TimeSpan>
+internal partial class TimeSpanConverter(TimeSpanFormatting format) : JsonConverter<TimeSpan>
 {
-	private readonly TimeSpanFormatting format;
-
-	public TimeSpanConverter(TimeSpanFormatting format)
-	{
-		this.format = format;
-	}
-
 	public override TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{
 		switch (reader.TokenType)
@@ -223,7 +194,7 @@ internal partial class TimeSpanConverter : JsonConverter<TimeSpan>
 
 internal class RssSerializerOutputFormatter : XmlSerializerOutputFormatter
 {
-	private static readonly XmlSerializerNamespaces Namespaces = new(new[] { new XmlQualifiedName("", "") });
+	private static readonly XmlSerializerNamespaces Namespaces = new([new XmlQualifiedName("", "")]);
 
 	public RssSerializerOutputFormatter()
 	{

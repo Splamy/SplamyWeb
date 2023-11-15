@@ -9,19 +9,18 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	public sealed class MinigameServer
+	public sealed class MinigameServer(IHubContext<Minigame, IMinigame> hub)
 	{
 		private readonly object _lock = new();
 		private readonly Random random = new();
-		private readonly IHubContext<Minigame, IMinigame> hub;
-		private readonly Dictionary<string, MinigamePlayer> ConnectedPlayer = new();
-		private readonly List<MinigameCookie> Cookies = new();
+		private readonly Dictionary<string, MinigamePlayer> ConnectedPlayer = [];
+		private readonly List<MinigameCookie> Cookies = [];
 		private readonly Stack<MinigameCookie> CookiePool = new(Enumerable.Range(0, MaxCookies).Select(i => new MinigameCookie(i)));
-		public static readonly string[] PlayerNames = new[] { "Aardvark", "Albatross", "Alligator", "Alpaca", "Ant", "Anteater", "Antelope", "Ape", "Armadillo", "Donkey", "Baboon", "Badger", "Barracuda", "Bat", "Bear", "Beaver", "Bee", "Bison", "Boar", "Buffalo", "Butterfly", "Camel", "Capybara", "Caribou", "Cassowary", "Cat", "Caterpillar", "Cattle", "Chamois", "Cheetah", "Chicken", "Chimpanzee", "Chinchilla", "Chough", "Clam", "Cobra", "Cockroach", "Cod", "Cormorant", "Coyote", "Crab", "Crane", "Crocodile", "Crow", "Curlew", "Deer", "Dinosaur", "Dog", "Dogfish", "Dolphin", "Dotterel", "Dove", "Dragonfly", "Duck", "Dugong", "Dunlin", "Eagle", "Echidna", "Eel", "Eland", "Elephant", "Elk", "Emu", "Falcon", "Ferret", "Finch", "Fish", "Flamingo", "Fly", "Fox", "Frog", "Gaur", "Gazelle", "Gerbil", "Giraffe", "Gnat", "Gnu", "Goat", "Goldfinch", "Goldfish", "Goose", "Gorilla", "Goshawk", "Grasshopper", "Grouse", "Guanaco", "Gull", "Hamster", "Hare", "Hawk", "Hedgehog", "Heron", "Herring", "Hippopotamus", "Hornet", "Horse", "Human", "Hummingbird", "Hyena", "Ibex", "Ibis", "Jackal", "Jaguar", "Jay", "Jellyfish", "Kangaroo", "Kingfisher", "Koala", "Kookabura", "Kouprey", "Kudu", "Lapwing", "Lark", "Lemur", "Leopard", "Lion", "Llama", "Lobster", "Locust", "Loris", "Louse", "Lyrebird", "Magpie", "Mallard", "Manatee", "Mandrill", "Mantis", "Marten", "Meerkat", "Mink", "Mole", "Mongoose", "Monkey", "Moose", "Mosquito", "Mouse", "Mule", "Narwhal", "Newt", "Nightingale", "Octopus", "Okapi", "Opossum", "Oryx", "Ostrich", "Otter", "Owl", "Oyster", "Panther", "Parrot", "Partridge", "Peafowl", "Pelican", "Penguin", "Pheasant", "Pig", "Pigeon", "Pony", "Porcupine", "Porpoise", "Quail", "Quelea", "Quetzal", "Rabbit", "Raccoon", "Rail", "Ram", "Rat", "Raven", "Red deer", "Red panda", "Reindeer", "Rhinoceros", "Rook", "Salamander", "Salmon", "Sand Dollar", "Sandpiper", "Sardine", "Scorpion", "Seahorse", "Seal", "Shark", "Sheep", "Shrew", "Skunk", "Snail", "Snake", "Sparrow", "Spider", "Spoonbill", "Squid", "Squirrel", "Starling", "Stingray", "Stinkbug", "Stork", "Swallow", "Swan", "Tapir", "Tarsier", "Termite", "Tiger", "Toad", "Trout", "Turkey", "Turtle", "Viper", "Vulture", "Wallaby", "Walrus", "Wasp", "Weasel", "Whale", "Wildcat", "Wolf", "Wolverine", "Wombat", "Woodcock", "Woodpecker", "Worm", "Wren", "Yak", "Zebra" };
+		public static readonly string[] PlayerNames = ["Aardvark", "Albatross", "Alligator", "Alpaca", "Ant", "Anteater", "Antelope", "Ape", "Armadillo", "Donkey", "Baboon", "Badger", "Barracuda", "Bat", "Bear", "Beaver", "Bee", "Bison", "Boar", "Buffalo", "Butterfly", "Camel", "Capybara", "Caribou", "Cassowary", "Cat", "Caterpillar", "Cattle", "Chamois", "Cheetah", "Chicken", "Chimpanzee", "Chinchilla", "Chough", "Clam", "Cobra", "Cockroach", "Cod", "Cormorant", "Coyote", "Crab", "Crane", "Crocodile", "Crow", "Curlew", "Deer", "Dinosaur", "Dog", "Dogfish", "Dolphin", "Dotterel", "Dove", "Dragonfly", "Duck", "Dugong", "Dunlin", "Eagle", "Echidna", "Eel", "Eland", "Elephant", "Elk", "Emu", "Falcon", "Ferret", "Finch", "Fish", "Flamingo", "Fly", "Fox", "Frog", "Gaur", "Gazelle", "Gerbil", "Giraffe", "Gnat", "Gnu", "Goat", "Goldfinch", "Goldfish", "Goose", "Gorilla", "Goshawk", "Grasshopper", "Grouse", "Guanaco", "Gull", "Hamster", "Hare", "Hawk", "Hedgehog", "Heron", "Herring", "Hippopotamus", "Hornet", "Horse", "Human", "Hummingbird", "Hyena", "Ibex", "Ibis", "Jackal", "Jaguar", "Jay", "Jellyfish", "Kangaroo", "Kingfisher", "Koala", "Kookabura", "Kouprey", "Kudu", "Lapwing", "Lark", "Lemur", "Leopard", "Lion", "Llama", "Lobster", "Locust", "Loris", "Louse", "Lyrebird", "Magpie", "Mallard", "Manatee", "Mandrill", "Mantis", "Marten", "Meerkat", "Mink", "Mole", "Mongoose", "Monkey", "Moose", "Mosquito", "Mouse", "Mule", "Narwhal", "Newt", "Nightingale", "Octopus", "Okapi", "Opossum", "Oryx", "Ostrich", "Otter", "Owl", "Oyster", "Panther", "Parrot", "Partridge", "Peafowl", "Pelican", "Penguin", "Pheasant", "Pig", "Pigeon", "Pony", "Porcupine", "Porpoise", "Quail", "Quelea", "Quetzal", "Rabbit", "Raccoon", "Rail", "Ram", "Rat", "Raven", "Red deer", "Red panda", "Reindeer", "Rhinoceros", "Rook", "Salamander", "Salmon", "Sand Dollar", "Sandpiper", "Sardine", "Scorpion", "Seahorse", "Seal", "Shark", "Sheep", "Shrew", "Skunk", "Snail", "Snake", "Sparrow", "Spider", "Spoonbill", "Squid", "Squirrel", "Starling", "Stingray", "Stinkbug", "Stork", "Swallow", "Swan", "Tapir", "Tarsier", "Termite", "Tiger", "Toad", "Trout", "Turkey", "Turtle", "Viper", "Vulture", "Wallaby", "Walrus", "Wasp", "Weasel", "Whale", "Wildcat", "Wolf", "Wolverine", "Wombat", "Woodcock", "Woodpecker", "Worm", "Wren", "Yak", "Zebra"];
 		// Buffers
-		private readonly List<MinigamePlayer> updatePlayer = new();
+		private readonly List<MinigamePlayer> updatePlayer = [];
 		private IEnumerable<MinigamePlayerState> UpdatePlayerState => updatePlayer;
-		private readonly List<MinigameCookie> updateCookies = new();
+		private readonly List<MinigameCookie> updateCookies = [];
 		private bool fullUpdate;
 		// Timings
 		private readonly Stopwatch time = new();
@@ -38,13 +37,6 @@ namespace SplamyWeb.Components
 		private const uint SpawnCookieEachTicks = 200;
 		// Game Status
 		private uint LastTickCookieSpanwed;
-
-		public MinigameServer(IHubContext<Minigame, IMinigame> hub)
-		{
-			this.hub = hub;
-			CurrentTick = 0;
-			LastTickCookieSpanwed = 0;
-		}
 
 		public void AddClient(string id)
 		{
@@ -214,51 +206,35 @@ namespace SplamyWeb.Components
 		private static float MathMod(float n, float m) => ((n % m) + m) % m;
 	}
 
-	public class MinigamePlayerState
+	public class MinigamePlayerState(string id)
 	{
-		public string Id { get; }
+		public string Id { get; } = id;
 		public Vector2 Position { get; set; }
 		public Vector2 Target { get; set; }
 		public float Angle { get; set; }
 
 		public uint LastSyncTick;
-
-		public MinigamePlayerState(string id)
-		{
-			Id = id;
-		}
 	}
-	public class MinigamePlayer : MinigamePlayerState
+
+	public class MinigamePlayer(string id, string name) : MinigamePlayerState(id)
 	{
-		public string Name { get; set; }
+		public string Name { get; set; } = name;
 		public int Color { get; set; }
 		public int Points { get; set; }
-
-		public MinigamePlayer(string id, string name) : base(id)
-		{
-			Name = name;
-		}
 	}
 
-	public class MinigameCookie
+	public class MinigameCookie(int id)
 	{
-		private readonly Random random = new();
 		private int positionX;
-		public int Id { get; set; }
-		public Vector2 Position { get; private set; }
+		public int Id { get; set; } = id;
+		public Vector2 Position { get; private set; } = Vector2.Zero;
 		public bool Active { get; set; }
-
-		public MinigameCookie(int id)
-		{
-			Id = id;
-			Position = Vector2.Zero;
-		}
 
 		public void SetRandom()
 		{
 			Position = new(
-				random.NextSingle() * MinigameServer.FieldSize.X,
-				random.NextSingle() * MinigameServer.FieldSize.Y);
+				Random.Shared.NextSingle() * MinigameServer.FieldSize.X,
+				Random.Shared.NextSingle() * MinigameServer.FieldSize.Y);
 			positionX = (int)Position.X;
 		}
 
@@ -276,26 +252,15 @@ namespace SplamyWeb.Components
 		//}
 	}
 
-	public class MinigameState
+	public class MinigameState(ICollection<MinigamePlayer> players, ICollection<MinigameCookie> collectibles)
 	{
-		public ICollection<MinigamePlayer> Players { get; init; }
-		public ICollection<MinigameCookie> Collectibles { get; init; }
-
-		public MinigameState(ICollection<MinigamePlayer> players, ICollection<MinigameCookie> collectibles)
-		{
-			Players = players;
-			Collectibles = collectibles;
-		}
+		public ICollection<MinigamePlayer> Players { get; init; } = players;
+		public ICollection<MinigameCookie> Collectibles { get; init; } = collectibles;
 	}
 
-	public class Minigame : Hub<IMinigame>
+	public class Minigame(IServiceProvider serviceProvider) : Hub<IMinigame>
 	{
-		private readonly MinigameServer server;
-
-		public Minigame(IServiceProvider serviceProvider)
-		{
-			this.server = serviceProvider.GetRequiredService<MinigameServer>();
-		}
+		private readonly MinigameServer server = serviceProvider.GetRequiredService<MinigameServer>();
 
 		public override Task OnConnectedAsync()
 		{

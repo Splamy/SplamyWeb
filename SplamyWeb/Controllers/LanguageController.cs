@@ -24,28 +24,18 @@ namespace SplamyWeb.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = Util.AuthScheme)]
 [Route("api/[controller]")]
-public class LanguageController : ControllerBase
+public class LanguageController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
+	: ControllerBase
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 	private static readonly string languageBasePath = Path.Combine(Util.DataPath, "language");
-
-	private readonly UserManager<LoginData> userManager;
-	private readonly SplamyContext db;
-	private readonly StoreService store;
-
-	public LanguageController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
-	{
-		this.db = db;
-		this.store = store;
-		this.userManager = userManager;
-	}
 
 	[AllowAnonymous]
 	[HttpGet("project/{project}/languages")]
 	[Produces(MediaTypeNames.Application.Json)]
 	public async Task<IActionResult> GetLanguageList(string project)
 	{
-		if (!IsSave(project))
+		if (!IsSafe(project))
 			return BadRequest("Invalid project");
 
 		project = project.ToLowerInvariant();
@@ -67,7 +57,7 @@ public class LanguageController : ControllerBase
 	[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Text.Plain)]
 	public async Task<IActionResult> GetLanguageFile(string project, string language)
 	{
-		if (!IsSave(project) || !IsSave(language))
+		if (!IsSafe(project) || !IsSafe(language))
 			return BadRequest("Invalid project or language");
 
 		project = project.ToLowerInvariant();
@@ -99,7 +89,7 @@ public class LanguageController : ControllerBase
 		if (project != "ts3ab")
 			return BadRequest("Project not supported");
 
-		if (!IsSave(project))
+		if (!IsSafe(project))
 			return BadRequest("Invalid project");
 
 		// GET https://www.transifex.com/api/2/project/ts3audiobot/languages

@@ -13,11 +13,9 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components
 {
-	public class RamsesService : BackgroundService
+	public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData ramses) : BackgroundService
 	{
 		private static readonly Uri BSUri = new("wss://ws.beatsaver.com/maps");
-		private readonly ILogger logger;
-		private readonly RamsesBackingData ramses;
 		private readonly JsonSerializerOptions jsonSerializerOptions = new()
 		{
 			PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -25,12 +23,6 @@ namespace SplamyWeb.Components
 		};
 
 		private static ReadOnlySpan<byte> Lf => "\n"u8;
-
-		public RamsesService(ILogger<RamsesService> logger, RamsesBackingData ramses)
-		{
-			this.logger = logger;
-			this.ramses = ramses;
-		}
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{

@@ -10,15 +10,8 @@ namespace SplamyWeb.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = AuthScheme)]
 [Route("api/[controller]")]
-public class StoreController : ControllerBase
+public class StoreController(StoreService store) : ControllerBase
 {
-	private readonly StoreService store;
-
-	public StoreController(StoreService store)
-	{
-		this.store = store;
-	}
-
 	public record KeyValue(string Key, string? Value);
 
 	[HttpGet("all")]

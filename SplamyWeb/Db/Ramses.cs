@@ -9,61 +9,43 @@ namespace SplamyWeb.Db;
 
 [Table("ramses_song")]
 [DebuggerDisplay("{Id} @{Version}")]
-public class RamsesSongDto
+public class RamsesSongDto(long id, string version, byte[]? rawMap = null)
 {
 	/// <summary>Hexadecimal beatsaver map id.</summary>
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
-	public long Id { get; set; }
+	public long Id { get; set; } = id;
 
 	/// <summary>Version of the ramses engine this result was generated with.</summary>
-	public string Version { get; set; }
-	public List<RamsesMapDto> Maps { get; set; } = new();
-	public byte[]? RawMap { get; set; }
-
-	public RamsesSongDto(long id, string version, byte[]? rawMap = null)
-	{
-		Id = id;
-		Version = version;
-		RawMap = rawMap;
-	}
+	public string Version { get; set; } = version;
+	public List<RamsesMapDto> Maps { get; set; } = [];
+	public byte[]? RawMap { get; set; } = rawMap;
 }
 
 public class RamsesSongLightDto
 {
 	/// <summary>Version of the ramses engine this result was generated with.</summary>
 	public required string Version { get; set; }
-	public List<RamsesMapDto> Maps { get; set; } = new();
+	public List<RamsesMapDto> Maps { get; set; } = [];
 }
 
 [Table("ramses_map")]
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-public class RamsesMapDto
+public class RamsesMapDto(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float rating, byte[] ratingDetail)
 {
 	// Notes:
 	// Characteristic+Difficulty is not unique!
 	public long RamsesId { get; set; }
-	public RamsesSongDto RamsesEntry { get; set; }
+	public RamsesSongDto RamsesEntry { get; set; } = null!;
 	/// <summary>Index in the _difficultyBeatmapSets array</summary>
-	public MapCharacteristic Characteristic { get; set; }
+	public MapCharacteristic Characteristic { get; set; } = characteristic;
 	/// <summary>Index in the _difficultyBeatmaps array</summary>
-	public byte IndexDifficulty { get; set; }
+	public byte IndexDifficulty { get; set; } = indexDifficulty;
 	/// <summary>The indicated Difficulty by BeatSaber value</summary>
-	public byte Difficulty { get; set; }
+	public byte Difficulty { get; set; } = difficulty;
 	/// <summary>The calculated rating result from RaMSeS in a compressed format</summary>
-	public float Rating { get; set; }
+	public float Rating { get; set; } = rating;
 	/// <summary>The calculated rating result from RaMSeS in a compressed format</summary>
-	public byte[] RatingDetail { get; set; }
-
-	public RamsesMapDto(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float rating, byte[] ratingDetail)
-	{
-		RamsesId = 0;
-		RamsesEntry = null!;
-		Characteristic = characteristic;
-		IndexDifficulty = indexDifficulty;
-		Difficulty = difficulty;
-		Rating = rating;
-		RatingDetail = ratingDetail;
-	}
+	public byte[] RatingDetail { get; set; } = ratingDetail;
 
 	private string GetDebuggerDisplay() => $"{RamsesId:X}({RamsesId})|{Characteristic}[{IndexDifficulty}] Diff:{Difficulty} Rate:{Rating}";
 }

@@ -4,7 +4,7 @@ using SplamyWeb.Db;
 namespace SplamyWeb.Tests;
 
 [TestClass]
-public class UnitTest1
+public class RankTests
 {
 	[TestMethod]
 	public void TestRanksAreCorrectlyOrdered()

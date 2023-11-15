@@ -13,10 +13,9 @@ namespace SplamyWeb.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class QintController : ControllerBase
+public class QintController(StoreService store) : ControllerBase
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-	private readonly StoreService store;
 	private readonly string build_qint_env = Path.Combine(Util.DataPath, "build_qint_env");
 	private static BuildTask? currentBuild;
 	public const string CiContext = "splamy-ci";
@@ -26,11 +25,6 @@ public class QintController : ControllerBase
 	public const string CiStatusError = "error";
 	public const string CiStatusFailure = "failure";
 	public const string CiUrlBase = "https://splamy.de/api/qint/log/";
-
-	public QintController(StoreService store)
-	{
-		this.store = store;
-	}
 
 	[HttpPost("push")]
 	public async Task Push([FromBody] GhPushEvent ev)
@@ -67,10 +61,10 @@ public class QintController : ControllerBase
 			using var cts = build.Cts;
 			await PushJson(new StateBody(CiStatusPending, CiContext, CiDescription, ciBuildUrl), commit, cts.Token);
 
-			System.IO.File.WriteAllLines(build_qint_env, new[] {
-					$"QINT_SHA={commit}",
-					$"QINT_LOG_FILE={logFileName}",
-				});
+			System.IO.File.WriteAllLines(build_qint_env, [
+				$"QINT_SHA={commit}",
+				$"QINT_LOG_FILE={logFileName}",
+			]);
 
 			await Cli.Wrap("sudo")
 				.WithArguments("systemctl start buildqint")

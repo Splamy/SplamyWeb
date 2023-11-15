@@ -12,21 +12,13 @@ namespace SplamyWeb.Controllers;
 
 [Authorize]
 [Route("[controller]")]
-public class AccountController : ControllerBase
+public class AccountController(UserManager<LoginData> userManager, SignInManager<LoginData> signInManager)
+	: ControllerBase
 {
-	private readonly UserManager<LoginData> userManager;
-	private readonly SignInManager<LoginData> signInManager;
-
-	public AccountController(UserManager<LoginData> userManager, SignInManager<LoginData> signInManager)
-	{
-		this.userManager = userManager;
-		this.signInManager = signInManager;
-	}
-
 	private record LoginStatus(bool LoggedIn, LoginStatusUser? User);
 	private record LoginStatusUser(string? Name, int Id, UserType Rank);
 
-	private static IActionResult GetLoggedInUser(LoginData? loginData)
+	private static JsonResult GetLoggedInUser(LoginData? loginData)
 	{
 		if (loginData is null)
 			return new JsonResult(new LoginStatus(false, null), Util.JsonWebHideNull);

@@ -20,7 +20,7 @@ public class TabBackingData
 	public uint RunningInstances { get; set; }
 	public uint RunningBots { get; set; }
 	public TimeSpan PlaybackTime { get; set; }
-	public CachedDayStats[] CachedDayStats { get; set; } = Array.Empty<CachedDayStats>();
+	public CachedDayStats[] CachedDayStats { get; set; } = [];
 
 	public TabBackingData(IServiceScopeFactory scopeFactory, TimerService timer)
 	{

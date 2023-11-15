@@ -38,22 +38,14 @@ public static class ServerLog
 }
 
 #pragma warning disable CA1036 // Override methods on comparable types
-public class ServerLogEntry : IComparable<ServerLogEntry>
+public class ServerLogEntry(int sequenceID, DateTime timeStamp, LogLevel level, string loggerName, string formattedMessage)
+	: IComparable<ServerLogEntry>
 {
-	public int SequenceID { get; init; }
-	public DateTime TimeStamp { get; init; }
-	public LogLevel Level { get; init; }
-	public string LoggerName { get; init; }
-	public string FormattedMessage { get; init; }
-
-	public ServerLogEntry(int sequenceID, DateTime timeStamp, LogLevel level, string loggerName, string formattedMessage)
-	{
-		SequenceID = sequenceID;
-		TimeStamp = timeStamp;
-		Level = level;
-		LoggerName = loggerName;
-		FormattedMessage = formattedMessage;
-	}
+	public int SequenceID { get; init; } = sequenceID;
+	public DateTime TimeStamp { get; init; } = timeStamp;
+	public LogLevel Level { get; init; } = level;
+	public string LoggerName { get; init; } = loggerName;
+	public string FormattedMessage { get; init; } = formattedMessage;
 
 	public static ServerLogEntry Comparer(int seq) => new(seq, default, default!, default!, default!);
 

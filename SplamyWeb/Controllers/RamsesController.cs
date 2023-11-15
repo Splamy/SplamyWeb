@@ -7,15 +7,8 @@ namespace SplamyWeb.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class RamsesController : ControllerBase
+public class RamsesController(RamsesBackingData ramses) : ControllerBase
 {
-	private readonly RamsesBackingData ramses;
-
-	public RamsesController(RamsesBackingData ramses)
-	{
-		this.ramses = ramses;
-	}
-
 	[HttpGet("{key}")]
 	[Produces(MediaTypeNames.Application.Json)]
 	public async Task<IActionResult> Index(string key)

@@ -53,7 +53,7 @@ public class TabStatsPingDto
 	// StatsData
 	public TimeSpan TotalUptime { get; set; }
 	public TimeSpan BotsRuntime { get; set; }
-	public List<TabStatsFactoryDto> SongStats { get; set; } = new();
+	public List<TabStatsFactoryDto> SongStats { get; set; } = [];
 
 	public long CommandCalls { get; set; }
 	///<summary>How many actually were started by a user (and not i.e. by event)</summary>
