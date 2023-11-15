@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public sealed class TimerService(TimeProvider timeProvider) : BackgroundService, IDisposable
+public sealed class TimerService(TimeProvider timeProvider) : BackgroundService, IDisposable, ITimerService
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
@@ -51,5 +51,4 @@ public sealed class TimerService(TimeProvider timeProvider) : BackgroundService,
 		timer.Dispose();
 		base.Dispose();
 	}
-
 }

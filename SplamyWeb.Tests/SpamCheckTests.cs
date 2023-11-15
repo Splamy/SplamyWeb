@@ -1,34 +1,27 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NSubstitute;
+using SplamyWeb.Components;
 using System;
-using System.Collections;
-using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net;
 
 namespace SplamyWeb.Tests;
 
-	class Test
+[TestClass]
+public class SpamCheckTests
+{
+	[TestMethod]
+	public void SpamCheckerCorrectlyBlocksAfterSpam()
 	{
-		static void Main(string[] args)
+		var spamChecker = new SpamBackingData(Substitute.For<ITimerService>(), TimeProvider.System);
+
+		const int AllowedCallsBeforeBlock = 1000;
+		var ip = new IPAddress(new byte[] { 192, 0, 0, 1 });
+
+		for (int i = 0; i < AllowedCallsBeforeBlock; i++)
 		{
-			MyColl col = [1, 2, 3];
+			Assert.IsTrue(spamChecker.Check(ip), $"Check on call {i}");
 		}
+
+		Assert.IsFalse(spamChecker.Check(ip));
 	}
-
-	[CollectionBuilder(typeof(MyCollBuilder), "Create")]
-	abstract class MyColl : IEnumerable<int>
-	{
-		public List<int> list;
-
-		public IEnumerator<int> GetEnumerator() => ((IEnumerable<int>)list).GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)list).GetEnumerator();
-	}
-
-	static class MyCollBuilder
-	{
-		public static MyColl Create(ReadOnlySpan<int> values) => new MyCollImpl() { list = new List<int>(values.ToArray()) };
-
-		class MyCollImpl : MyColl { }
-	}
+}

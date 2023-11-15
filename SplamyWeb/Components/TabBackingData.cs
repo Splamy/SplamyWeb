@@ -22,7 +22,7 @@ public class TabBackingData
 	public TimeSpan PlaybackTime { get; set; }
 	public CachedDayStats[] CachedDayStats { get; set; } = [];
 
-	public TabBackingData(IServiceScopeFactory scopeFactory, TimerService timer)
+	public TabBackingData(IServiceScopeFactory scopeFactory, ITimerService timer)
 	{
 		this.scopeFactory = scopeFactory;
 		timer.Register(UpdateAggregates);

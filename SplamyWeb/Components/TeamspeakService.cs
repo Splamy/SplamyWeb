@@ -41,7 +41,7 @@ public partial class TeamspeakService
 	private readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
 	private readonly IServiceScopeFactory scopeFactory;
 
-	public TeamspeakService(IServiceScopeFactory scopeFactory, TimerService timer, IWebHostEnvironment env)
+	public TeamspeakService(IServiceScopeFactory scopeFactory, ITimerService timer, IWebHostEnvironment env)
 	{
 		if (!env.IsDevelopment())
 		{

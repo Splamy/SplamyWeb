@@ -13,7 +13,7 @@ public class SpamBackingData
 	private static readonly TimeSpan ResetIpRequestsAfter = TimeSpan.FromHours(1);
 	private readonly TimeProvider timeProvider;
 
-	public SpamBackingData(TimerService timer, TimeProvider timeProvider)
+	public SpamBackingData(ITimerService timer, TimeProvider timeProvider)
 	{
 		timer.Register(CleanIpTables);
 		this.timeProvider = timeProvider;
@@ -21,7 +21,7 @@ public class SpamBackingData
 
 	public bool Check(IPAddress reqIp)
 	{
-		var now = timeProvider.GetUtcNow();
+		var now = timeProvider.GetUtcNow().DateTime;
 		lock (spamCache)
 		{
 			ref var spamCacheEntry = ref CollectionsMarshal.GetValueRefOrAddDefault(spamCache, reqIp, out var exists);
@@ -32,7 +32,7 @@ public class SpamBackingData
 				spamCacheEntry.CreateTime = now;
 				spamCacheEntry.Count = 0;
 			}
-			if (spamCacheEntry.Count > MaxIpRequests)
+			else if (spamCacheEntry.Count >= MaxIpRequests)
 			{
 				return false;
 			}
@@ -61,7 +61,7 @@ public class SpamBackingData
 
 	struct SpamCacheEntry
 	{
-		public DateTimeOffset CreateTime { get; set; }
+		public DateTime CreateTime { get; set; }
 		public int Count { get; set; }
 	}
 }

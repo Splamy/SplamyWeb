@@ -119,8 +119,8 @@ public class Startup(IConfiguration configuration)
 			ValidationAlgorithm = ValidationAlgorithm.HMACSHA256,
 		});
 
-		services.AddSingleton<TimerService>();
-		services.AddHostedService(p => p.GetRequiredService<TimerService>());
+		services.AddSingleton<ITimerService, TimerService>();
+		services.AddHostedService(p => (TimerService)p.GetRequiredService<ITimerService>()); // Is there a better way to do this?
 
 		services.AddScoped<StoreService>();
 		services.AddSingleton<TabBackingData>();
