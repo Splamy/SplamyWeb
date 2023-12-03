@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using RateMapSeveritySaber;
 using Riok.Mapperly.Abstractions;
 using SplamyWeb.Db;
+using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -173,39 +174,44 @@ public class RamsesBackingData : BackgroundService
 		public TaskCompletionSource<IActionResult> Task { get; } = new();
 	}
 
-	private static byte[]? PackMap(ZipArchive sourceZip)
+	public static byte[]? PackMap(ZipArchive sourceZip)
 	{
 		var sourceFiles = BSMapIO.ZipProvider(sourceZip);
 		var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
 
-		var jbm = new JBMConverter(new() { UseDict = UseDict.Simple, UseFloats = UseFloats.Single | UseFloats.Double });
+		var jbmOff = new JBMConverter(new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.All });
+		var jbm = new JBMConverter(new JBMOptions() { UseDict = UseDict.Simple, UseFloats = UseFloats.All });
 
 		using var mem = new MemoryStream();
 		using (var zip = new ZipArchive(mem, ZipArchiveMode.Create, true, Util.Utf8Encoding))
 		{
-			var mapDict = new Dictionary<string, JsonElement>();
+			var mapDict = new Dictionary<string, (JsonElement Elem, JBMConverter Conv)>();
 
-			void AddToCompressionDict(string file)
+			void AddToCompressionDict(string file, JBMConverter conv, bool toDict)
 			{
 				using var fs = sourceFiles(file);
 				if (fs is null) return;
 				var json = JsonSerializer.Deserialize<JsonElement>(fs);
-				mapDict.Add(file, json);
-				jbm.AddToDictionary(json);
+				mapDict.Add(file, (json, conv));
+				if (toDict)
+				{
+					jbm.AddToDictionary(json);
+				}
 			}
 
-			AddToCompressionDict("info.dat");
-			AddToCompressionDict("info.json");
+			AddToCompressionDict("info.dat", jbmOff, false);
+			AddToCompressionDict("info.json", jbmOff, false);
 
 			foreach (var set in jsonInfo.DifficultyBeatmapSets)
 				foreach (var maps in set.DifficultyBeatmaps)
-					AddToCompressionDict(maps.BeatmapFilename);
+					AddToCompressionDict(maps.BeatmapFilename, jbm, true);
 
 			foreach (var (file, fileData) in mapDict)
 			{
 				var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
 				using var writer = entry.Open();
-				writer.Write(jbm.EncodeEntity(fileData));
+				var data = fileData.Conv.EncodeEntity(fileData.Elem);
+				writer.Write(data);
 			}
 		}
 		mem.Position = 0;
@@ -213,6 +219,7 @@ public class RamsesBackingData : BackgroundService
 		using var output = new MemoryStream();
 		using (var compressor = new BrotliStream(output, CompressionMode.Compress, true))
 		{
+			compressor.GetEncoder() = new BrotliEncoder(11, 24);
 			mem.CopyTo(compressor);
 		}
 
@@ -238,7 +245,6 @@ public class RamsesBackingData : BackgroundService
 		return (string file) =>
 		{
 			using var mem = new MemoryStream();
-			using (intermediateZip)
 			using (var stream = intermediateZip.Entries.FirstOrDefault((ZipArchiveEntry e) => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase))?.Open())
 			{
 				if (stream is null) return null;
@@ -262,7 +268,7 @@ public class RamsesBackingData : BackgroundService
 
 	public static byte[] PackScoreObject(RamsesMap map)
 	{
-		return JBMConverter.EncodeObject(map, new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.None, Compress = true });
+		return JBMConverter.EncodeObject(map, new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.All, Compress = true });
 	}
 
 	public static RamsesMap UnpackScoreObject(byte[] data)

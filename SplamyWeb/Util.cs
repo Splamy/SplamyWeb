@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -70,6 +72,9 @@ public static partial class Util
 			return false;
 		}
 	}
+
+	[UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_encoder")]
+	public extern static ref BrotliEncoder GetEncoder(this BrotliStream @this);
 }
 
 internal partial class TimeSpanConverter(TimeSpanFormatting format) : JsonConverter<TimeSpan>
