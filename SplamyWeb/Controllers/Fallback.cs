@@ -32,17 +32,17 @@ namespace SplamyWeb.Controllers
 					if (targetPath.EndsWith(IndexEndStrip, StringComparison.OrdinalIgnoreCase))
 						targetPath = targetPath[..^IndexEndStrip.Length];
 					targetPath = targetPath.TrimEnd([ '\\', '/' ]);
-					return RedirectPermanent(targetPath.ToString().Replace('\\', '/'));
+					return RedirectPermanent(targetPath.ToString().Replace('\\', '/') + Request.QueryString);
 				}
 			}
 			catch { }
 
-			return Redirect("/error?req=" + Uri.EscapeDataString(Request.Path.Value ?? ""));
+			return Redirect("/index.html?req=" + Uri.EscapeDataString(Request.Path.Value ?? ""));
 		}
 
 		public string? TryFindFilePath(string reqPath)
 		{
-			var reqPathSplit = reqPath.TrimStart(PathSeparators).Split('/');
+			var reqPathSplit = reqPath.Trim(PathSeparators).Split('/', StringSplitOptions.RemoveEmptyEntries);
 			var pathParts = reqPathSplit.Take(..^1);
 			var filePart = reqPathSplit.Last();
 
@@ -65,8 +65,10 @@ namespace SplamyWeb.Controllers
 				currentPath = foundFolder;
 			}
 
+			var rawHtmlFile = filePart + ".html";
+
 			var foundFile = currentPath.EnumerateFiles()
-				.FirstOrDefault(file => string.Equals(file.Name, filePart, StringComparison.OrdinalIgnoreCase));
+				.FirstOrDefault(file => string.Equals(file.Name, rawHtmlFile, StringComparison.OrdinalIgnoreCase));
 
 			if (foundFile is not null)
 				return foundFile.FullName;
