@@ -9,22 +9,27 @@ namespace SplamyWeb.Db;
 
 [Table("ramses_song")]
 [DebuggerDisplay("{Id} @{Version}")]
-public class RamsesSongDto(long id, string version, byte[]? rawMap = null)
+public class RamsesSongDto(long id, string ramsesVersion, string jbmVersion, byte[]? rawMap = null)
 {
 	/// <summary>Hexadecimal beatsaver map id.</summary>
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
 	public long Id { get; set; } = id;
 
 	/// <summary>Version of the ramses engine this result was generated with.</summary>
-	public string Version { get; set; } = version;
+	public string RamsesVersion { get; set; } = ramsesVersion;
+	/// <summary>Version of the jbm engine this result was packed with.</summary>
+	public string JbmVersion { get; set; } = jbmVersion;
+
 	public List<RamsesMapDto> Maps { get; set; } = [];
 	public byte[]? RawMap { get; set; } = rawMap;
 }
 
 public class RamsesSongLightDto
 {
-	/// <summary>Version of the ramses engine this result was generated with.</summary>
-	public required string Version { get; set; }
+	/// <inheritdoc cref="RamsesSongDto.RamsesVersion"/>/>
+	public required string RamsesVersion { get; set; }
+	/// <inheritdoc cref="RamsesSongDto.JbmVersion"/>/>
+	public required string JbmVersion { get; set; }
 	public List<RamsesMapDto> Maps { get; set; } = [];
 }
 

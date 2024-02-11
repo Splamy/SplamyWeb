@@ -14,6 +14,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -29,11 +30,14 @@ public class RamsesBackingData : BackgroundService
 	private readonly IServiceScopeFactory scopeFactory;
 	private readonly IHttpClientFactory clientFactory;
 	private readonly string RamsesVersion;
+	private readonly string JbmVersion;
 
 	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory)
 	{
-		var ver = typeof(RateMapSeveritySaber.Analyzer).Assembly.GetName().Version!;
-		RamsesVersion = $"{ver.Major}.{ver.Minor}";
+		var verRam = typeof(RateMapSeveritySaber.Analyzer).Assembly.GetName().Version!;
+		var verJbm = typeof(JBMConverter).Assembly.GetName().Version!;
+		RamsesVersion = $"{verRam.Major}.{verRam.Minor}";
+		JbmVersion = $"{verJbm.Major}.{verJbm.Minor}";
 		this.scopeFactory = scopeFactory;
 		this.clientFactory = clientFactory;
 	}
@@ -66,6 +70,27 @@ public class RamsesBackingData : BackgroundService
 		return await req.Task.Task;
 	}
 
+	public async IAsyncEnumerable<(long Id, BsMapProviderV2 Map)> GetMaps([EnumeratorCancellation] CancellationToken cancellationToken = default)
+	{
+		using var scope = scopeFactory.CreateScope();
+		using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+
+		await foreach (var entry in db.RamsesSongs
+			.OrderByDescending(x => x.Id)
+			.Select(x => new { x.Id, x.RawMap })
+			.AsAsyncEnumerable()
+			.WithCancellation(cancellationToken))
+		{
+			if (entry.RawMap is null)
+			{
+				continue;
+			}
+
+			var fileProvider = UnpackMap(entry.RawMap);
+			yield return (entry.Id, fileProvider);
+		}
+	}
+
 	private async Task<RamsesSong> GetInternal(ProcessEntry request)
 	{
 		using var scope = scopeFactory.CreateScope();
@@ -76,7 +101,7 @@ public class RamsesBackingData : BackgroundService
 			.Include(entries => entries.Maps);
 
 		var entryLight = await query.MapToLight().FirstOrDefaultAsync();
-		if (entryLight != null && entryLight.Version == RamsesVersion)
+		if (entryLight != null && entryLight.RamsesVersion == RamsesVersion)
 		{
 			return RamsesMapper.FromDto(entryLight);
 		}
@@ -104,10 +129,11 @@ public class RamsesBackingData : BackgroundService
 			var zip = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
 			if (entry is null)
 			{
-				entry = new RamsesSongDto(request.MapId, RamsesVersion);
+				entry = new RamsesSongDto(request.MapId, RamsesVersion, JbmVersion);
 				await db.RamsesSongs.AddAsync(entry);
 			}
 			var swPackOrUnpack = Stopwatch.StartNew();
+			entry.JbmVersion = JbmVersion;
 			entry.RawMap = PackMap(zip);
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
 			fileProvider = BSMapIO.ZipProvider(zip);
@@ -115,11 +141,11 @@ public class RamsesBackingData : BackgroundService
 		else
 		{
 			var swPackOrUnpack = Stopwatch.StartNew();
-			fileProvider = UnpackMap(entry.RawMap);
+			fileProvider = UnpackMap(entry.RawMap).AsBsMapProvider();
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
 		}
 
-		entry.Version = RamsesVersion;
+		entry.RamsesVersion = RamsesVersion;
 		if (entry.Maps.Count > 0)
 		{
 			entry.Maps.Clear();
@@ -179,8 +205,8 @@ public class RamsesBackingData : BackgroundService
 		var sourceFiles = BSMapIO.ZipProvider(sourceZip);
 		var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
 
-		var jbmOff = new JBMConverter(new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.All });
-		var jbm = new JBMConverter(new JBMOptions() { UseDict = UseDict.Simple, UseFloats = UseFloats.All });
+		var jbmOff = new JBMConverter(new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.None });
+		var jbm = new JBMConverter(new JBMOptions() { UseDict = UseDict.Simple, UseFloats = UseFloats.None });
 
 		using var mem = new MemoryStream();
 		using (var zip = new ZipArchive(mem, ZipArchiveMode.Create, true, Util.Utf8Encoding))
@@ -232,7 +258,7 @@ public class RamsesBackingData : BackgroundService
 		return output.ToArray();
 	}
 
-	private static BSMapIO.FileProvider UnpackMap(byte[] data)
+	private static BsMapProviderV2 UnpackMap(byte[] data)
 	{
 		var output = new MemoryStream();
 		using (var input = new MemoryStream(data))
@@ -242,16 +268,7 @@ public class RamsesBackingData : BackgroundService
 		}
 		output.Position = 0;
 		var intermediateZip = new ZipArchive(output, ZipArchiveMode.Read);
-		return (string file) =>
-		{
-			using var mem = new MemoryStream();
-			using (var stream = intermediateZip.Entries.FirstOrDefault((ZipArchiveEntry e) => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase))?.Open())
-			{
-				if (stream is null) return null;
-				stream.CopyTo(mem);
-			}
-			return JBMConverter.DecodeToStream(mem.ToArray());
-		};
+		return new CompressedZipProvider(intermediateZip);
 	}
 
 
@@ -290,10 +307,11 @@ public class RamsesBackingData : BackgroundService
 	}
 }
 
-public class RamsesSong(string version, List<RamsesMap> maps)
+public class RamsesSong(string ramsesVersion, List<RamsesMap> maps)
 {
 	[JsonPropertyName("ramsesVersion")]
-	public string Version { get; set; } = version;
+	public string RamsesVersion { get; set; } = ramsesVersion;
+
 	[JsonPropertyName("maps")]
 	public List<RamsesMap> Maps { get; set; } = maps;
 }
@@ -327,6 +345,7 @@ public static partial class RamsesMapper
 {
 	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
+	[MapperIgnoreSource(nameof(RamsesSongDto.JbmVersion))]
 	public static partial RamsesSong FromDto(this RamsesSongDto song);
 	public static partial RamsesSong FromDto(this RamsesSongLightDto song);
 	public static partial IQueryable<RamsesSongLightDto> MapToLight(this IQueryable<RamsesSongDto> song);
@@ -335,4 +354,27 @@ public static partial class RamsesMapper
 	private static partial RamsesSongLightDto MapToLight(this RamsesSongDto song);
 	public static RamsesMap FromDto(this RamsesMapDto map) => RamsesBackingData.UnpackScoreObject(map.RatingDetail);
 	private static partial List<RamsesMap> MapToList(List<RamsesMapDto> source);
+}
+
+public abstract class BsMapProviderV2
+{
+	public abstract IEnumerable<string> Files { get; }
+	public abstract Stream? Get(string file);
+
+	public BSMapIO.FileProvider AsBsMapProvider() => Get;
+}
+
+public class CompressedZipProvider(ZipArchive zip) : BsMapProviderV2
+{
+	public override IEnumerable<string> Files => zip.Entries.Select(e => e.FullName);
+	public override Stream? Get(string file)
+	{
+		using var mem = new MemoryStream();
+		using (var stream = zip.Entries.FirstOrDefault((ZipArchiveEntry e) => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase))?.Open())
+		{
+			if (stream is null) return null;
+			stream.CopyTo(mem);
+		}
+		return JBMConverter.DecodeToStream(mem.ToArray());
+	}
 }
