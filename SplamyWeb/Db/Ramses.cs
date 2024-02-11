@@ -8,7 +8,7 @@ namespace SplamyWeb.Db;
 // DB
 
 [Table("ramses_song")]
-[DebuggerDisplay("{Id} @{Version}")]
+[DebuggerDisplay("{Id} R:@{RamsesVersion} J:{JbmVersion} Maps:{Maps.Count}")]
 public class RamsesSongDto(long id, string ramsesVersion, string jbmVersion, byte[]? rawMap = null)
 {
 	/// <summary>Hexadecimal beatsaver map id.</summary>

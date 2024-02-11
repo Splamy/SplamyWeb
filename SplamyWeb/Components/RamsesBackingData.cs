@@ -23,7 +23,7 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public class RamsesBackingData : BackgroundService
+public partial class RamsesBackingData : BackgroundService
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 	private readonly Channel<ProcessEntry> _bufferBlockChannel = Channel.CreateBounded<ProcessEntry>(1024);
@@ -31,6 +31,19 @@ public class RamsesBackingData : BackgroundService
 	private readonly IHttpClientFactory clientFactory;
 	private readonly string RamsesVersion;
 	private readonly string JbmVersion;
+
+	private static readonly JBMOptions jbmMapOptions = new()
+	{
+		UseAos = true,
+		UseJbm = false,
+		Compress = false,
+	};
+	private static readonly JBMOptions jbmResultOptions = new()
+	{
+		UseAos = false,
+		UseJbm = false,
+		Compress = true,
+	};
 
 	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory)
 	{
@@ -44,6 +57,8 @@ public class RamsesBackingData : BackgroundService
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		await MigrateDb(stoppingToken);
+
 		await foreach (var req in _bufferBlockChannel.Reader.ReadAllAsync(stoppingToken))
 		{
 			try
@@ -72,8 +87,8 @@ public class RamsesBackingData : BackgroundService
 
 	public async IAsyncEnumerable<(long Id, BsMapProviderV2 Map)> GetMaps([EnumeratorCancellation] CancellationToken cancellationToken = default)
 	{
-		using var scope = scopeFactory.CreateScope();
-		using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+		await using var scope = scopeFactory.CreateAsyncScope();
+		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		await foreach (var entry in db.RamsesSongs
 			.OrderByDescending(x => x.Id)
@@ -93,8 +108,8 @@ public class RamsesBackingData : BackgroundService
 
 	private async Task<RamsesSong> GetInternal(ProcessEntry request)
 	{
-		using var scope = scopeFactory.CreateScope();
-		using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+		await using var scope = scopeFactory.CreateAsyncScope();
+		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		var query = db.RamsesSongs
 			.Where(entries => entries.Id == request.MapId)
@@ -133,10 +148,11 @@ public class RamsesBackingData : BackgroundService
 				await db.RamsesSongs.AddAsync(entry);
 			}
 			var swPackOrUnpack = Stopwatch.StartNew();
+			var zipProvider = new PlainZipProvider(zip);
 			entry.JbmVersion = JbmVersion;
-			entry.RawMap = PackMap(zip);
+			entry.RawMap = PackMap(zipProvider);
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
-			fileProvider = BSMapIO.ZipProvider(zip);
+			fileProvider = zipProvider.AsBsMapProvider();
 		}
 		else
 		{
@@ -200,45 +216,28 @@ public class RamsesBackingData : BackgroundService
 		public TaskCompletionSource<IActionResult> Task { get; } = new();
 	}
 
-	public static byte[]? PackMap(ZipArchive sourceZip)
+	public static byte[]? PackMap(BsMapProviderV2 sourceFiles)
 	{
-		var sourceFiles = BSMapIO.ZipProvider(sourceZip);
-		var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
-
-		var jbmOff = new JBMConverter(new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.None });
-		var jbm = new JBMConverter(new JBMOptions() { UseDict = UseDict.Simple, UseFloats = UseFloats.None });
+		var jsonInfo = BSMapIO.ReadInfo(sourceFiles.AsBsMapProvider()) ?? throw new Exception("No Info file found");
 
 		using var mem = new MemoryStream();
 		using (var zip = new ZipArchive(mem, ZipArchiveMode.Create, true, Util.Utf8Encoding))
 		{
-			var mapDict = new Dictionary<string, (JsonElement Elem, JBMConverter Conv)>();
-
-			void AddToCompressionDict(string file, JBMConverter conv, bool toDict)
+			void AddToCompressionDict(string file)
 			{
-				using var fs = sourceFiles(file);
+				using var fs = sourceFiles.Get(file);
 				if (fs is null) return;
-				var json = JsonSerializer.Deserialize<JsonElement>(fs);
-				mapDict.Add(file, (json, conv));
-				if (toDict)
-				{
-					jbm.AddToDictionary(json);
-				}
+				var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
+				using var writer = entry.Open();
+				var data = JBMConverter.Encode(JsonSerializer.Deserialize<JsonElement>(fs), jbmMapOptions);
+				writer.Write(data);
 			}
 
-			AddToCompressionDict("info.dat", jbmOff, false);
-			AddToCompressionDict("info.json", jbmOff, false);
+			AddToCompressionDict("info.dat");
 
 			foreach (var set in jsonInfo.DifficultyBeatmapSets)
 				foreach (var maps in set.DifficultyBeatmaps)
-					AddToCompressionDict(maps.BeatmapFilename, jbm, true);
-
-			foreach (var (file, fileData) in mapDict)
-			{
-				var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
-				using var writer = entry.Open();
-				var data = fileData.Conv.EncodeEntity(fileData.Elem);
-				writer.Write(data);
-			}
+					AddToCompressionDict(maps.BeatmapFilename);
 		}
 		mem.Position = 0;
 
@@ -268,7 +267,7 @@ public class RamsesBackingData : BackgroundService
 		}
 		output.Position = 0;
 		var intermediateZip = new ZipArchive(output, ZipArchiveMode.Read);
-		return new CompressedZipProvider(intermediateZip);
+		return new CompressedZipProvider(intermediateZip, jbmMapOptions);
 	}
 
 
@@ -285,12 +284,12 @@ public class RamsesBackingData : BackgroundService
 
 	public static byte[] PackScoreObject(RamsesMap map)
 	{
-		return JBMConverter.EncodeObject(map, new JBMOptions() { UseDict = UseDict.Off, UseFloats = UseFloats.All, Compress = true });
+		return JBMConverter.EncodeObject(map, jbmResultOptions);
 	}
 
 	public static RamsesMap UnpackScoreObject(byte[] data)
 	{
-		return JBMConverter.DecodeObject<RamsesMap>(data)!;
+		return JBMConverter.DecodeObject<RamsesMap>(data, jbmResultOptions)!;
 	}
 
 	private static OkObjectResult ToResult(object content)
@@ -358,23 +357,47 @@ public static partial class RamsesMapper
 
 public abstract class BsMapProviderV2
 {
+	private const string InfoJson = "info.json";
+	private const string InfoDat = "info.dat";
+
 	public abstract IEnumerable<string> Files { get; }
 	public abstract Stream? Get(string file);
+
+	protected static bool MatchName(string a, string b)
+		=> string.Equals(NormalizeName(a), NormalizeName(b), StringComparison.OrdinalIgnoreCase);
+
+	protected static string NormalizeName(string name)
+	{
+		if (name.LastIndexOf('/') is var idx && idx >= 0)
+		{
+			name = name[(idx + 1)..];
+		}
+		return string.Equals(name, InfoJson, StringComparison.OrdinalIgnoreCase) ? InfoDat : name;
+	}
 
 	public BSMapIO.FileProvider AsBsMapProvider() => Get;
 }
 
-public class CompressedZipProvider(ZipArchive zip) : BsMapProviderV2
+public class CompressedZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProviderV2
 {
-	public override IEnumerable<string> Files => zip.Entries.Select(e => e.FullName);
+	public override IEnumerable<string> Files => zip.Entries.Select(e => NormalizeName(e.FullName));
 	public override Stream? Get(string file)
 	{
 		using var mem = new MemoryStream();
-		using (var stream = zip.Entries.FirstOrDefault((ZipArchiveEntry e) => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase))?.Open())
+		using (var stream = zip.Entries
+			.FirstOrDefault((e) => MatchName(e.Name, file))?.Open())
 		{
 			if (stream is null) return null;
 			stream.CopyTo(mem);
 		}
-		return JBMConverter.DecodeToStream(mem.ToArray());
+		var arr = mem.GetBuffer().AsMemory(0, (int)mem.Length);
+		return JBMConverter.DecodeToStream(arr, options);
 	}
+}
+
+public class PlainZipProvider(ZipArchive zip) : BsMapProviderV2
+{
+	public override IEnumerable<string> Files => zip.Entries.Select(e => e.FullName);
+	public override Stream? Get(string file) => zip.Entries
+		.FirstOrDefault((e) => MatchName(e.Name, file))?.Open();
 }
