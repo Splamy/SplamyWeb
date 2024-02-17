@@ -12,7 +12,7 @@
 	<div class="container">
 		<div class="columns">
 			<div class="column is-4 is-size-7 has-text-left">
-				<div>Powered by <strong>ASP.NET Core 7</strong></div>
+				<div>Powered by <strong>ASP.NET Core 8</strong></div>
 				<div>
 					Presented with <a href="https://kit.svelte.dev/" rel="external"
 						><strong>Svelte Kit</strong></a

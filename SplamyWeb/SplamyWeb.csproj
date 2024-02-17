@@ -30,7 +30,7 @@
 		  <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Splamy.Ed25519.Toolkit" Version="1.0.3" />
-		<PackageReference Include="Splamy.JsonBinMin" Version="2.1.4" />
+		<PackageReference Include="Splamy.JsonBinMin" Version="2.1.5" />
 		<PackageReference Include="Splamy.RateMapSeveritySaber" Version="1.0.10" />
 	</ItemGroup>
 
