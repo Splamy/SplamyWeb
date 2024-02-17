@@ -15,7 +15,7 @@ partial class RamsesBackingData
 {
 	public async Task MigrateDb(CancellationToken cancellationToken)
 	{
-		await using var scope = scopeFactory.CreateAsyncScope();
+		await using var scope = _scopeFactory.CreateAsyncScope();
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		var upradeMaps = await db.RamsesSongs
@@ -41,7 +41,7 @@ partial class RamsesBackingData
 
 			try
 			{
-				if (map.JbmVersion is "")
+				if (map.JbmVersion is "" or "2.0")
 				{
 					// Re-encode
 
@@ -88,8 +88,37 @@ partial class RamsesBackingData
 
 					// Update
 
-					map.JbmVersion = JbmVersion;
 					map.RawMap = encoded;
+					map.JbmVersion = "2.1";
+				}
+
+				if (map.JbmVersion is "2.1")
+				{
+					var unpacked = UnpackMap(map.RawMap);
+					using var info = unpacked.Get("info.dat");
+					if (info is null)
+					{
+						Log.Error($"Failed to decode map {id:X}");
+						continue;
+					}
+
+					var json = JsonSerializer.Deserialize<JsonDocument>(info, jbmMapOptions.JsonSerializerOptions);
+
+					if (json is null)
+					{
+						Log.Error($"Failed to decode map {id:X}");
+						continue;
+					}
+
+					map.Info = json;
+
+					map.JbmVersion = "2.1.a";
+				}
+
+				if (map.JbmVersion != JbmVersion)
+				{
+					Log.Error($"Failed to upgrade map {id:X}");
+					continue;
 				}
 
 				await db.SaveChangesAsync(default);

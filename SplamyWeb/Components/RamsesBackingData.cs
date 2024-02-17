@@ -26,9 +26,9 @@ namespace SplamyWeb.Components;
 public partial class RamsesBackingData : BackgroundService
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-	private readonly Channel<ProcessEntry> _bufferBlockChannel = Channel.CreateBounded<ProcessEntry>(1024);
-	private readonly IServiceScopeFactory scopeFactory;
-	private readonly IHttpClientFactory clientFactory;
+	private readonly Channel<ProcessEntry> _bufferBlockChannel;
+	private readonly IServiceScopeFactory _scopeFactory;
+	private readonly IHttpClientFactory _clientFactory;
 	private readonly string RamsesVersion;
 	private readonly string JbmVersion;
 
@@ -50,9 +50,15 @@ public partial class RamsesBackingData : BackgroundService
 		var verRam = typeof(RateMapSeveritySaber.Analyzer).Assembly.GetName().Version!;
 		var verJbm = typeof(JBMConverter).Assembly.GetName().Version!;
 		RamsesVersion = $"{verRam.Major}.{verRam.Minor}";
-		JbmVersion = $"{verJbm.Major}.{verJbm.Minor}";
-		this.scopeFactory = scopeFactory;
-		this.clientFactory = clientFactory;
+		JbmVersion = $"{verJbm.Major}.{verJbm.Minor}.a";
+		_scopeFactory = scopeFactory;
+		_clientFactory = clientFactory;
+
+		_bufferBlockChannel = Channel.CreateBounded<ProcessEntry>(new BoundedChannelOptions(1024)
+		{
+			SingleReader = false,
+			SingleWriter = false,
+		});
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -87,7 +93,7 @@ public partial class RamsesBackingData : BackgroundService
 
 	public async IAsyncEnumerable<(long Id, BsMapProviderV2 Map)> GetMaps([EnumeratorCancellation] CancellationToken cancellationToken = default)
 	{
-		await using var scope = scopeFactory.CreateAsyncScope();
+		await using var scope = _scopeFactory.CreateAsyncScope();
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		await foreach (var entry in db.RamsesSongs
@@ -108,7 +114,7 @@ public partial class RamsesBackingData : BackgroundService
 
 	private async Task<RamsesSong> GetInternal(ProcessEntry request)
 	{
-		await using var scope = scopeFactory.CreateAsyncScope();
+		await using var scope = _scopeFactory.CreateAsyncScope();
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		var query = db.RamsesSongs
@@ -132,27 +138,33 @@ public partial class RamsesBackingData : BackgroundService
 		TimeSpan timePackOrUnpack = TimeSpan.Zero;
 		TimeSpan timeProcess = TimeSpan.Zero;
 
-		if (entry is null || entry.RawMap is null)
+		if (entry is null)
 		{
 			var swDownload = Stopwatch.StartNew();
-			using var client = clientFactory.CreateClient();
+			using var client = _clientFactory.CreateClient();
 			using var response = await client.GetAsync($"https://beatsaver.com/api/download/key/{request.Key}");
 			response.EnsureSuccessStatusCode();
 			var data = await response.Content.ReadAsByteArrayAsync();
 			timeDownload = swDownload.Elapsed;
 
-			var zip = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
-			if (entry is null)
-			{
-				entry = new RamsesSongDto(request.MapId, RamsesVersion, JbmVersion);
-				await db.RamsesSongs.AddAsync(entry);
-			}
 			var swPackOrUnpack = Stopwatch.StartNew();
+
+			var zip = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
 			var zipProvider = new PlainZipProvider(zip);
-			entry.JbmVersion = JbmVersion;
-			entry.RawMap = PackMap(zipProvider);
+
+			using var infoFileFs = zipProvider.Get("info.dat") ?? throw new Exception("No Info file found");
+			var info = JsonSerializer.Deserialize<JsonDocument>(infoFileFs, jbmMapOptions.JsonSerializerOptions)!;
+
+			entry = new RamsesSongDto(request.MapId, RamsesVersion, JbmVersion, info, PackMap(zipProvider));
+			await db.RamsesSongs.AddAsync(entry);
+
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
+
 			fileProvider = zipProvider.AsBsMapProvider();
+		}
+		else if (entry.RawMap is null)
+		{
+			throw new Exception("No map data found");
 		}
 		else
 		{

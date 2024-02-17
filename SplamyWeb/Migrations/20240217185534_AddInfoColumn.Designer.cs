@@ -3,6 +3,7 @@ using System;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SplamyWeb.Db;
@@ -12,9 +13,11 @@ using SplamyWeb.Db;
 namespace SplamyWeb.Migrations
 {
     [DbContext(typeof(SplamyContext))]
-    partial class SplamyContextModelSnapshot : ModelSnapshot
+    [Migration("20240217185534_AddInfoColumn")]
+    partial class AddInfoColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

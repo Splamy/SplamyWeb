@@ -2,6 +2,7 @@ using RateMapSeveritySaber;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace SplamyWeb.Db;
 
@@ -9,7 +10,7 @@ namespace SplamyWeb.Db;
 
 [Table("ramses_song")]
 [DebuggerDisplay("{Id} R:@{RamsesVersion} J:{JbmVersion} Maps:{Maps.Count}")]
-public class RamsesSongDto(long id, string ramsesVersion, string jbmVersion, byte[]? rawMap = null)
+public class RamsesSongDto(long id, string ramsesVersion, string jbmVersion, JsonDocument info, byte[]? rawMap = null)
 {
 	/// <summary>Hexadecimal beatsaver map id.</summary>
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -22,6 +23,9 @@ public class RamsesSongDto(long id, string ramsesVersion, string jbmVersion, byt
 
 	public List<RamsesMapDto> Maps { get; set; } = [];
 	public byte[]? RawMap { get; set; } = rawMap;
+
+	[Column(TypeName = "jsonb")]
+	public JsonDocument Info { get; set; } = info;
 }
 
 public class RamsesSongLightDto
