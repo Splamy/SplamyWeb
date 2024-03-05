@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -84,7 +85,12 @@ public class Startup(IConfiguration configuration)
 			o.OutputFormatters.Add(new RssSerializerOutputFormatter());
 		});
 
-		services.AddResponseCompression();
+		services.AddResponseCompression(options =>
+		{
+			options.EnableForHttps = true;
+			options.Providers.Add<BrotliCompressionProvider>();
+			options.Providers.Add<GzipCompressionProvider>();
+		});
 
 		services.AddSingleton(p =>
 		{

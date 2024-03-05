@@ -25,7 +25,7 @@ public class RamsesController(RamsesBackingData ramses) : ControllerBase
 		return entry;
 	}
 
-	[HttpGet("raw/{count}")]
+	[HttpGet("query/{count}")]
 	[Authorize(AuthenticationSchemes = AuthScheme)]
 	public async Task GetMapsZip(int count, CancellationToken cancellationToken)
 	{
