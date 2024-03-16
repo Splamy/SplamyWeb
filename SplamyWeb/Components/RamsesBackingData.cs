@@ -12,6 +12,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
@@ -83,7 +84,7 @@ public partial class RamsesBackingData : BackgroundService
 
 	public async Task<IActionResult?> Get(string key)
 	{
-		var mapId = GetMapIdFromKey(key);
+		var mapId = MapKeyToId(key);
 		if (mapId == null) return null;
 		var req = new ProcessEntry(key, mapId.Value);
 		if (!_bufferBlockChannel.Writer.TryWrite(req))
@@ -98,6 +99,31 @@ public partial class RamsesBackingData : BackgroundService
 
 		await foreach (var entry in db.RamsesSongs
 			.OrderByDescending(x => x.Id)
+			.Select(x => new { x.Id, x.RawMap })
+			.AsAsyncEnumerable()
+			.WithCancellation(cancellationToken))
+		{
+			if (entry.RawMap is null)
+			{
+				continue;
+			}
+
+			var fileProvider = UnpackMap(entry.RawMap);
+			yield return (entry.Id, fileProvider);
+		}
+	}
+
+	public async IAsyncEnumerable<(long Id, BsMapProviderV2 Map)> GetMapsByQuery(
+		Func<IQueryable<RamsesSongDto>, IQueryable<RamsesSongDto>> filter,
+		[EnumeratorCancellation] CancellationToken cancellationToken = default)
+	{
+		await using var scope = _scopeFactory.CreateAsyncScope();
+		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+
+		var query = db.RamsesSongs.AsQueryable();
+		query = filter(query);
+
+		await foreach (var entry in query
 			.Select(x => new { x.Id, x.RawMap })
 			.AsAsyncEnumerable()
 			.WithCancellation(cancellationToken))
@@ -218,8 +244,11 @@ public partial class RamsesBackingData : BackgroundService
 		return RamsesMapper.FromDto(entry);
 	}
 
-	private static long? GetMapIdFromKey(string key)
+	public static long? MapKeyToId(string key)
 		=> long.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var mapId) ? mapId : null;
+
+	public static string MapIdToKey(long mapId)
+		=> mapId.ToString("X", CultureInfo.InvariantCulture);
 
 	class ProcessEntry(string key, long mapId)
 	{

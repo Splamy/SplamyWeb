@@ -7,6 +7,7 @@ namespace SplamyWeb.Db;
 public class SplamyContext(DbContextOptions options, DbContextConfig conf) : DbContext(options)
 {
 	public required DbSet<RamsesSongDto> RamsesSongs { get; set; }
+	public required DbSet<RamsesMapDto> RamsesMaps { get; set; }
 	public required DbSet<StoreEntry> StoreTable { get; set; }
 	public required DbSet<TabStatsPingDto> TabStatsPings { get; set; }
 	public required DbSet<TabStatsFactoryDto> TabStatsFactories { get; set; }

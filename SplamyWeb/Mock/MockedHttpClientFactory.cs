@@ -30,7 +30,7 @@ internal class MockedHttpMessageHandler : HttpClientHandler
 	{
 		if (request.RequestUri!.AbsoluteUri.MatchPrefix("https://beatsaver.com/api/download/key/", StringComparison.OrdinalIgnoreCase, out var rest))
 		{
-			var dir = Directory.EnumerateDirectories(@"E:\Games\SteamGames\SteamApps\common\Beat Saber\Beat Saber_Data\CustomLevels").FirstOrDefault(dir => dir.Contains(rest, StringComparison.OrdinalIgnoreCase));
+			var dir = Directory.EnumerateDirectories(@"F:\SteamLibrary\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels").FirstOrDefault(dir => dir.Contains(rest, StringComparison.OrdinalIgnoreCase));
 			if (dir == default)
 			{
 				return Task.FromResult(new HttpResponseMessage() { StatusCode = HttpStatusCode.NotFound, Content = new StringContent("") });
