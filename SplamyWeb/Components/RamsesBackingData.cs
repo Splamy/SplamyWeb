@@ -12,7 +12,6 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
@@ -73,6 +72,11 @@ public partial class RamsesBackingData : BackgroundService
 				var res = await GetInternal(req);
 				req.Task.SetResult(ToResult(res));
 			}
+			catch (BeatsaverException ex)
+			{
+				var forwardError = new ContentResult() { StatusCode = (int)ex.Status, Content = ex.Message };
+				req.Task.SetResult(forwardError);
+			}
 			catch (Exception ex)
 			{
 				Log.Warn(ex, "Failed to process song '{0}': {1}", req.MapId.ToString("X"), ex.Message);
@@ -85,7 +89,8 @@ public partial class RamsesBackingData : BackgroundService
 	public async Task<IActionResult?> Get(string key)
 	{
 		var mapId = MapKeyToId(key);
-		if (mapId == null) return null;
+		if (mapId == null)
+			return ToError("Invalid key", HttpStatusCode.BadRequest);
 		var req = new ProcessEntry(key, mapId.Value);
 		if (!_bufferBlockChannel.Writer.TryWrite(req))
 			return ToError("The request queue is full. Please wait a few minutes", HttpStatusCode.ServiceUnavailable);
@@ -169,7 +174,11 @@ public partial class RamsesBackingData : BackgroundService
 			var swDownload = Stopwatch.StartNew();
 			using var client = _clientFactory.CreateClient();
 			using var response = await client.GetAsync($"https://beatsaver.com/api/download/key/{request.Key}");
-			response.EnsureSuccessStatusCode();
+			if (!response.IsSuccessStatusCode)
+			{
+				var errorBody = await response.Content.ReadAsStringAsync();
+				throw new BeatsaverException(errorBody, response.StatusCode);
+			}
 			var data = await response.Content.ReadAsByteArrayAsync();
 			timeDownload = swDownload.Elapsed;
 
@@ -412,4 +421,9 @@ public class JbmZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapP
 		var arr = mem.GetBuffer().AsMemory(0, (int)mem.Length);
 		return JBMConverter.DecodeToStream(arr, options);
 	}
+}
+
+public class BeatsaverException(string message, HttpStatusCode status) : Exception(message)
+{
+	public HttpStatusCode Status { get; } = status;
 }
