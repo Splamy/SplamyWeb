@@ -25,12 +25,41 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	private const int CountLimit = 100;
 
 	[HttpGet("m/{key}")]
+	[HttpGet("map/{key}")]
 	[Produces(MediaTypeNames.Application.Json)]
-	public Task<IActionResult> GetMapRate(string key) => GetMapRateInternal(key);
+	public Task<IActionResult> GetMapRate(string key) => GetMapRateInternal(ParseAutoKey(key));
 
-	[HttpGet("mi/{id}")]
+	[HttpGet("i/{key}/map")]
+	[HttpGet("info/{key}/map")]
 	[Produces(MediaTypeNames.Application.Json)]
-	public Task<IActionResult> GetMapRate(long id) => GetMapRateInternal(RamsesBackingData.MapIdToKey(id));
+	public async Task<IActionResult> GetMapMainInfo(string key)
+	{
+		if (RamsesBackingData.MapKeyToId(ParseAutoKey(key)) is not { } id)
+			return BadRequest("Invalid key");
+
+		var song = await db.RamsesSongs
+			.Where(x => x.Id == id)
+			.Select(x => x.Info)
+			.FirstOrDefaultAsync();
+
+		if (song is null)
+			return NotFound();
+
+		return Ok(song);
+	}
+
+
+	private static string ParseAutoKey(string keyOrId)
+	{
+		if (keyOrId.StartsWith('i'))
+		{
+			if (long.TryParse(keyOrId[1..], out var id))
+				return RamsesBackingData.MapIdToKey(id);
+			else
+				return "";
+		}
+		return keyOrId;
+	}
 
 	private async Task<IActionResult> GetMapRateInternal(string key)
 	{
@@ -41,6 +70,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	}
 
 	[HttpGet("q/take/{count}")]
+	[HttpGet("query/take/{count}")]
 	[Authorize(AuthenticationSchemes = AuthScheme)]
 	public async Task GetMapsZip(int count, CancellationToken cancellationToken)
 	{
@@ -49,6 +79,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	}
 
 	[HttpGet("q/json")]
+	[HttpGet("query/json")]
 	[Authorize(AuthenticationSchemes = AuthScheme)]
 	[Consumes(MediaTypeNames.Application.Json)]
 	public async Task GetMatchJsonContainsZip(
@@ -69,6 +100,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	}
 
 	[HttpGet("q/logic")]
+	[HttpGet("query/logic")]
 	[Authorize(AuthenticationSchemes = AuthScheme)]
 	[Consumes(MediaTypeNames.Application.Json)]
 	public async Task GetMatchLogicZip(
@@ -133,7 +165,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 		}
 	}
 
-	[HttpGet("info")]
+	[HttpGet("system")]
 	public async Task<RamsesDbMetadata> GetDbMetadata(CancellationToken cancellationToken)
 	{
 		var indexedSongs = await db.RamsesSongs.CountAsync(cancellationToken);

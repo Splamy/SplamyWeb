@@ -1,15 +1,17 @@
 # For more info on HTTP files go to https://aka.ms/vs/httpfile
 #@Auth=Basic c3BsYW15OnRlc3Rwdw====
 
-GET {{HostAddress}}/api/ramses/info
+### System db metadata
+
+GET {{HostAddress}}/api/ramses/system
 
 ###
 
-GET {{HostAddress}}/api/ramses/mi/122610
+GET {{HostAddress}}/api/ramses/m/i241407
 
 ###
 
-GET {{HostAddress}}/api/ramses/mi/70546
+GET {{HostAddress}}/api/ramses/info/i241407/map
 
 ###
 

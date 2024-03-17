@@ -293,7 +293,7 @@ public class ContentController(SplamyContext db, StoreService store, UserManager
 		public ICollection<BlogPostShortView>? Posts { get; init; }
 		//public IList<BlogPostShortView>? RecentPosts { get; init; }
 
-		public static BlogListQuery Empty { get; } = new() { Pages = 0, Posts = Array.Empty<BlogPostShortView>() };
+		public static BlogListQuery Empty { get; } = new() { Pages = 0, Posts = [] };
 	}
 
 	public class BlogItemQuery

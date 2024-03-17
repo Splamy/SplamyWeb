@@ -10,7 +10,13 @@ namespace SplamyWeb.Db;
 
 [Table("ramses_song")]
 [DebuggerDisplay("{Id} R:@{RamsesVersion} J:{JbmVersion} Maps:{Maps.Count}")]
-public class RamsesSongDto(long id, string ramsesVersion, string jbmVersion, JsonDocument info, byte[]? rawMap = null)
+public class RamsesSongDto(
+	long id,
+	string ramsesVersion,
+	string jbmVersion,
+	JsonDocument info,
+	DateTimeOffset? downloadDate,
+	byte[]? rawMap = null)
 {
 	/// <summary>Hexadecimal beatsaver map id.</summary>
 	[Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -26,6 +32,8 @@ public class RamsesSongDto(long id, string ramsesVersion, string jbmVersion, Jso
 
 	[Column(TypeName = "jsonb")]
 	public JsonDocument Info { get; set; } = info;
+
+	public DateTimeOffset? DownloadDate { get; set; } = downloadDate;
 }
 
 public class RamsesSongLightDto

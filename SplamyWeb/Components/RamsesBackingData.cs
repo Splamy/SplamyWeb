@@ -190,7 +190,13 @@ public partial class RamsesBackingData : BackgroundService
 			using var infoFileFs = fileProvider.GetInfoFile() ?? throw new Exception("No Info file found");
 			var info = JsonSerializer.Deserialize<JsonDocument>(infoFileFs, jbmMapOptions.JsonSerializerOptions)!;
 
-			entry = new RamsesSongDto(request.MapId, RamsesVersion, JbmVersion, info, PackMap(fileProvider));
+			entry = new RamsesSongDto(
+				request.MapId,
+				RamsesVersion,
+				JbmVersion,
+				info,
+				DateTimeOffset.UtcNow,
+				PackMap(fileProvider));
 			await db.RamsesSongs.AddAsync(entry);
 
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
