@@ -1,6 +1,7 @@
 using JsonBinMin;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using RateMapSeveritySaber;
 using SplamyWeb.Db;
 using System.IO;
 using System.IO.Compression;
@@ -193,7 +194,7 @@ partial class RamsesBackingData
 		return mem.ToArray();
 	}
 
-	private static BsMapProviderV2 UnpackMapOld(byte[] data)
+	private static BsMapProvider UnpackMapOld(byte[] data)
 	{
 		var output = new MemoryStream();
 		using (var input = new MemoryStream(data))
@@ -206,7 +207,7 @@ partial class RamsesBackingData
 		return new OldCompressedZipProvider(intermediateZip, jbmMapOptions);
 	}
 
-	public class OldCompressedZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProviderV2
+	public class OldCompressedZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProvider
 	{
 		public override IEnumerable<string> Files => zip.Entries.Select(e => NormalizeName(e.FullName));
 		public override Stream? Get(string file)
@@ -230,7 +231,7 @@ partial class RamsesBackingData
 			}
 
 
-			return JBMConverter.DecodeToStream(arr);
+			return JBMConverter.DecodeToStream(arr, options);
 		}
 	}
 }

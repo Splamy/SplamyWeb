@@ -92,7 +92,7 @@ public partial class RamsesBackingData : BackgroundService
 		return await req.Task.Task;
 	}
 
-	public async IAsyncEnumerable<(long Id, BsMapProviderV2 Map)> GetMaps([EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<(long Id, BsMapProvider Map)> GetMaps([EnumeratorCancellation] CancellationToken cancellationToken = default)
 	{
 		await using var scope = _scopeFactory.CreateAsyncScope();
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
@@ -113,7 +113,7 @@ public partial class RamsesBackingData : BackgroundService
 		}
 	}
 
-	public async IAsyncEnumerable<(long Id, BsMapProviderV2 Map)> GetMapsByQuery(
+	public async IAsyncEnumerable<(long Id, BsMapProvider Map)> GetMapsByQuery(
 		Func<IQueryable<RamsesSongDto>, IQueryable<RamsesSongDto>> filter,
 		[EnumeratorCancellation] CancellationToken cancellationToken = default)
 	{
@@ -159,7 +159,7 @@ public partial class RamsesBackingData : BackgroundService
 			entry = await query.FirstOrDefaultAsync();
 		}
 
-		BSMapIO.FileProvider fileProvider;
+		BsMapProvider fileProvider;
 		TimeSpan timeDownload = TimeSpan.Zero;
 		TimeSpan timePackOrUnpack = TimeSpan.Zero;
 		TimeSpan timeProcess = TimeSpan.Zero;
@@ -176,17 +176,15 @@ public partial class RamsesBackingData : BackgroundService
 			var swPackOrUnpack = Stopwatch.StartNew();
 
 			var zip = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
-			var zipProvider = new PlainZipProvider(zip);
+			fileProvider = new PlainZipMapProvider(zip);
 
-			using var infoFileFs = zipProvider.Get("info.dat") ?? throw new Exception("No Info file found");
+			using var infoFileFs = fileProvider.GetInfoFile() ?? throw new Exception("No Info file found");
 			var info = JsonSerializer.Deserialize<JsonDocument>(infoFileFs, jbmMapOptions.JsonSerializerOptions)!;
 
-			entry = new RamsesSongDto(request.MapId, RamsesVersion, JbmVersion, info, PackMap(zipProvider));
+			entry = new RamsesSongDto(request.MapId, RamsesVersion, JbmVersion, info, PackMap(fileProvider));
 			await db.RamsesSongs.AddAsync(entry);
 
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
-
-			fileProvider = zipProvider.AsBsMapProvider();
 		}
 		else if (entry.RawMap is null)
 		{
@@ -195,7 +193,7 @@ public partial class RamsesBackingData : BackgroundService
 		else
 		{
 			var swPackOrUnpack = Stopwatch.StartNew();
-			fileProvider = UnpackMap(entry.RawMap).AsBsMapProvider();
+			fileProvider = UnpackMap(entry.RawMap);
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
 		}
 
@@ -257,9 +255,9 @@ public partial class RamsesBackingData : BackgroundService
 		public TaskCompletionSource<IActionResult> Task { get; } = new();
 	}
 
-	public static byte[]? PackMap(BsMapProviderV2 sourceFiles)
+	public static byte[]? PackMap(BsMapProvider sourceFiles)
 	{
-		var jsonInfo = BSMapIO.ReadInfo(sourceFiles.AsBsMapProvider()) ?? throw new Exception("No Info file found");
+		var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
 
 		using var mem = new MemoryStream();
 		using (var zip = new ZipArchive(mem, ZipArchiveMode.Create, true, Util.Utf8Encoding))
@@ -298,7 +296,7 @@ public partial class RamsesBackingData : BackgroundService
 		return output.ToArray();
 	}
 
-	private static BsMapProviderV2 UnpackMap(byte[] data)
+	private static BsMapProvider UnpackMap(byte[] data)
 	{
 		var output = new MemoryStream();
 		using (var input = new MemoryStream(data))
@@ -308,7 +306,7 @@ public partial class RamsesBackingData : BackgroundService
 		}
 		output.Position = 0;
 		var intermediateZip = new ZipArchive(output, ZipArchiveMode.Read);
-		return new CompressedZipProvider(intermediateZip, jbmMapOptions);
+		return new JbmZipProvider(intermediateZip, jbmMapOptions);
 	}
 
 
@@ -385,41 +383,21 @@ public static partial class RamsesMapper
 {
 	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
+	[MapperIgnoreSource(nameof(RamsesSongDto.Info))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.JbmVersion))]
 	public static partial RamsesSong FromDto(this RamsesSongDto song);
+	[MapperIgnoreSource(nameof(RamsesSongDto.JbmVersion))]
 	public static partial RamsesSong FromDto(this RamsesSongLightDto song);
 	public static partial IQueryable<RamsesSongLightDto> MapToLight(this IQueryable<RamsesSongDto> song);
 	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
+	[MapperIgnoreSource(nameof(RamsesSongDto.Info))]
 	private static partial RamsesSongLightDto MapToLight(this RamsesSongDto song);
 	public static RamsesMap FromDto(this RamsesMapDto map) => RamsesBackingData.UnpackScoreObject(map.RatingDetail);
 	private static partial List<RamsesMap> MapToList(List<RamsesMapDto> source);
 }
 
-public abstract class BsMapProviderV2
-{
-	private const string InfoJson = "info.json";
-	private const string InfoDat = "info.dat";
-
-	public abstract IEnumerable<string> Files { get; }
-	public abstract Stream? Get(string file);
-
-	protected static bool MatchName(string a, string b)
-		=> string.Equals(NormalizeName(a), NormalizeName(b), StringComparison.OrdinalIgnoreCase);
-
-	protected static string NormalizeName(string name)
-	{
-		if (name.LastIndexOf('/') is var idx && idx >= 0)
-		{
-			name = name[(idx + 1)..];
-		}
-		return string.Equals(name, InfoJson, StringComparison.OrdinalIgnoreCase) ? InfoDat : name;
-	}
-
-	public BSMapIO.FileProvider AsBsMapProvider() => Get;
-}
-
-public class CompressedZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProviderV2
+public class JbmZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProvider
 {
 	public override IEnumerable<string> Files => zip.Entries.Select(e => NormalizeName(e.FullName));
 	public override Stream? Get(string file)
@@ -434,11 +412,4 @@ public class CompressedZipProvider(ZipArchive zip, JBMOptions? options = null) :
 		var arr = mem.GetBuffer().AsMemory(0, (int)mem.Length);
 		return JBMConverter.DecodeToStream(arr, options);
 	}
-}
-
-public class PlainZipProvider(ZipArchive zip) : BsMapProviderV2
-{
-	public override IEnumerable<string> Files => zip.Entries.Select(e => e.FullName);
-	public override Stream? Get(string file) => zip.Entries
-		.FirstOrDefault((e) => MatchName(e.Name, file))?.Open();
 }

@@ -1,0 +1,37 @@
+# For more info on HTTP files go to https://aka.ms/vs/httpfile
+#@Auth=Basic c3BsYW15OnRlc3Rwdw====
+
+GET {{HostAddress}}/api/ramses/info
+
+###
+
+GET {{HostAddress}}/api/ramses/mi/122610
+
+###
+
+GET {{HostAddress}}/api/ramses/m/3134
+
+###
+
+GET {{HostAddress}}/api/ramses/q/take/1
+Authorization: {{Auth}}
+
+###
+
+GET {{HostAddress}}/api/ramses/q/json
+Content-Type: application/json
+Authorization: {{Auth}}
+
+{
+	"_songName": "Halloween Spooky Mash Up"
+}
+
+###
+
+GET {{HostAddress}}/api/ramses/q/logic
+Content-Type: application/json
+Authorization: {{Auth}}
+
+
+{"==" : [ { "var" : "_songName" }, "Halloween Spooky Mash Up" ]}
+

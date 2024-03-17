@@ -154,7 +154,7 @@ namespace SplamyWeb.Components
 		[JsonDerivedType(typeof(BsMessageMapDelete), typeDiscriminator: "MAP_DELETE")]
 		private class BsMessageBase
 		{
-			public string type { get; init; }
+			public string? type { get; init; }
 		}
 
 		private class BsMessageMapDelete : BsMessageBase

@@ -138,11 +138,13 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	{
 		var indexedSongs = await db.RamsesSongs.CountAsync(cancellationToken);
 		var indexedMaps = await db.RamsesMaps.CountAsync(cancellationToken);
+		var totalSize = await db.RamsesSongs.Where(x => x.RawMap != null).SumAsync(x => x.RawMap!.Length, cancellationToken);
 
 		return new RamsesDbMetadata
 		{
 			IndexedSongs = indexedSongs,
 			IndexedMaps = indexedMaps,
+			TotalSize = totalSize,
 		};
 	}
 
@@ -150,5 +152,6 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	{
 		public int IndexedSongs { get; set; }
 		public int IndexedMaps { get; set; }
+		public long TotalSize { get; set; }
 	}
 }
