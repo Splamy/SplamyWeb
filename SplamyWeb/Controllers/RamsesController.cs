@@ -27,14 +27,14 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	[HttpGet("m/{key}")]
 	[HttpGet("map/{key}")]
 	[Produces(MediaTypeNames.Application.Json)]
-	public Task<IActionResult> GetMapRate(string key) => GetMapRateInternal(ParseAutoKey(key));
+	public Task<IActionResult> GetMapRate(string key) => GetMapRateInternal(new AutoKey(key));
 
 	[HttpGet("i/{key}/map")]
 	[HttpGet("info/{key}/map")]
 	[Produces(MediaTypeNames.Application.Json)]
 	public async Task<IActionResult> GetMapMainInfo(string key)
 	{
-		if (RamsesBackingData.MapKeyToId(ParseAutoKey(key)) is not { } id)
+		if (new AutoKey(key).TryGetId() is not { } id)
 			return BadRequest("Invalid key");
 
 		var song = await db.RamsesSongs
@@ -49,73 +49,44 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	}
 
 
-	private static string ParseAutoKey(string keyOrId)
+	private async Task<IActionResult> GetMapRateInternal(AutoKey autoKey)
 	{
-		if (keyOrId.StartsWith('i'))
-		{
-			if (long.TryParse(keyOrId[1..], out var id))
-				return RamsesBackingData.MapIdToKey(id);
-			else
-				return "";
-		}
-		return keyOrId;
-	}
+		if (autoKey.TryGetKey() is not { } key)
+			return BadRequest("Invalid key");
 
-	private async Task<IActionResult> GetMapRateInternal(string key)
-	{
 		var entry = await ramses.Get(key);
 		if (entry is null)
 			return NotFound();
 		return entry;
 	}
 
-	[HttpGet("q/take/{count}")]
-	[HttpGet("query/take/{count}")]
-	[Authorize(AuthenticationSchemes = AuthScheme)]
-	public async Task GetMapsZip(int count, CancellationToken cancellationToken)
-	{
-		count = Math.Clamp(count, 0, CountLimit);
-		await QueryMaps(r => r.Take(count), cancellationToken);
-	}
-
-	[HttpGet("q/json")]
-	[HttpGet("query/json")]
+	[HttpPost("q/json")]
+	[HttpPost("query/json")]
 	[Authorize(AuthenticationSchemes = AuthScheme)]
 	[Consumes(MediaTypeNames.Application.Json)]
-	public async Task GetMatchJsonContainsZip(
-		CancellationToken cancellationToken,
+	public async Task<QueryResult> GetMatchJsonContainsZip(
 		[FromBody] JsonElement json,
-		[FromQuery] int? skip,
-		[FromQuery] int? take = null
+		CancellationToken cancellationToken
 		)
 	{
-		var skipv = Math.Clamp(skip ?? 0, 0, int.MaxValue);
-		var takev = Math.Clamp(take ?? CountLimit, 0, CountLimit);
-
-		await QueryMaps(r => r
-			.Where(x => EF.Functions.JsonContains(x.Info, json))
-			.Skip(skipv)
-			.Take(takev),
+		return await FindMaps(r => r
+			.Where(x => EF.Functions.JsonContains(x.Info, json)),
 			cancellationToken);
 	}
 
-	[HttpGet("q/logic")]
-	[HttpGet("query/logic")]
+	[HttpPost("q/logic")]
+	[HttpPost("query/logic")]
 	[Authorize(AuthenticationSchemes = AuthScheme)]
 	[Consumes(MediaTypeNames.Application.Json)]
-	public async Task GetMatchLogicZip(
-		CancellationToken cancellationToken,
+	public async Task<QueryResult> GetMatchLogicZip(
 		[FromBody] Rule jsonExpression,
-		[FromQuery] int? skip,
-		[FromQuery] int? take = null
+		CancellationToken cancellationToken
 	)
 	{
-		var skipv = Math.Clamp(skip ?? 0, 0, int.MaxValue);
-		var takev = Math.Clamp(take ?? CountLimit, 0, CountLimit);
-
-		List<long> matches = [];
+		List<string> matches = [];
 
 		await foreach (var song in db.RamsesSongs
+			.Where(x => x.RawMap != null)
 			.Select(x => new { x.Id, x.Info })
 			.AsAsyncEnumerable()
 			.WithCancellation(cancellationToken))
@@ -123,18 +94,33 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 			var result = jsonExpression.Apply(song.Info.RootElement.AsNode());
 			if (result is JsonValue jsonValue && jsonValue.GetBool() == true)
 			{
-				matches.Add(song.Id);
+				matches.Add(RamsesBackingData.MapIdToKey(song.Id));
 			}
 		}
 
-		await QueryMaps(r => r
-			.Where(x => matches.Contains(x.Id))
-			.Skip(skipv)
-			.Take(takev),
-			cancellationToken);
+		return new QueryResult
+		{
+			Maps = matches,
+		};
 	}
 
-	public async Task QueryMaps(Func<IQueryable<RamsesSongDto>, IQueryable<RamsesSongDto>> filter, CancellationToken cancellationToken)
+	private async Task<QueryResult> FindMaps(
+		Func<IQueryable<RamsesSongDto>, IQueryable<RamsesSongDto>> filter,
+		CancellationToken cancellationToken)
+	{
+		var maps = await ramses.FindMapsByQuery(filter, cancellationToken);
+
+		return new QueryResult
+		{
+			Maps = maps,
+		};
+	}
+
+	[HttpGet("d/{keys}")]
+	[HttpGet("download/{keys}")]
+	public async Task DownloadMaps(
+		string keys,
+		CancellationToken cancellationToken)
 	{
 		Response.Headers.ContentDisposition = "attachment; filename=maps.tar.gz";
 
@@ -143,7 +129,14 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 		await using var gzip = new GZipStream(stream, CompressionLevel.Optimal, leaveOpen: true);
 		await using var tar = new TarWriter(gzip, leaveOpen: true);
 
-		await foreach (var (id, provider) in ramses.GetMapsByQuery(filter, cancellationToken))
+		var ids = keys
+			.Split(',')
+			.Select(x => new AutoKey(x).TryGetId())
+			.Where(x => x is not null)
+			.Select(x => x!.Value)
+			.ToArray();
+
+		await foreach (var (id, provider) in ramses.GetMaps(ids, cancellationToken))
 		{
 			var mapIdStr = RamsesBackingData.MapIdToKey(id);
 
@@ -179,11 +172,64 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 			TotalSize = totalSize,
 		};
 	}
+}
 
-	public class RamsesDbMetadata
+public class RamsesDbMetadata
+{
+	public int IndexedSongs { get; set; }
+	public int IndexedMaps { get; set; }
+	public long TotalSize { get; set; }
+}
+
+public class QueryResult
+{
+	public IReadOnlyList<string> Maps { get; set; } = [];
+}
+
+public readonly record struct AutoKey
+{
+	private readonly string? _keyOrId;
+	private readonly long? _id;
+
+	public AutoKey(string key)
 	{
-		public int IndexedSongs { get; set; }
-		public int IndexedMaps { get; set; }
-		public long TotalSize { get; set; }
+		_keyOrId = key;
+		_id = null;
+	}
+
+	public AutoKey(long id)
+	{
+		_keyOrId = null;
+		_id = id;
+	}
+
+	public readonly string? TryGetKey()
+	{
+		if (_keyOrId is not null)
+		{
+			if (long.TryParse(_keyOrId[1..], out var id))
+				return RamsesBackingData.MapIdToKey(id);
+			else
+				return null;
+		}
+		if (_id is not null)
+		{
+			return RamsesBackingData.MapIdToKey(_id.Value);
+		}
+		return null;
+	}
+
+	public readonly long? TryGetId()
+	{
+		if (_id is not null)
+			return _id;
+		if (_keyOrId is not null)
+		{
+			if (long.TryParse(_keyOrId[1..], out var id))
+				return id;
+			else
+				return RamsesBackingData.MapKeyToId(_keyOrId);
+		}
+		return null;
 	}
 }

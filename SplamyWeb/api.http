@@ -7,7 +7,7 @@ GET {{HostAddress}}/api/ramses/system
 
 ###
 
-GET {{HostAddress}}/api/ramses/m/i241407
+GET {{HostAddress}}/api/ramses/m/2B13F
 
 ###
 
@@ -15,12 +15,7 @@ GET {{HostAddress}}/api/ramses/info/i241407/map
 
 ###
 
-GET {{HostAddress}}/api/ramses/q/take/1
-Authorization: {{Auth}}
-
-###
-
-GET {{HostAddress}}/api/ramses/q/json
+POST {{HostAddress}}/api/ramses/q/json
 Content-Type: application/json
 Authorization: {{Auth}}
 
@@ -30,7 +25,7 @@ Authorization: {{Auth}}
 
 ###
 
-GET {{HostAddress}}/api/ramses/q/logic
+POST {{HostAddress}}/api/ramses/q/logic
 Content-Type: application/json
 Authorization: {{Auth}}
 

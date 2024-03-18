@@ -97,30 +97,29 @@ public partial class RamsesBackingData : BackgroundService
 		return await req.Task.Task;
 	}
 
-	public async IAsyncEnumerable<(long Id, BsMapProvider Map)> GetMaps([EnumeratorCancellation] CancellationToken cancellationToken = default)
+
+	public async IAsyncEnumerable<(long Id, BsMapProvider Map)> GetMaps(
+		ICollection<long> ids,
+		[EnumeratorCancellation] CancellationToken cancellationToken = default)
 	{
 		await using var scope = _scopeFactory.CreateAsyncScope();
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		await foreach (var entry in db.RamsesSongs
-			.OrderByDescending(x => x.Id)
+			.Where(x => x.RawMap != null)
+			.Where(x => ids.Contains(x.Id))
 			.Select(x => new { x.Id, x.RawMap })
 			.AsAsyncEnumerable()
 			.WithCancellation(cancellationToken))
 		{
-			if (entry.RawMap is null)
-			{
-				continue;
-			}
-
-			var fileProvider = UnpackMap(entry.RawMap);
+			var fileProvider = UnpackMap(entry.RawMap!);
 			yield return (entry.Id, fileProvider);
 		}
 	}
 
-	public async IAsyncEnumerable<(long Id, BsMapProvider Map)> GetMapsByQuery(
+	public async Task<string[]> FindMapsByQuery(
 		Func<IQueryable<RamsesSongDto>, IQueryable<RamsesSongDto>> filter,
-		[EnumeratorCancellation] CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken = default)
 	{
 		await using var scope = _scopeFactory.CreateAsyncScope();
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
@@ -128,19 +127,14 @@ public partial class RamsesBackingData : BackgroundService
 		var query = db.RamsesSongs.AsQueryable();
 		query = filter(query);
 
-		await foreach (var entry in query
-			.Select(x => new { x.Id, x.RawMap })
-			.AsAsyncEnumerable()
-			.WithCancellation(cancellationToken))
-		{
-			if (entry.RawMap is null)
-			{
-				continue;
-			}
+		var ids = await query
+			.Where(x => x.RawMap != null)
+			.Select(x => x.Id)
+			.ToListAsync(cancellationToken);
 
-			var fileProvider = UnpackMap(entry.RawMap);
-			yield return (entry.Id, fileProvider);
-		}
+		var keys = ids.Select(MapIdToKey).ToArray();
+
+		return keys;
 	}
 
 	private async Task<RamsesSong> GetInternal(ProcessEntry request)

@@ -1,4 +1,3 @@
-// See https://aka.ms/new-console-template for more information
 using System.Net;
 
 var start = int.Parse(args[0]);
@@ -11,14 +10,20 @@ for (int i = start; i < 241502; i++)
 
 	try
 	{
-		var response = await client.GetAsync($"https://splamy.de/api/ramses/mi/{i}");
+		var response = await client.GetAsync($"https://splamy.de/api/ramses/m/i{i}");
 		var content = await response.Content.ReadAsStringAsync();
 
 		if (!response.IsSuccessStatusCode)
 		{
-			if (response.StatusCode != HttpStatusCode.NotFound)
+			if (response.StatusCode != HttpStatusCode.TooManyRequests)
 			{
-				await File.AppendAllTextAsync("error.log", $"{i:X}: {response.StatusCode} {content}\n");
+				await Task.Delay(TimeSpan.FromSeconds(10));
+				i--;
+				continue;
+			}
+			else if (response.StatusCode != HttpStatusCode.NotFound)
+			{
+				await File.AppendAllTextAsync("error.log", $"{i:X}: {response.StatusCode} {content.Replace("\n", "").Replace("\r", "")}\n");
 			}
 
 			Console.WriteLine($"##### Failed to fetch {i:X} ({i}) {response.StatusCode} {content}");

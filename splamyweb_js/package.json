@@ -38,6 +38,7 @@
 		"chart.js": "3.7.0",
 		"chartjs-adapter-moment": "1.0.1",
 		"moment": "2.29.4",
+		"monaco-editor": "^0.47.0",
 		"prismjs": "1.29.0",
 		"qrious": "4.0.2",
 		"simply-svelte-autocomplete": "1.4.0",

@@ -43,6 +43,7 @@
 		{/if}
 	</div>
 	{#if $CurrentUser}
+		<a class="navl" href="/beatsaber">BeatSaber</a>
 		<div class="navdrop">
 			<a class="navl" href="/admin/hub">Admin</a>
 			<div class="navdrop-list">
