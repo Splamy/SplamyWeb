@@ -4,7 +4,7 @@
 
 	export let queryTitle: string;
 	export let queryType: string;
-	export let queryExample: string = "";
+	export let queryExample: string = '';
 
 	let query_json_contains = queryExample;
 	let result_json_contains = '';
@@ -46,12 +46,20 @@
 	}
 
 	async function run_download(maps: string[]) {
-		const dlLink = `${BASE_URL}/api/ramses/download/${maps.join(',')}`;
+		const mapForm = document.createElement('form');
+		mapForm.target = '_self' || '_blank';
+		mapForm.id = 'downloadBsMaps';
+		mapForm.method = 'POST';
+		mapForm.action = `${BASE_URL}/api/ramses/download`;
 
-		const a = document.createElement('a');
-		a.href = dlLink;
-		a.download = 'maps.tar.gz';
-		a.click();
+		const mapInput = document.createElement('input');
+		mapInput.type = 'hidden';
+		mapInput.name = 'keys';
+		mapInput.value = maps.join(',');
+		mapForm.appendChild(mapInput);
+		document.body.appendChild(mapForm);
+
+		mapForm.submit();
 	}
 
 	function throw_if_error(result: { error?: string }) {

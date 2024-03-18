@@ -116,6 +116,10 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 		};
 	}
 
+	[HttpPost("d")]
+	[HttpPost("download")]
+	public Task DownloadMapsFromBody([FromForm] string keys, CancellationToken cancellationToken) => DownloadMaps(keys, cancellationToken);
+
 	[HttpGet("d/{keys}")]
 	[HttpGet("download/{keys}")]
 	public async Task DownloadMaps(
