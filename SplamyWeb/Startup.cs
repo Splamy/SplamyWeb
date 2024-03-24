@@ -57,6 +57,8 @@ public class Startup(IConfiguration configuration)
 			});
 		}
 
+		services.AddMemoryCache();
+
 		services.Configure<WireguardConfig>(configuration.GetSection("Wireguard"));
 
 		services.AddSignalR().AddJsonProtocol(options =>
@@ -79,6 +81,23 @@ public class Startup(IConfiguration configuration)
 		{
 			options.AddScheme<BasicAuthenticationHandler>("BasicAuthentication", "Basic");
 		});
+
+		//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+		//	.AddJwtBearer(options =>
+		//	{
+		//		options.TokenValidationParameters = new TokenValidationParameters
+		//		{
+		//			//define which claim requires to check
+		//			ValidateIssuer = true,
+		//			ValidateAudience = true,
+		//			ValidateLifetime = true,
+		//			ValidateIssuerSigningKey = true,
+		//			//store the value in appsettings.json
+		//			ValidIssuer = builder.Configuration["Jwt:Issuer"],
+		//			ValidAudience = builder.Configuration["Jwt:Issuer"],
+		//			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+		//		};
+		//	});
 
 		services.AddControllers(o =>
 		{
