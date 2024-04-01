@@ -211,7 +211,7 @@ public readonly record struct AutoKey
 	{
 		if (_keyOrId is not null)
 		{
-			if (long.TryParse(_keyOrId[1..], out var id))
+			if (RamsesBackingData.MapKeyToId(_keyOrId[1..]) is { } id)
 				return RamsesBackingData.MapIdToKey(id);
 			else
 				return null;
@@ -229,7 +229,7 @@ public readonly record struct AutoKey
 			return _id;
 		if (_keyOrId is not null)
 		{
-			if (long.TryParse(_keyOrId[1..], out var id))
+			if (RamsesBackingData.MapKeyToId(_keyOrId[1..]) is { } id)
 				return id;
 			else
 				return RamsesBackingData.MapKeyToId(_keyOrId);
