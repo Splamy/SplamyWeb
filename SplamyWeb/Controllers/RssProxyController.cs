@@ -46,6 +46,19 @@ public class RssProxyController(
 				doc.LoadHtml(fullHtml);
 				var article = doc.DocumentNode.SelectSingleNode("//article");
 
+				foreach(var img in article.SelectNodes("img"))
+				{
+					if (img.Attributes.Contains("data-src"))
+					{
+						var src = img.Attributes["data-src"].Value;
+
+						img.Attributes.Remove("src");
+						img.Attributes.Remove("data-src");
+
+						img.Attributes.Add("src", src);
+					}
+				}
+
 				cachedHtml = article.InnerHtml;
 
 				memoryCache.Set(cacheKey, cachedHtml, TimeSpan.FromDays(1));
