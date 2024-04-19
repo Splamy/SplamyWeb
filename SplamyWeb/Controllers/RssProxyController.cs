@@ -35,7 +35,7 @@ public class RssProxyController(
 		foreach (var node in items.Cast<XmlNode>())
 		{
 			var link = node.SelectSingleNode("link")!.InnerText;
-			var cacheKey = new CassandraLink(link);
+			var cacheKey = new CachedLink(link);
 
 			if (!memoryCache.TryGetValue(cacheKey, out string? cachedHtml))
 			{
@@ -46,7 +46,7 @@ public class RssProxyController(
 				doc.LoadHtml(fullHtml);
 				var article = doc.DocumentNode.SelectSingleNode("//article");
 
-				foreach(var img in article.SelectNodes("img"))
+				foreach (var img in article.SelectNodes("img"))
 				{
 					if (img.Attributes.Contains("data-src"))
 					{
@@ -71,5 +71,48 @@ public class RssProxyController(
 		return Content(xml.OuterXml, "application/rss+xml", Encoding.UTF8);
 	}
 
-	private record CassandraLink(string Link);
+	[HttpGet("satw")]
+	public async Task<IActionResult> GetSatw(CancellationToken cancellationToken)
+	{
+		var req = await httpClient.GetAsync("http://feeds.feedburner.com/satwcomic", cancellationToken);
+		var content = await req.Content.ReadAsStringAsync(cancellationToken);
+
+		var xml = new XmlDocument();
+		xml.LoadXml(content);
+
+		var items = xml.SelectNodes("//rss/channel/item");
+
+		foreach (var node in items.Cast<XmlNode>())
+		{
+			var link = node.SelectSingleNode("link")!.InnerText;
+			var cacheKey = new CachedLink(link);
+
+			if (!memoryCache.TryGetValue(cacheKey, out string? cachedHtml))
+			{
+				logger.LogInformation("Fetching RSS SATW {Link}", link);
+				var fullHtml = await httpClient.GetStringAsync(link, cancellationToken);
+
+				var doc = new HtmlDocument();
+				doc.LoadHtml(fullHtml);
+				var article = doc.DocumentNode.SelectSingleNode("//div[@class='card shadow']");
+
+				cachedHtml = article.InnerHtml;
+
+				memoryCache.Set(cacheKey, cachedHtml, TimeSpan.FromDays(1));
+			}
+
+			// Create new node and wirte inner html
+			var rssContent = node["description"];
+			if (rssContent is null)
+			{
+				rssContent = xml.CreateElement("description");
+				node.AppendChild(rssContent);
+			}
+			rssContent.InnerText = cachedHtml!;
+		}
+
+		return Content(xml.OuterXml, "application/rss+xml", Encoding.UTF8);
+	}
+
+	private record CachedLink(string Link);
 }
