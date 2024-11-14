@@ -14,6 +14,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
@@ -34,7 +35,7 @@ public partial class TeamspeakService
 	private const string CsvHeader = "version,platform,hash\n";
 	private static readonly char[] NicknamesSplit = [',', ';', ' '];
 
-	private readonly object cacheLock = new();
+	private readonly Lock cacheLock = new();
 	private HashSet<VersionSign> cachedVersions = [];
 	private string? cachedFileSha;
 	private long LastBadgeUpdate = -1;
@@ -77,13 +78,13 @@ public partial class TeamspeakService
 		catch { return (false, false); }
 	}
 
-	public async Task TryAddNewVersionSignChecked(params VersionSign[] vsign)
+	public async Task TryAddNewVersionSignChecked(params IEnumerable<VersionSign> vsign)
 	{
 		var correctSigns = vsign.Select(x => CheckVersionClean(x)).Where(x => x != null).ToArray();
 		await TryAddNewVersionSign(correctSigns!);
 	}
 
-	public async Task<IActionResult> TryAddNewVersionSign(params VersionSign[] vsign)
+	public async Task<IActionResult> TryAddNewVersionSign(params IReadOnlyCollection<VersionSign> vsign)
 	{
 		for (int i = 0; i < 4; i++)
 		{
@@ -97,9 +98,9 @@ public partial class TeamspeakService
 		return new ObjectResult("Github request could not be completed") { StatusCode = 503 };
 	}
 
-	private async Task<IActionResult?> AddNewVersionSign(params VersionSign[] vsign)
+	private async Task<IActionResult?> AddNewVersionSign(params IReadOnlyCollection<VersionSign> vsign)
 	{
-		if (vsign.Length == 0)
+		if (vsign.Count == 0)
 			return new OkObjectResult("No signs requested");
 
 		if (vsign.All(x => cachedVersions.Contains(x)))

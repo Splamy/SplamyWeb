@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NLog;
 using System.Linq;
+using System.Threading;
 
 namespace SplamyWeb.Components;
 
 public class LogNotifierService
 {
-	private readonly object listLock = new();
+	private readonly Lock listLock = new();
 	private readonly List<ServerLogEntry> logHistory = [];
 	private readonly IHubContext<LogNotifier> hub;
 

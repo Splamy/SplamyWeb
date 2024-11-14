@@ -394,16 +394,18 @@ public static partial class RamsesMapper
 	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.Info))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.JbmVersion))]
+	[MapperIgnoreSource(nameof(RamsesSongDto.DownloadDate))]
 	public static partial RamsesSong FromDto(this RamsesSongDto song);
 	[MapperIgnoreSource(nameof(RamsesSongDto.JbmVersion))]
 	public static partial RamsesSong FromDto(this RamsesSongLightDto song);
+
 	public static partial IQueryable<RamsesSongLightDto> MapToLight(this IQueryable<RamsesSongDto> song);
 	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
 	[MapperIgnoreSource(nameof(RamsesSongDto.Info))]
+	[MapperIgnoreSource(nameof(RamsesSongDto.DownloadDate))]
 	private static partial RamsesSongLightDto MapToLight(this RamsesSongDto song);
 	public static RamsesMap FromDto(this RamsesMapDto map) => RamsesBackingData.UnpackScoreObject(map.RatingDetail);
-	private static partial List<RamsesMap> MapToList(List<RamsesMapDto> source);
 }
 
 public class JbmZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProvider
