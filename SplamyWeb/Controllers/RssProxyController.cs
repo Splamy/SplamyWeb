@@ -24,7 +24,7 @@ public class RssProxyController(
 	[HttpGet("cassandra")]
 	public async Task<IActionResult> Get(CancellationToken cancellationToken)
 	{
-		var req = await httpClient.GetAsync("https://tapastic.com/rss/series/35182", cancellationToken);
+		var req = await httpClient.GetAsync("https://tapas.io/rss/series/35182", cancellationToken);
 		var content = await req.Content.ReadAsStringAsync(cancellationToken);
 
 		var xml = new XmlDocument();
