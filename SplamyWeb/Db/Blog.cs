@@ -56,16 +56,11 @@ public static partial class BlogMapper
 
 	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
 	public static partial BlogPostView ToView(BlogPost blogPost);
-
-	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
 	public static partial IQueryable<BlogPostView> ProjectToView(this IQueryable<BlogPost> blogPost);
 
 	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
 	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
 	public static partial BlogPostShortView ToShortView(BlogPost blogPost);
-
-	[MapperIgnoreSource(nameof(BlogPost.ContentRaw))]
-	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
 	public static partial IQueryable<BlogPostShortView> ProjectToShortView(this IQueryable<BlogPost> blogPost);
 
 	[MapperIgnoreSource(nameof(BlogPost.CreateTime))]
@@ -73,10 +68,5 @@ public static partial class BlogMapper
 	[MapperIgnoreSource(nameof(BlogPost.SummaryHtml))]
 	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
 	public static partial BlogPostUpdate ToUpdate(BlogPost blogPostUpdate);
-
-	[MapperIgnoreSource(nameof(BlogPost.CreateTime))]
-	[MapperIgnoreSource(nameof(BlogPost.Title))]
-	[MapperIgnoreSource(nameof(BlogPost.SummaryHtml))]
-	[MapperIgnoreSource(nameof(BlogPost.ContentHtml))]
 	public static partial IQueryable<BlogPostUpdate> ProjectToUpdate(this IQueryable<BlogPost> blogPostUpdate);
 }

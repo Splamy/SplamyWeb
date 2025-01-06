@@ -22,8 +22,6 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 		PropertyNameCaseInsensitive = true,
 	};
 
-	private static ReadOnlySpan<byte> Lf => "\n"u8;
-
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		while (!stoppingToken.IsCancellationRequested)
