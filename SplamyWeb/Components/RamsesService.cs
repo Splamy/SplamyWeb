@@ -16,7 +16,7 @@ namespace SplamyWeb.Components;
 public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData ramses) : BackgroundService
 {
 	private static readonly Uri BSUri = new("wss://ws.beatsaver.com/maps");
-	private readonly JsonSerializerOptions jsonSerializerOptions = new()
+	public static readonly JsonSerializerOptions JsonSerializerOptions = new()
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		PropertyNameCaseInsensitive = true,
@@ -54,6 +54,8 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 		await ws.ConnectAsync(BSUri, cancellationToken);
 		logger.LogInformation("Ramses websocket connected");
 
+		writer.Write("["u8);
+
 		Memory<byte> buffer = new byte[1024];
 
 		while (!cancellationToken.IsCancellationRequested)
@@ -69,62 +71,28 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 			writer.Write(buffer.Span[..result.Count]);
 			if (result.EndOfMessage)
 			{
-				writer.Write(Lf);
+				writer.Write(","u8);
 				await writer.FlushAsync(cancellationToken);
 			}
 		}
+
+		writer.Write("]"u8);
+		await writer.CompleteAsync();
 	}
 
 	private async Task ReadPipe(PipeReader reader, CancellationToken cancellationToken)
 	{
-		while (!cancellationToken.IsCancellationRequested)
+		try
 		{
-			var result = await reader.ReadAsync(cancellationToken);
-			if (result.IsCompleted)
-			{
-				await reader.CompleteAsync();
-				break;
-			}
-
-			var buffer = result.Buffer;
-
-			while (TryReadLine(ref buffer, out var message))
+			await foreach (var message in JsonSerializer.DeserializeAsyncEnumerable<BsMessageBase>(reader.AsStream(), JsonSerializerOptions, cancellationToken))
 			{
 				await TriggerEvent(message);
 			}
-
-			reader.AdvanceTo(buffer.Start, buffer.End);
-
-			// Stop reading if there's no more data coming.
-			if (result.IsCompleted)
-			{
-				break;
-			}
 		}
-	}
-
-	bool TryReadLine(ref ReadOnlySequence<byte> buffer, [MaybeNullWhen(false)] out BsMessageBase message)
-	{
-		// Look for a EOL in the buffer.
-		if (buffer.PositionOf(Lf[0]) is { } position)
+		catch (Exception ex)
 		{
-			var line = buffer.Slice(0, position);
-			buffer = buffer.Slice(buffer.GetPosition(1, position));
-
-			try
-			{
-				var utf8JsonReader = new Utf8JsonReader(line);
-				message = JsonSerializer.Deserialize<BsMessageBase>(ref utf8JsonReader, jsonSerializerOptions) ?? throw new Exception("Message was null");
-				return true;
-			}
-			catch (Exception ex)
-			{
-				logger.LogError(ex, "Failed to read wss message");
-			}
+			logger.LogError(ex, "");
 		}
-
-		message = default;
-		return false;
 	}
 
 	private async ValueTask TriggerEvent(BsMessageBase message)
@@ -152,29 +120,29 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 	[JsonPolymorphic(TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
 	[JsonDerivedType(typeof(BsMessageMapUpdate), typeDiscriminator: "MAP_UPDATE")]
 	[JsonDerivedType(typeof(BsMessageMapDelete), typeDiscriminator: "MAP_DELETE")]
-	private class BsMessageBase
+	public class BsMessageBase
 	{
 		public string? type { get; init; }
 	}
 
-	private class BsMessageMapDelete : BsMessageBase
+	public class BsMessageMapDelete : BsMessageBase
 	{
 		[JsonPropertyName("msg")]
 		public required string Map { get; init; }
 	}
 
-	private class BsMessageMapUpdate : BsMessageBase
+	public class BsMessageMapUpdate : BsMessageBase
 	{
 		public required MsgUpdate Msg { get; init; }
 	}
 
-	private readonly struct MsgUpdate
+	public readonly struct MsgUpdate
 	{
 		public required readonly string Id { get; init; }
 		public required readonly BsMessageMsgVersions[] Versions { get; init; }
 	}
 
-	private readonly struct BsMessageMsgVersions
+	public readonly struct BsMessageMsgVersions
 	{
 		public required readonly string State { get; init; }
 	}
