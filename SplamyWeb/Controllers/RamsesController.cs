@@ -105,7 +105,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	}
 
 	private async Task<QueryResult> FindMaps(
-		Func<IQueryable<RamsesSongDto>, IQueryable<RamsesSongDto>> filter,
+		Func<IQueryable<RamsesSong>, IQueryable<RamsesSong>> filter,
 		CancellationToken cancellationToken)
 	{
 		var maps = await ramses.FindMapsByQuery(filter, cancellationToken);

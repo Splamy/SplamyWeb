@@ -10,7 +10,7 @@ namespace SplamyWeb.Db;
 
 [Table("ramses_song")]
 [DebuggerDisplay("{Id} R:@{RamsesVersion} J:{JbmVersion} Maps:{Maps.Count}")]
-public class RamsesSongDto(
+public class RamsesSong(
 	long id,
 	string ramsesVersion,
 	string jbmVersion,
@@ -27,7 +27,7 @@ public class RamsesSongDto(
 	/// <summary>Version of the jbm engine this result was packed with.</summary>
 	public string JbmVersion { get; set; } = jbmVersion;
 
-	public List<RamsesMapDto> Maps { get; set; } = [];
+	public List<RamsesDifficulty> Maps { get; set; } = [];
 	public byte[]? RawMap { get; set; } = rawMap;
 
 	[Column(TypeName = "jsonb")]
@@ -38,21 +38,21 @@ public class RamsesSongDto(
 
 public class RamsesSongLightDto
 {
-	/// <inheritdoc cref="RamsesSongDto.RamsesVersion"/>/>
+	/// <inheritdoc cref="RamsesSong.RamsesVersion"/>/>
 	public required string RamsesVersion { get; set; }
-	/// <inheritdoc cref="RamsesSongDto.JbmVersion"/>/>
+	/// <inheritdoc cref="RamsesSong.JbmVersion"/>/>
 	public required string JbmVersion { get; set; }
-	public List<RamsesMapDto> Maps { get; set; } = [];
+	public List<RamsesDifficulty> Maps { get; set; } = [];
 }
 
 [Table("ramses_map")]
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-public class RamsesMapDto(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float rating, byte[] ratingDetail)
+public class RamsesDifficulty(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float rating, byte[] ratingDetail)
 {
 	// Notes:
 	// Characteristic+Difficulty is not unique!
 	public long RamsesId { get; set; }
-	public RamsesSongDto RamsesEntry { get; set; } = null!;
+	public RamsesSong RamsesEntry { get; set; } = null!;
 	/// <summary>Index in the _difficultyBeatmapSets array</summary>
 	public MapCharacteristic Characteristic { get; set; } = characteristic;
 	/// <summary>Index in the _difficultyBeatmaps array</summary>

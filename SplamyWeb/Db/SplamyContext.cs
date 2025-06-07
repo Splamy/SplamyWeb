@@ -6,8 +6,8 @@ namespace SplamyWeb.Db;
 
 public class SplamyContext(DbContextOptions options, DbContextConfig conf) : DbContext(options)
 {
-	public required DbSet<RamsesSongDto> RamsesSongs { get; set; }
-	public required DbSet<RamsesMapDto> RamsesMaps { get; set; }
+	public required DbSet<RamsesSong> RamsesSongs { get; set; }
+	public required DbSet<RamsesDifficulty> RamsesMaps { get; set; }
 	public required DbSet<StoreEntry> StoreTable { get; set; }
 	public required DbSet<TabStatsPingDto> TabStatsPings { get; set; }
 	public required DbSet<TabStatsFactoryDto> TabStatsFactories { get; set; }
@@ -38,9 +38,13 @@ public class SplamyContext(DbContextOptions options, DbContextConfig conf) : DbC
 
 		// Ramses ***
 
-		modelBuilder.Entity<RamsesMapDto>()
+		modelBuilder.Entity<RamsesSong>()
+			.HasIndex(x => x.Info)
+			.HasMethod("gin");
+
+		modelBuilder.Entity<RamsesDifficulty>()
 			.HasKey(x => new { x.RamsesId, x.Characteristic, x.IndexDifficulty });
-		modelBuilder.Entity<RamsesMapDto>()
+		modelBuilder.Entity<RamsesDifficulty>()
 			.HasOne(map => map.RamsesEntry)
 			.WithMany(entry => entry.Maps)
 			.HasForeignKey(map => map.RamsesId)

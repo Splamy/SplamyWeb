@@ -22,13 +22,13 @@ using static SplamyWeb.Util;
 namespace SplamyWeb.Controllers;
 
 [ApiController]
-[Authorize(AuthenticationSchemes = Util.AuthScheme)]
+[Authorize(AuthenticationSchemes = AuthScheme)]
 [Route("api/[controller]")]
 public class LanguageController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
 	: ControllerBase
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-	private static readonly string languageBasePath = Path.Combine(Util.DataPath, "language");
+	private static readonly string languageBasePath = Path.Combine(DataPath, "language");
 
 	[AllowAnonymous]
 	[HttpGet("project/{project}/languages")]

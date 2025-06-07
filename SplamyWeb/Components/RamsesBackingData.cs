@@ -118,7 +118,7 @@ public partial class RamsesBackingData : BackgroundService
 	}
 
 	public async Task<string[]> FindMapsByQuery(
-		Func<IQueryable<RamsesSongDto>, IQueryable<RamsesSongDto>> filter,
+		Func<IQueryable<RamsesSong>, IQueryable<RamsesSong>> filter,
 		CancellationToken cancellationToken = default)
 	{
 		await using var scope = _scopeFactory.CreateAsyncScope();
@@ -137,7 +137,7 @@ public partial class RamsesBackingData : BackgroundService
 		return keys;
 	}
 
-	private async Task<RamsesSong> GetInternal(ProcessEntry request)
+	private async Task<RamsesSongDto> GetInternal(ProcessEntry request)
 	{
 		await using var scope = _scopeFactory.CreateAsyncScope();
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
@@ -149,10 +149,10 @@ public partial class RamsesBackingData : BackgroundService
 		var entryLight = await query.MapToLight().FirstOrDefaultAsync();
 		if (entryLight != null && entryLight.RamsesVersion == RamsesVersion)
 		{
-			return RamsesMapper.FromDto(entryLight);
+			return RamsesMapper.ToDto(entryLight);
 		}
 
-		RamsesSongDto? entry = null;
+		RamsesSong? entry = null;
 		if (entryLight != null)
 		{
 			entry = await query.FirstOrDefaultAsync();
@@ -184,7 +184,7 @@ public partial class RamsesBackingData : BackgroundService
 			using var infoFileFs = fileProvider.GetInfoFile() ?? throw new Exception("No Info file found");
 			var info = JsonSerializer.Deserialize<JsonDocument>(infoFileFs, jbmMapOptions.JsonSerializerOptions)!;
 
-			entry = new RamsesSongDto(
+			entry = new RamsesSong(
 				request.MapId,
 				RamsesVersion,
 				JbmVersion,
@@ -234,7 +234,7 @@ public partial class RamsesBackingData : BackgroundService
 				var ramsesMap = ResultToJsonObject(score, map);
 				var packedScore = PackScoreObject(ramsesMap);
 
-				return new RamsesMapDto(
+				return new RamsesDifficulty(
 					map.Characteristic,
 					(byte)map.DifficultyIndex,
 					(byte)map.MapInfo.DifficultyRank,
@@ -248,7 +248,7 @@ public partial class RamsesBackingData : BackgroundService
 
 		await db.SaveChangesAsync();
 
-		return RamsesMapper.FromDto(entry);
+		return RamsesMapper.ToDto(entry);
 	}
 
 	public static long? MapKeyToId(string key)
@@ -319,9 +319,9 @@ public partial class RamsesBackingData : BackgroundService
 	}
 
 
-	public static RamsesMap ResultToJsonObject(SongScore score, BSMap map)
+	public static RamsesDifficultyDto ResultToJsonObject(SongScore score, BSMap map)
 	{
-		return new RamsesMap(
+		return new RamsesDifficultyDto(
 			BSMapUtil.DifficultyNumberToName((byte)map.MapInfo.DifficultyRank),
 			BSMapUtil.CharacteristicToName(map.Characteristic),
 			score.Max,
@@ -330,14 +330,14 @@ public partial class RamsesBackingData : BackgroundService
 		);
 	}
 
-	public static byte[] PackScoreObject(RamsesMap map)
+	public static byte[] PackScoreObject(RamsesDifficultyDto map)
 	{
 		return JBMConverter.EncodeObject(map, jbmResultOptions);
 	}
 
-	public static RamsesMap UnpackScoreObject(byte[] data)
+	public static RamsesDifficultyDto UnpackScoreObject(byte[] data)
 	{
-		return JBMConverter.DecodeObject<RamsesMap>(data, jbmResultOptions)!;
+		return JBMConverter.DecodeObject<RamsesDifficultyDto>(data, jbmResultOptions)!;
 	}
 
 	private static OkObjectResult ToResult(object content)
@@ -354,17 +354,17 @@ public partial class RamsesBackingData : BackgroundService
 	}
 }
 
-public class RamsesSong(string ramsesVersion, List<RamsesMap> maps)
+public class RamsesSongDto(string ramsesVersion, List<RamsesDifficultyDto> maps)
 {
 	[JsonPropertyName("ramsesVersion")]
 	public string RamsesVersion { get; set; } = ramsesVersion;
 
 	[JsonPropertyName("maps")]
-	public List<RamsesMap> Maps { get; set; } = maps;
+	public List<RamsesDifficultyDto> Maps { get; set; } = maps;
 }
 
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-public class RamsesMap(string difficulty, string characteristic, float maxDifficulty, float avgDifficulty, float[] graph)
+public class RamsesDifficultyDto(string difficulty, string characteristic, float maxDifficulty, float avgDifficulty, float[] graph)
 {
 	[JsonPropertyName("difficulty")]
 	public string Difficulty { get; set; } = difficulty;
@@ -390,22 +390,22 @@ public class RamsesError(string error)
 [Mapper]
 public static partial class RamsesMapper
 {
-	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
-	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
-	[MapperIgnoreSource(nameof(RamsesSongDto.Info))]
-	[MapperIgnoreSource(nameof(RamsesSongDto.JbmVersion))]
-	[MapperIgnoreSource(nameof(RamsesSongDto.DownloadDate))]
-	public static partial RamsesSong FromDto(this RamsesSongDto song);
-	[MapperIgnoreSource(nameof(RamsesSongDto.JbmVersion))]
-	public static partial RamsesSong FromDto(this RamsesSongLightDto song);
+	[MapperIgnoreSource(nameof(RamsesSong.Id))]
+	[MapperIgnoreSource(nameof(RamsesSong.RawMap))]
+	[MapperIgnoreSource(nameof(RamsesSong.Info))]
+	[MapperIgnoreSource(nameof(RamsesSong.JbmVersion))]
+	[MapperIgnoreSource(nameof(RamsesSong.DownloadDate))]
+	public static partial RamsesSongDto ToDto(this RamsesSong song);
+	[MapperIgnoreSource(nameof(RamsesSong.JbmVersion))]
+	public static partial RamsesSongDto ToDto(this RamsesSongLightDto song);
 
-	public static partial IQueryable<RamsesSongLightDto> MapToLight(this IQueryable<RamsesSongDto> song);
-	[MapperIgnoreSource(nameof(RamsesSongDto.Id))]
-	[MapperIgnoreSource(nameof(RamsesSongDto.RawMap))]
-	[MapperIgnoreSource(nameof(RamsesSongDto.Info))]
-	[MapperIgnoreSource(nameof(RamsesSongDto.DownloadDate))]
-	private static partial RamsesSongLightDto MapToLight(this RamsesSongDto song);
-	public static RamsesMap FromDto(this RamsesMapDto map) => RamsesBackingData.UnpackScoreObject(map.RatingDetail);
+	public static partial IQueryable<RamsesSongLightDto> MapToLight(this IQueryable<RamsesSong> song);
+	[MapperIgnoreSource(nameof(RamsesSong.Id))]
+	[MapperIgnoreSource(nameof(RamsesSong.RawMap))]
+	[MapperIgnoreSource(nameof(RamsesSong.Info))]
+	[MapperIgnoreSource(nameof(RamsesSong.DownloadDate))]
+	private static partial RamsesSongLightDto MapToLight(this RamsesSong song);
+	public static RamsesDifficultyDto ToDto(this RamsesDifficulty map) => RamsesBackingData.UnpackScoreObject(map.RatingDetail);
 }
 
 public class JbmZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProvider

@@ -29,7 +29,7 @@ public class NightlyController(UserManager<LoginData> userManager, SplamyContext
 		"application/gzip"
 	]);
 
-	private readonly string nightlyPath = Path.Combine(Util.DataPath, "nightly");
+	private readonly string nightlyPath = Path.Combine(DataPath, "nightly");
 
 	[AllowAnonymous]
 	[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]
