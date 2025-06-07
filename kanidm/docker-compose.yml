@@ -1,9 +1,0 @@
-version: '3'
-
-services:
-  kanicli:
-    image: kanidm/tools:latest
-    volumes:
-      - ./config/kanidm:/etc/kanidm/config:ro
-      - ./cache/kanidm_tokens:/root/.cache/kanidm_tokens
-    network_mode: host
