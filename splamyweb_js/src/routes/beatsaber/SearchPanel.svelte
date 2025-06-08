@@ -8,6 +8,7 @@
 
 	let query_json_contains = queryExample;
 	let result_json_contains = '';
+	let result_count = 0;
 
 	async function runQueryJson(download: boolean) {
 		let result = '';
@@ -15,19 +16,24 @@
 		try {
 			const mapsResult = await run_query(query_json_contains);
 			console.log(mapsResult);
-			throw_if_error(mapsResult);
-			mapsResult.count = mapsResult.maps.length;
-			result = JSON.stringify(mapsResult, null, '\t');
-			if (download) {
-				run_download(mapsResult.maps);
+			if (is_ok(mapsResult)) {
+				result_count = mapsResult.maps.length;
+				result = JSON.stringify(mapsResult, null, '\t');
+				if (download) {
+					run_download(mapsResult.maps);
+				}
 			}
 		} catch (err) {
 			result = `Error while fetching data: ${err}`;
+			result_count = 0;
 		}
 		result_json_contains = result;
 	}
 
-	async function run_query(query: string): Promise<{ maps: string[] } | { error: string }> {
+	type QueryOk = { maps: string[] };
+	type QueryError = { error: string };
+
+	async function run_query(query: string): Promise<QueryOk | QueryError> {
 		const resp = await fetch(`${BASE_URL}/api/ramses/query/${queryType}`, {
 			credentials: 'include',
 			method: 'POST',
@@ -47,7 +53,6 @@
 
 	async function run_download(maps: string[]) {
 		const mapForm = document.createElement('form');
-		mapForm.target = '_self' || '_blank';
 		mapForm.id = 'downloadBsMaps';
 		mapForm.method = 'POST';
 		mapForm.action = `${BASE_URL}/api/ramses/download`;
@@ -62,11 +67,11 @@
 		mapForm.submit();
 	}
 
-	function throw_if_error(result: { error?: string }) {
-		if (result.error) {
+	function is_ok(result: QueryOk | QueryError): result is QueryOk {
+		if ('error' in result) {
 			throw new Error(result.error);
 		}
-		return result;
+		return true;
 	}
 </script>
 
@@ -94,6 +99,12 @@
 			<Monaco content={result_json_contains} readOnly={true} />
 		</div>
 	</div>
+
+	{#if result_count > 0}
+		<div class="field">
+			<p class="help">Found {result_count} maps</p>
+		</div>
+	{/if}
 </form>
 
 <style lang="scss">

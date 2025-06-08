@@ -86,3 +86,9 @@ export interface BlogItemQuery {
 	post: BlogPostView;
 	recentPosts?: BlogPostShortView[];
 }
+
+export interface RamsesSystemStats {
+	indexedSongs: string;
+	indexedDifficulties: string;
+	totalSize: string;
+}

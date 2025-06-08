@@ -15,6 +15,9 @@ using System.Text.Json;
 using Json.Logic;
 using Json.More;
 using System.Text.Json.Nodes;
+using Humanizer.Bytes;
+using Humanizer;
+using System.Globalization;
 
 namespace SplamyWeb.Controllers;
 
@@ -166,14 +169,27 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	public async Task<RamsesDbMetadata> GetDbMetadata(CancellationToken cancellationToken)
 	{
 		var indexedSongs = await db.RamsesSongs.CountAsync(cancellationToken);
-		var indexedMaps = await db.RamsesMaps.CountAsync(cancellationToken);
+		var indexedDifficulties = await db.RamsesMaps.CountAsync(cancellationToken);
 		var totalSize = await db.RamsesSongs.Where(x => x.RawMap != null).SumAsync(x => x.RawMap!.Length, cancellationToken);
 
 		return new RamsesDbMetadata
 		{
 			IndexedSongs = indexedSongs,
-			IndexedMaps = indexedMaps,
+			IndexedDifficulties = indexedDifficulties,
 			TotalSize = totalSize,
+		};
+	}
+
+	[HttpGet("system/display")]
+	public async Task<object> GetDbMetadataDisplay(CancellationToken cancellationToken)
+	{
+		var meta = await GetDbMetadata(cancellationToken);
+
+		return new
+		{
+			IndexedSongs = TabController.FormatMetric((uint)meta.IndexedSongs),
+			IndexedDifficulties = TabController.FormatMetric((uint)meta.IndexedDifficulties),
+			TotalSize = meta.TotalSize.Bytes().Humanize("0.0", CultureInfo.InvariantCulture),
 		};
 	}
 }
@@ -181,7 +197,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 public class RamsesDbMetadata
 {
 	public int IndexedSongs { get; set; }
-	public int IndexedMaps { get; set; }
+	public int IndexedDifficulties { get; set; }
 	public long TotalSize { get; set; }
 }
 
