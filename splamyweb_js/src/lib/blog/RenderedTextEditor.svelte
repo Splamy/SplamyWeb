@@ -21,7 +21,7 @@
 
 	async function init() {
 		try {
-			connection = new signalR.HubConnectionBuilder().withUrl(`${BASE_URL}/markdown`).build();
+			connection = new signalR.HubConnectionBuilder().withUrl(`${BASE_URL}/api/markdown`).build();
 			await connection.start();
 		} catch (err) {
 			console.warn('Failed to establish connection: ', err?.message);

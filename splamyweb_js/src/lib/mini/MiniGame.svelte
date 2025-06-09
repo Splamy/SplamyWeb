@@ -173,7 +173,7 @@
 		isOnline = true;
 		if (connection != null) return connection.connectionId;
 
-		connection = new HubConnectionBuilder().withUrl(`${BASE_URL}/minigame`).build();
+		connection = new HubConnectionBuilder().withUrl(`${BASE_URL}/api/minigame`).build();
 
 		connection.on('InitState', function (init: InitState) {
 			//console.log('InitState', JSON.stringify(init));

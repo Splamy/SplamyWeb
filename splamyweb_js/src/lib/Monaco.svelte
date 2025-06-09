@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type * as monaco from 'monaco-editor';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import type { Writable } from "svelte/store";
 
 	//import * as Monaco from 'monaco-editor';
@@ -11,6 +11,7 @@
 	//import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
 	export let content : string;
+	export let language: string = 'json';
 	export let readOnly: boolean = false;
 
 	let _text = content;
@@ -51,7 +52,7 @@
 		Monaco = await import('monaco-editor');
 		editor = Monaco.editor.create(divEl, <monaco.editor.IEditorOptions>{
 			value: content,
-			language: 'json',
+			language: language,
 			theme: 'vs-dark',
 			readOnly: readOnly,
 			minimap: { enabled: false },
@@ -80,10 +81,12 @@
 		// 	}
 		// };
 		relayout();
-		console.log(editor);
-		return () => {
+	});
+
+	onDestroy(() => {
+		if (editor) {
 			editor.dispose();
-		};
+		}
 	});
 </script>
 

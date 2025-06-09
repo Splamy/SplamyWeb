@@ -3,9 +3,9 @@
 	import SearchPanel from './SearchPanel.svelte';
 
 	export let data: PageData = {
-		indexedSongs: 0,
-		indexedDifficulties: 0,
-		totalSize: 0
+		indexedSongs: "0",
+		indexedDifficulties: "0",
+		totalSize: "0",
 	};
 </script>
 
@@ -17,24 +17,23 @@
 
 <article class="section readblock">
 	<div class="tile is-ancestor is-vertical">
-
 		<article class="tile is-child notification is-primary">
 			<div class="level">
 				<div class="level-item has-text-centered">
 					<div>
-						<p class="heading">Songs</p>
+						<p class="heading">Indexed Songs</p>
 						<p class="title">{data.indexedSongs}</p>
 					</div>
 				</div>
 				<div class="level-item has-text-centered">
 					<div>
-						<p class="heading">Difficulties</p>
+						<p class="heading">Parsed Difficulties</p>
 						<p class="title">{data.indexedDifficulties}</p>
 					</div>
 				</div>
 				<div class="level-item has-text-centered">
 					<div>
-						<p class="heading">Data Size</p>
+						<p class="heading">Compressed Data Size</p>
 						<p class="title">{data.totalSize}</p>
 					</div>
 				</div>
@@ -53,6 +52,13 @@
 				queryTitle="Query by json expression"
 				queryType="logic"
 				queryExample={'{"==" : [ { "var" : "_songName" }, "Halloween Spooky Mash Up" ]}'}
+			/>
+		</div>
+		<div class="tile is-parent">
+			<SearchPanel
+				queryTitle="Search by pattern"
+				queryType="pattern"
+				queryExample={'rdl bdl//\n_ _ rdr bdr//\n/rul/_ bul\n/_ _ _ bur/_ _ rur'}
 			/>
 		</div>
 	</div>

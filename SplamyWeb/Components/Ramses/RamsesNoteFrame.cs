@@ -66,46 +66,43 @@ public readonly record struct RamsesNoteFrame(ImmutableArray<RamsesNote> Blocks)
 		var blocks = new List<RamsesNote>();
 		for (int i = 0; i < lines.Length; i++)
 		{
-			var cols = lines[i].Split(' ');
+			var cols = lines[i].Replace("_", " _ ").Split([' '], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
 			for (int j = 0; j < cols.Length; j++)
 			{
 				var pos = RamsesNote.PosFromLoc(j, i);
+				var col = cols[j];
 
-				if (cols[j] is [char c])
+				if (col is "_") continue;
+
+				var type = col switch
 				{
-					blocks.Add(c switch
-					{
-						'*' => new RamsesNote(RamsesNoteType.Bomb, pos),
-					});
-				}
-				else if (cols[j] is [char c1, .. string c2])
-				{
-					var color = c1 switch
-					{
-						'r' => RamsesNoteType.RedUp,
-						'b' => RamsesNoteType.BlueUp,
-						_ => throw new ArgumentException("Invalid column character: " + c1)
-					};
-					var direction = c2 switch
-					{
-						"u" or "up" => RamsesNoteType.RedUp,
-						"d" or "do" => RamsesNoteType.RedDown,
-						"l" or "le" => RamsesNoteType.RedLeft,
-						"r" or "ri" => RamsesNoteType.RedRight,
-						"ul" or "lu" => RamsesNoteType.RedUpLeft,
-						"ur" or "ru" => RamsesNoteType.RedUpRight,
-						"dl" or "ld" => RamsesNoteType.RedDownLeft,
-						"dr" or "rd" => RamsesNoteType.RedDownRight,
-						"x" => RamsesNoteType.RedDot,
-						_ => throw new ArgumentException("Invalid row character: " + c2)
-					};
+					"ru" => RamsesNoteType.RedUp,
+					"rd" => RamsesNoteType.RedDown,
+					"rl" => RamsesNoteType.RedLeft,
+					"rr" => RamsesNoteType.RedRight,
+					"rul" or "rlu" => RamsesNoteType.RedUpLeft,
+					"rur" or "rru" => RamsesNoteType.RedUpRight,
+					"rdl" or "rld" => RamsesNoteType.RedDownLeft,
+					"rdr" or "rrd" => RamsesNoteType.RedDownRight,
+					"rx" => RamsesNoteType.RedDot,
 
-					var final = (RamsesNoteType)((int)direction + (color is RamsesNoteType.RedUp ? 0 : 9));
+					"bu" => RamsesNoteType.BlueUp,
+					"bd" => RamsesNoteType.BlueDown,
+					"bl" => RamsesNoteType.BlueLeft,
+					"br" => RamsesNoteType.BlueRight,
+					"bul" or "blu" => RamsesNoteType.BlueUpLeft,
+					"bur" or "bru" => RamsesNoteType.BlueUpRight,
+					"bdl" or "bld" => RamsesNoteType.BlueDownLeft,
+					"bdr" or "brd" => RamsesNoteType.BlueDownRight,
+					"bx" => RamsesNoteType.BlueDot,
 
-					blocks.Add(new RamsesNote(final, pos));
-				}
+					"*" => RamsesNoteType.Bomb,
 
+					_ => throw new ArgumentException("Invalid row element: " + col)
+				};
+
+				blocks.Add(new RamsesNote(type, pos));
 			}
 		}
 

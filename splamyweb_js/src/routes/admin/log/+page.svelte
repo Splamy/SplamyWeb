@@ -17,7 +17,7 @@
 	async function init() {
 		if (!browser || building) return;
 
-		connection = new HubConnectionBuilder().withUrl(`${BASE_URL}/livelog`).build();
+		connection = new HubConnectionBuilder().withUrl(`${BASE_URL}/api/livelog`).build();
 
 		connection.on('Log', function (ev: LogEvent) {
 			addEvent(ev);

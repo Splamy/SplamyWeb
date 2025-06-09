@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { BASE_URL } from '$lib/util';
+	import { CurrentUser } from '$lib/user';
 	import Monaco from '$lib/Monaco.svelte';
 
 	export let queryTitle: string;
 	export let queryType: string;
 	export let queryExample: string = '';
+	export let language: string = 'json';
 
 	let query_json_contains = queryExample;
 	let result_json_contains = '';
@@ -14,7 +16,19 @@
 		let result = '';
 
 		try {
-			const mapsResult = await run_query(query_json_contains);
+			let jsonBody: string;
+			if (queryType == 'pattern') {
+				query_json_contains = query_json_contains.trim();
+				if (!query_json_contains.startsWith('["')) {
+					jsonBody = JSON.stringify(query_json_contains.split('\n'));
+				} else {
+					jsonBody = query_json_contains;
+				}
+			} else {
+				jsonBody = query_json_contains;
+			}
+
+			const mapsResult = await run_query(jsonBody);
 			console.log(mapsResult);
 			if (is_ok(mapsResult)) {
 				result_count = mapsResult.maps.length;
@@ -79,7 +93,7 @@
 	<div class="field">
 		<label class="label" for="fld_version">{queryTitle}</label>
 		<div class="control" style="min-height: 10em; display: flex;">
-			<Monaco bind:content={query_json_contains} />
+			<Monaco bind:content={query_json_contains} language="json" />
 		</div>
 	</div>
 
@@ -88,15 +102,17 @@
 			<button type="submit" class="button is-primary" on:click={() => runQueryJson(false)}
 				>Query</button
 			>
-			<button type="submit" class="button is-primary" on:click={() => runQueryJson(true)}
-				>Download</button
-			>
+			{#if $CurrentUser != null}
+				<button type="submit" class="button is-primary" on:click={() => runQueryJson(true)}
+					>Download</button
+				>
+			{/if}
 		</div>
 	</div>
 
 	<div class="field is-hidden">
 		<div class="control" style="min-height: 10em; display: flex;">
-			<Monaco content={result_json_contains} readOnly={true} />
+			<Monaco content={result_json_contains} readOnly={true} {language} />
 		</div>
 	</div>
 

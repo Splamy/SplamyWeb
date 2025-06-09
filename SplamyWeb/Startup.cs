@@ -157,6 +157,9 @@ public class Startup(IConfiguration configuration)
 
 		services.AddHostedService<RamsesService>();
 		services.AddHostedService(x => x.GetRequiredService<RamsesBackingData>());
+
+		services.AddSpaStaticFiles(options =>
+			options.RootPath = "wwwroot");
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -182,11 +185,10 @@ public class Startup(IConfiguration configuration)
 
 		app.UseResponseCompression();
 
-		app.UseFileServer(new FileServerOptions
+		if (!env.IsDevelopment())
 		{
-			RedirectToAppendTrailingSlash = false,
-		});
-
+			app.UseSpaStaticFiles();
+		}
 		app.UseRouting();
 
 		app.UseAuthentication();
@@ -195,10 +197,26 @@ public class Startup(IConfiguration configuration)
 		app.UseEndpoints(endpoints =>
 		{
 			endpoints.MapControllers();
-			endpoints.MapHub<LogNotifier>("/livelog");
-			endpoints.MapHub<MarkdownService>("/markdown");
-			endpoints.MapHub<Minigame>("/minigame");
-			endpoints.MapFallbackToController("Index", "Fallback");
+			endpoints.MapHub<LogNotifier>("/api/livelog");
+			endpoints.MapHub<MarkdownService>("/api/markdown");
+			endpoints.MapHub<Minigame>("api/minigame");
 		});
+
+		app.UseWhen(
+			context => !context.Request.Path.StartsWithSegments("/api"),
+			then => then.UseSpa(spa =>
+			{
+				const int port = 3000;
+
+				spa.Options.SourcePath = "../splamyweb_js";
+				spa.Options.DevServerPort = port;
+				spa.Options.PackageManagerCommand = "bun";
+
+				if (env.IsDevelopment())
+				{
+					spa.UseProxyToSpaDevelopmentServer($"http://localhost:{port}");
+				}
+			}));
+
 	}
 }

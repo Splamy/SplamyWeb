@@ -67,7 +67,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 
 	[HttpPost("q/json")]
 	[HttpPost("query/json")]
-	[Authorize(AuthenticationSchemes = AuthScheme)]
+	//[Authorize(AuthenticationSchemes = AuthScheme)]
 	[Consumes(MediaTypeNames.Application.Json)]
 	public async Task<QueryResult> GetMatchJsonContainsZip(
 		[FromBody] JsonElement json,
@@ -123,10 +123,12 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 
 	[HttpPost("d")]
 	[HttpPost("download")]
+	[Authorize(AuthenticationSchemes = AuthScheme)]
 	public Task DownloadMapsFromBody([FromForm] string keys, CancellationToken cancellationToken) => DownloadMaps(keys, cancellationToken);
 
 	[HttpGet("d/{keys}")]
 	[HttpGet("download/{keys}")]
+	[Authorize(AuthenticationSchemes = AuthScheme)]
 	public async Task DownloadMaps(
 		string keys,
 		CancellationToken cancellationToken)
@@ -204,12 +206,21 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 		return searchString;
 	}
 
-	[HttpGet("pattern/search")]
-	[Authorize(AuthenticationSchemes = AuthScheme)]
-	public async Task<QueryResult> PatternSearch([FromBody] string[] matrix, CancellationToken cancellationToken)
+	[HttpPost("q/pattern")]
+	[HttpPost("query/pattern")]
+	//[Authorize(AuthenticationSchemes = AuthScheme)]
+	public async Task<ActionResult<QueryResult>> PatternSearch([FromBody] string[] matrix, CancellationToken cancellationToken)
 	{
-		var frames = matrix.Select(RamsesNoteFrame.ParseRadableFrame).ToArray();
-		var searchString = string.Join("<->", frames.Select(f => f.ToWord()));
+		string searchString;
+		try
+		{
+			var frames = matrix.Select(RamsesNoteFrame.ParseRadableFrame);
+			searchString = string.Join("<->", frames.Select(f => f.ToWord()));
+		}
+		catch (Exception ex)
+		{
+			return BadRequest("Invalid pattern format: " + ex.Message);
+		}
 
 		var maps = await db.RamsesMaps
 			.Where(x => x.SearchVector != null && x.SearchVector.Matches(EF.Functions.ToTsQuery("simple", searchString)))
@@ -217,7 +228,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 			.Distinct()
 			.ToListAsync(cancellationToken);
 
-		return new() { Maps = [.. maps.Select(RamsesBackingData.MapIdToKey)] };
+		return new QueryResult() { Maps = [.. maps.Select(RamsesBackingData.MapIdToKey)] };
 	}
 
 	[HttpPost("updateindex")]
