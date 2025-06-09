@@ -42,13 +42,20 @@ public class SplamyContext(DbContextOptions options, DbContextConfig conf) : DbC
 			.HasIndex(x => x.Info)
 			.HasMethod("gin");
 
-		modelBuilder.Entity<RamsesDifficulty>()
-			.HasKey(x => new { x.RamsesId, x.Characteristic, x.IndexDifficulty });
-		modelBuilder.Entity<RamsesDifficulty>()
-			.HasOne(map => map.RamsesEntry)
-			.WithMany(entry => entry.Maps)
-			.HasForeignKey(map => map.RamsesId)
-			.HasPrincipalKey(entry => entry.Id);
+		modelBuilder.Entity<RamsesDifficulty>(entity =>
+		{
+			entity.HasKey(x => new { x.RamsesId, x.Characteristic, x.IndexDifficulty });
+
+			entity
+				.HasOne(map => map.RamsesEntry)
+				.WithMany(entry => entry.Maps)
+				.HasForeignKey(map => map.RamsesId)
+				.HasPrincipalKey(entry => entry.Id);
+
+			entity
+				.HasIndex(x => x.SearchVector)
+				.HasMethod("gin");
+		});
 
 		// *** Tab Stats
 

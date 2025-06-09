@@ -15,7 +15,7 @@ public class SpamCheckTests
 		var spamChecker = new SpamBackingData(Substitute.For<ITimerService>(), TimeProvider.System);
 
 		const int AllowedCallsBeforeBlock = 1000;
-		var ip = new IPAddress([ 192, 0, 0, 1 ]);
+		var ip = new IPAddress([192, 0, 0, 1]);
 
 		for (int i = 0; i < AllowedCallsBeforeBlock; i++)
 		{

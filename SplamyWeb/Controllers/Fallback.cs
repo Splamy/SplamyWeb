@@ -31,7 +31,7 @@ namespace SplamyWeb.Controllers
 					targetPath = targetPath[appEnvironment.WebRootPath.Length..];
 					if (targetPath.EndsWith(IndexEndStrip, StringComparison.OrdinalIgnoreCase))
 						targetPath = targetPath[..^IndexEndStrip.Length];
-					targetPath = targetPath.TrimEnd([ '\\', '/' ]);
+					targetPath = targetPath.TrimEnd(['\\', '/']);
 					return RedirectPermanent(targetPath.ToString().Replace('\\', '/') + Request.QueryString);
 				}
 			}

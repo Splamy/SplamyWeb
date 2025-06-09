@@ -1,3 +1,4 @@
+using NpgsqlTypes;
 using RateMapSeveritySaber;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -47,7 +48,7 @@ public class RamsesSongLightDto
 
 [Table("ramses_map")]
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-public class RamsesDifficulty(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float rating, byte[] ratingDetail)
+public class RamsesDifficulty(MapCharacteristic characteristic, byte indexDifficulty, byte difficulty, float rating, byte[] ratingDetail, NpgsqlTsVector? searchVector, int searchIndexVersion)
 {
 	// Notes:
 	// Characteristic+Difficulty is not unique!
@@ -59,10 +60,13 @@ public class RamsesDifficulty(MapCharacteristic characteristic, byte indexDiffic
 	public byte IndexDifficulty { get; set; } = indexDifficulty;
 	/// <summary>The indicated Difficulty by BeatSaber value</summary>
 	public byte Difficulty { get; set; } = difficulty;
-	/// <summary>The calculated rating result from RaMSeS in a compressed format</summary>
+	/// <summary>Calculated difficulty</summary>
 	public float Rating { get; set; } = rating;
 	/// <summary>The calculated rating result from RaMSeS in a compressed format</summary>
 	public byte[] RatingDetail { get; set; } = ratingDetail;
+
+	public NpgsqlTsVector? SearchVector { get; set; } = searchVector;
+	public int SearchIndexVersion { get; set; } = searchIndexVersion;
 
 	private string GetDebuggerDisplay() => $"{RamsesId:X}({RamsesId})|{Characteristic}[{IndexDifficulty}] Diff:{Difficulty} Rate:{Rating}";
 }

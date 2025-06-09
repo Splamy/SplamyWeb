@@ -29,7 +29,7 @@ public static class Program
 			//await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions
 			//	.GetInfrastructure(context)
 			//	.GetRequiredService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>()
-			//	.MigrateAsync("20211203181355_AddBlog");
+			//	.MigrateAsync("20250607231335_AddGinIndex");
 
 			var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToArray();
 

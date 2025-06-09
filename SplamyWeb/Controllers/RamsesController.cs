@@ -1,23 +1,25 @@
-using Microsoft.AspNetCore.Mvc;
-using SplamyWeb.Components;
-using System.IO.Compression;
-using System.IO;
-using System.Net.Mime;
-using System.Threading.Tasks;
-using System.Formats.Tar;
-using Microsoft.AspNetCore.Authorization;
-using static SplamyWeb.Util;
-using System.Threading;
-using SplamyWeb.Db;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
+using Humanizer;
 using Json.Logic;
 using Json.More;
-using System.Text.Json.Nodes;
-using Humanizer.Bytes;
-using Humanizer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using RateMapSeveritySaber;
+using SplamyWeb.Components;
+using SplamyWeb.Components.Ramses;
+using SplamyWeb.Db;
+using System.Formats.Tar;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net.Mime;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
+using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers;
 
@@ -189,9 +191,98 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 		{
 			IndexedSongs = TabController.FormatMetric((uint)meta.IndexedSongs),
 			IndexedDifficulties = TabController.FormatMetric((uint)meta.IndexedDifficulties),
-			TotalSize = meta.TotalSize.Bytes().Humanize("0.0", CultureInfo.InvariantCulture),
+			TotalSize = meta.TotalSize.Bytes().Humanize("#.#", CultureInfo.InvariantCulture),
 		};
 	}
+
+	[HttpGet("pattern/parse")]
+	[Authorize(AuthenticationSchemes = AuthScheme)]
+	public string GetPatternSentence([FromBody] string[] matrix, CancellationToken cancellationToken)
+	{
+		var frames = matrix.Select(RamsesNoteFrame.ParseRadableFrame).ToArray();
+		var searchString = string.Join(" ", frames.Select(f => f.ToWord()));
+		return searchString;
+	}
+
+	[HttpGet("pattern/search")]
+	[Authorize(AuthenticationSchemes = AuthScheme)]
+	public async Task<QueryResult> PatternSearch([FromBody] string[] matrix, CancellationToken cancellationToken)
+	{
+		var frames = matrix.Select(RamsesNoteFrame.ParseRadableFrame).ToArray();
+		var searchString = string.Join("<->", frames.Select(f => f.ToWord()));
+
+		var maps = await db.RamsesMaps
+			.Where(x => x.SearchVector != null && x.SearchVector.Matches(EF.Functions.ToTsQuery("simple", searchString)))
+			.Select(x => x.RamsesId)
+			.Distinct()
+			.ToListAsync(cancellationToken);
+
+		return new() { Maps = [.. maps.Select(RamsesBackingData.MapIdToKey)] };
+	}
+
+	[HttpPost("updateindex")]
+	[Authorize(AuthenticationSchemes = AuthScheme)]
+	public async Task<IActionResult> UpdateIndex([FromServices] ILogger<RamsesController> logger)
+	{
+		Dictionary<long, List<int>> invertedLookup = [];
+
+		int cnt = 0;
+		bool hasMore = false;
+
+		while (true)
+		{
+			try
+			{
+				hasMore = false;
+				var batch = await db.RamsesSongs
+					.Where(x => x.RawMap != null)
+					.Where(x => x.Maps.Any(m => m.SearchIndexVersion != RamsesBackingData.RamsesQueryVersion))
+					.Include(x => x.Maps)
+					.Take(10)
+					.ToListAsync();
+				hasMore = batch.Count > 0;
+
+				foreach (var entry in batch)
+				{
+					var provider = RamsesBackingData.UnpackMap(entry.RawMap!);
+					var mapData = BSMapIO.Read(provider);
+
+					foreach (var diff in entry.Maps)
+					{
+						var dataDiff = mapData.FirstOrDefault(x => x.Characteristic == diff.Characteristic && x.DifficultyIndex == diff.IndexDifficulty);
+						if (dataDiff is null)
+							continue;
+
+
+						var vector = await RamsesBackingData.ToRamsesVector(db, dataDiff);
+						diff.SearchVector = vector;
+						diff.SearchIndexVersion = RamsesBackingData.RamsesQueryVersion;
+					}
+
+					cnt++;
+					logger.LogInformation("Processed {Count} maps", cnt);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.LogInformation(ex, "fail");
+				return Problem();
+			}
+			finally
+			{
+				logger.LogInformation("Saving");
+				await db.SaveChangesAsync();
+				db.ChangeTracker.Clear();
+				logger.LogInformation("Done");
+			}
+
+			if (!hasMore)
+				break;
+		}
+
+		return Ok();
+	}
+
 }
 
 public class RamsesDbMetadata

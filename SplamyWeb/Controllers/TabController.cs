@@ -64,7 +64,7 @@ public class TabController(TabBackingData tab, SpamBackingData spam) : Controlle
 			data[i] = data[i] is (byte)'\r' or (byte)'\n' ? (byte)' ' : data[i];
 	}
 
-	public static readonly ImmutableArray<string> ImpMod = [ "", "K", "M", "G" ];
+	public static readonly ImmutableArray<string> ImpMod = ["", "K", "M", "G"];
 	public static string FormatMetric(uint number)
 	{
 		int pow = number > 0 ? (int)Math.Log10(number) : 0;

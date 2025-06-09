@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SplamyWeb.Components;
 using SplamyWeb.Db;
 using System.Collections.Frozen;
 using System.Collections.Immutable;

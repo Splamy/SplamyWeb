@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NpgsqlTypes;
 using RateMapSeveritySaber;
 using Riok.Mapperly.Abstractions;
+using SplamyWeb.Components.Ramses;
 using SplamyWeb.Db;
 using System.Buffers;
 using System.Diagnostics;
@@ -44,6 +46,7 @@ public partial class RamsesBackingData : BackgroundService
 		UseJbm = false,
 		Compress = true,
 	};
+	public const int RamsesQueryVersion = 2;
 
 	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory)
 	{
@@ -216,32 +219,36 @@ public partial class RamsesBackingData : BackgroundService
 		var swProcess = Stopwatch.StartNew();
 		var maps = BSMapIO.Read(fileProvider);
 
-		entry.Maps = maps
-			.Where(map => map.Characteristic == MapCharacteristic.Standard)
-			.Select(map =>
+		entry.Maps = [];
+
+		foreach (var map in maps
+			.Where(map => map.Characteristic == MapCharacteristic.Standard))
+		{
+			SongScore score;
+			try
 			{
-				SongScore score;
-				try
-				{
-					score = RateMapSeveritySaber.Analyzer.AnalyzeMap(map);
-				}
-				catch (Exception ex)
-				{
-					Log.Warn(ex, "Failed to analyze map '{0}'", request.Key);
-					score = new SongScore(-1, -1, []);
-				}
+				score = RateMapSeveritySaber.Analyzer.AnalyzeMap(map);
+			}
+			catch (Exception ex)
+			{
+				Log.Warn(ex, "Failed to analyze map '{0}'", request.Key);
+				score = new SongScore(-1, -1, []);
+			}
 
-				var ramsesMap = ResultToJsonObject(score, map);
-				var packedScore = PackScoreObject(ramsesMap);
+			var ramsesMap = ResultToJsonObject(score, map);
+			var packedScore = PackScoreObject(ramsesMap);
+			var searchVector = await ToRamsesVector(db, map);
 
-				return new RamsesDifficulty(
-					map.Characteristic,
-					(byte)map.DifficultyIndex,
-					(byte)map.MapInfo.DifficultyRank,
-					score.Average,
-					packedScore);
-			})
-			.ToList();
+			entry.Maps.Add(new RamsesDifficulty(
+				map.Characteristic,
+				(byte)map.DifficultyIndex,
+				(byte)map.MapInfo.DifficultyRank,
+				score.Average,
+				packedScore,
+				searchVector,
+				RamsesQueryVersion));
+		}
+
 		timeProcess = swProcess.Elapsed;
 
 		Log.Info("RaMSeS Key:{0} Download:{1} (Un)Pack:{2} Process:{3} Cachesize:{4}", request.Key, timeDownload, timePackOrUnpack, timeProcess, entry.RawMap?.Length);
@@ -305,7 +312,7 @@ public partial class RamsesBackingData : BackgroundService
 		return output.ToArray();
 	}
 
-	private static BsMapProvider UnpackMap(byte[] data)
+	public static BsMapProvider UnpackMap(byte[] data)
 	{
 		var output = new MemoryStream();
 		using (var input = new MemoryStream(data))
@@ -351,6 +358,46 @@ public partial class RamsesBackingData : BackgroundService
 		{
 			StatusCode = (int)errorCode,
 		};
+	}
+
+	public static string? ToRamsesVectorString(BSMap map)
+	{
+		if (map.Data?.Notes is null)
+		{
+			return null;
+		}
+
+		try
+		{
+			var frames = map.Data.Notes
+				.GroupBy(x => Math.Round(x.Time, 3))
+				.OrderBy(x => x.Key)
+				.Select(x => new RamsesNoteFrame([.. x.Select(RamsesNote.TryFrom).Where(i => i.HasValue).Select(i => i!.Value).OrderBy(i => i.Pos)]))
+				.Where(x => x.Blocks.Length is > 0 and <= 12)
+				.Select(x => x.ToWord())
+				.ToList()
+				;
+
+			return string.Join(" ", frames);
+		}
+		catch (Exception ex)
+		{
+			Log.Error(ex, "Failed to convert map to Ramses vector string");
+			return null;
+		}
+	}
+
+	public static async Task<NpgsqlTsVector?> ToRamsesVector(SplamyContext db, BSMap map)
+	{
+		var vectorString = ToRamsesVectorString(map);
+		if (vectorString is null)
+		{
+			return null;
+		}
+		var vector = await db.Database
+			.SqlQuery<NpgsqlTsVector>($"SELECT to_tsvector('simple', {vectorString}) as \"Value\"")
+			.FirstAsync();
+		return vector;
 	}
 }
 
