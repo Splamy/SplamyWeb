@@ -12,6 +12,13 @@
 	let result_json_contains = '';
 	let result_count = 0;
 
+	function handleSubmit(event: Event) {
+		event.preventDefault();
+		const download = (event.target as HTMLElement).dataset.download === 'true';
+		runQueryJson(download);
+		return false;
+	}
+
 	async function runQueryJson(download: boolean) {
 		let result = '';
 
@@ -99,12 +106,13 @@
 
 	<div class="field">
 		<div class="control">
-			<button type="submit" class="button is-primary" on:click={() => runQueryJson(false)}
-				>Query</button
-			>
+			<button type="submit" class="button is-primary" on:click={handleSubmit}>Query</button>
 			{#if $CurrentUser != null}
-				<button type="submit" class="button is-primary" on:click={() => runQueryJson(true)}
-					>Download</button
+				<button
+					type="submit"
+					class="button is-primary"
+					data-download="true"
+					on:click={handleSubmit}>Download</button
 				>
 			{/if}
 		</div>
