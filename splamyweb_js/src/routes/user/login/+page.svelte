@@ -18,7 +18,7 @@
 	{/each}
 
 	<form
-		action="{BASE_URL}/account/login"
+		action="{BASE_URL}/api/account/login"
 		method="POST"
 		class="box"
 		use:enhance={{

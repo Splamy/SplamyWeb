@@ -158,8 +158,7 @@ public class Startup(IConfiguration configuration)
 		services.AddHostedService<RamsesService>();
 		services.AddHostedService(x => x.GetRequiredService<RamsesBackingData>());
 
-		services.AddSpaStaticFiles(options =>
-			options.RootPath = "wwwroot");
+		services.AddSpaStaticFiles(options => options.RootPath = "wwwroot");
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -187,6 +186,21 @@ public class Startup(IConfiguration configuration)
 
 		if (!env.IsDevelopment())
 		{
+			app.Use(async (context, next) =>
+			{
+				var pathStr = context.Request.Path.Value;
+				if (pathStr is not (null or "/") && !context.Request.Path.StartsWithSegments("/api"))
+				{
+					pathStr = pathStr.TrimEnd('/');
+					var lastSegment = pathStr.Substring(pathStr.LastIndexOf('/') + 1);
+					if (!lastSegment.Contains('.'))
+					{
+						context.Request.Path = pathStr + ".html";
+					}
+				}
+
+				await next.Invoke();
+			});
 			app.UseSpaStaticFiles();
 		}
 		app.UseRouting();

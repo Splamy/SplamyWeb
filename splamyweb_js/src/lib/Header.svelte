@@ -54,7 +54,7 @@
 		</div>
 		<a class="navl navuser" href="/user/profile">User: {$CurrentUser.name}</a>
 		<form
-			action="{BASE_URL}/account/logout"
+			action="{BASE_URL}/api/account/logout"
 			method="POST"
 			use:enhance={{
 				result: () => {

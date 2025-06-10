@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace SplamyWeb.Controllers;
 
 [Authorize]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class AccountController(UserManager<LoginData> userManager, SignInManager<LoginData> signInManager)
 	: ControllerBase
 {

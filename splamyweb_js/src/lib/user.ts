@@ -26,7 +26,7 @@ export function applyLoginResult(result: LoginResult | null) {
 export async function fetchCurrentUser() {
 	if (building) return;
 	try {
-		const res = await fetch(`${BASE_URL}/account/whoami`, {
+		const res = await fetch(`${BASE_URL}/api/account/whoami`, {
 			credentials: "include",
 		});
 		const json = await res.json() as LoginResult;
