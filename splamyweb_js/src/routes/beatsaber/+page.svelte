@@ -1,12 +1,16 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import SearchPanel from './SearchPanel.svelte';
+	import VisualPatternSearcher from './VisualPatternSearcher.svelte';
 
 	export let data: PageData = {
-		indexedSongs: "0",
-		indexedDifficulties: "0",
-		totalSize: "0",
+		indexedSongs: '0',
+		indexedDifficulties: '0',
+		totalSize: '0'
 	};
+
+	const examplePattern = 'rdl bdl//\n_ _ rdr bdr//\n/rul/_ bul\n/_ _ _ bur/_ _ rur';
+	let search_patter = examplePattern;
 </script>
 
 <svelte:head>
@@ -44,23 +48,37 @@
 			<SearchPanel
 				queryTitle="Query by contained json"
 				queryType="json"
-				queryExample={'{\n\t"_songName": "Halloween Spooky Mash Up"\n}'}
+				query={'{\n\t"_songName": "Halloween Spooky Mash Up"\n}'}
 			/>
 		</div>
 		<div class="tile is-parent">
 			<SearchPanel
 				queryTitle="Query by json expression"
 				queryType="logic"
-				queryExample={'{"==" : [ { "var" : "_songName" }, "Halloween Spooky Mash Up" ]}'}
+				query={'{"==" : [ { "var" : "_songName" }, "Halloween Spooky Mash Up" ]}'}
 			/>
 		</div>
 		<div class="tile is-parent">
 			<SearchPanel
 				queryTitle="Search by pattern"
 				queryType="pattern"
-				queryExample={'rdl bdl//\n_ _ rdr bdr//\n/rul/_ bul\n/_ _ _ bur/_ _ rur'}
+				language=""
+				query={examplePattern}
 			/>
 		</div>
+
+		<div class="tile is-parent">
+			<SearchPanel
+				queryTitle="Search by pattern with visual editor"
+				queryType="pattern"
+				language=""
+				bind:query={search_patter}
+				readOnly={true}
+			>
+				<VisualPatternSearcher bind:pattern={search_patter} />
+			</SearchPanel>
+		</div>
+		<div class="tile is-parent"></div>
 	</div>
 </article>
 

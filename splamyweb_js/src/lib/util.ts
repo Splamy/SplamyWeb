@@ -1,6 +1,6 @@
 const BUILD_MODE = import.meta.env.MODE;
 const IS_PRODUCTION = BUILD_MODE === 'production';
-export const BASE_URL = IS_PRODUCTION ? "" : 'http://localhost:44422';
+export const BASE_URL = IS_PRODUCTION ? "" : "http://127.0.0.1:44422";
 type FuncTyp<T extends unknown[]> = (...args: T) => void;
 interface DebounceOpt {
 	/**

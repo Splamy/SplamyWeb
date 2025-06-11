@@ -5,10 +5,10 @@
 
 	export let queryTitle: string;
 	export let queryType: string;
-	export let queryExample: string = '';
+	export let query: string = '';
 	export let language: string = 'json';
+	export let readOnly: boolean = false;
 
-	let query_json_contains = queryExample;
 	let result_json_contains = '';
 	let result_count = 0;
 
@@ -25,14 +25,14 @@
 		try {
 			let jsonBody: string;
 			if (queryType == 'pattern') {
-				query_json_contains = query_json_contains.trim();
-				if (!query_json_contains.startsWith('["')) {
-					jsonBody = JSON.stringify(query_json_contains.split('\n'));
+				query = query.trim();
+				if (!query.startsWith('["')) {
+					jsonBody = JSON.stringify(query.split('\n'));
 				} else {
-					jsonBody = query_json_contains;
+					jsonBody = query;
 				}
 			} else {
-				jsonBody = query_json_contains;
+				jsonBody = query;
 			}
 
 			const mapsResult = await run_query(jsonBody);
@@ -100,9 +100,15 @@
 	<div class="field">
 		<label class="label" for="fld_version">{queryTitle}</label>
 		<div class="control" style="min-height: 10em; display: flex;">
-			<Monaco bind:content={query_json_contains} language="json" />
+			{#if readOnly}
+				<Monaco content={query} readOnly={true} {language} />
+			{:else}
+				<Monaco bind:content={query} {language} />
+			{/if}
 		</div>
 	</div>
+
+	<slot />
 
 	<div class="field">
 		<div class="control">
@@ -120,7 +126,7 @@
 
 	<div class="field is-hidden">
 		<div class="control" style="min-height: 10em; display: flex;">
-			<Monaco content={result_json_contains} readOnly={true} {language} />
+			<Monaco content={result_json_contains} readOnly={true} language="json" />
 		</div>
 	</div>
 
