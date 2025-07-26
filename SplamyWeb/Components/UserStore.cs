@@ -35,7 +35,7 @@ public sealed class UserStore(SplamyContext context)
 			var rndToken = RandomToken();
 			var (pw, salt) = HashPw(rndPw);
 			await db.User.AddAsync(new LoginData("Splamy", pw, salt, rndToken, UserType.Admin));
-			File.WriteAllText(Path.Combine(Util.DataPath, "token.tmp"), $"PW:{rndPw}\nToken:{rndToken}");
+			await File.WriteAllTextAsync(Path.Combine(Util.DataPath, "token.tmp"), $"PW:{rndPw}\nToken:{rndToken}");
 			await db.SaveChangesAsync();
 		}
 	}

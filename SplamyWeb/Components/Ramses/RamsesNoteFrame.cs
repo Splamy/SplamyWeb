@@ -6,7 +6,7 @@ namespace SplamyWeb.Components.Ramses;
 
 public readonly record struct RamsesNoteFrame(ImmutableArray<RamsesNote> Blocks)
 {
-	static readonly string Alphabet = new([
+	private static readonly string Alphabet = new([
 		.. Enumerable.Range(0, 26).Select(i => (char)('a' + i)),
 		//.. Enumerable.Range(0, 26).Select(i => (char)('A' + i)),
 		.. Enumerable.Range(0, 10).Select(i => (char)('0' + i)),
@@ -44,8 +44,8 @@ public readonly record struct RamsesNoteFrame(ImmutableArray<RamsesNote> Blocks)
 			return Alphabet[0..1];
 
 		int index = 0;
-		int BitsInLong = (int)decimalNumber.GetBitLength();
-		char[] charArray = new char[BitsInLong];
+		int bitsInLong = (int)decimalNumber.GetBitLength();
+		char[] charArray = new char[bitsInLong];
 
 		while (decimalNumber != 0)
 		{
@@ -57,7 +57,7 @@ public readonly record struct RamsesNoteFrame(ImmutableArray<RamsesNote> Blocks)
 		return new string(charArray, 0, index);
 	}
 
-	public static RamsesNoteFrame ParseRadableFrame(string text)
+	public static RamsesNoteFrame ParseReadableFrame(string text)
 	{
 		var lines = text.ToLowerInvariant().Split('/');
 		if (lines.Length != 3)

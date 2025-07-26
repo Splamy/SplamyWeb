@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SplamyWeb.Db;
@@ -9,22 +10,22 @@ namespace SplamyWeb.Components;
 public class TabBackingData
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-	private readonly IServiceScopeFactory scopeFactory;
+	private readonly IServiceScopeFactory _scopeFactory;
 	private const int MaxRunningBots = 10_000;
 	private const int MaxDaysCalculation = 2; // Aim to send stats once per day. So 10 days should be the maximum for values calculation
 	private static readonly TimeSpan MaxTotalUptime = TimeSpan.FromDays(MaxDaysCalculation);
 	private const int MaxSongsPerFactory = 60 * 60 * 24 * MaxDaysCalculation;
 
 	// Precaclulated stuff
-	public uint Downloads { get; set; }
-	public uint RunningInstances { get; set; }
-	public uint RunningBots { get; set; }
-	public TimeSpan PlaybackTime { get; set; }
-	public CachedDayStats[] CachedDayStats { get; set; } = [];
+	public uint Downloads { get; private set; }
+	public uint RunningInstances { get; private set; }
+	public uint RunningBots { get; private set; }
+	public TimeSpan PlaybackTime { get; private set; }
+	public ImmutableArray<CachedDayStats> CachedDayStats { get; private set; } = [];
 
 	public TabBackingData(IServiceScopeFactory scopeFactory, ITimerService timer)
 	{
-		this.scopeFactory = scopeFactory;
+		_scopeFactory = scopeFactory;
 		timer.Register(UpdateAggregates);
 	}
 
@@ -38,7 +39,7 @@ public class TabBackingData
 		var dto = TabStatsMapper.ToDto(obj);
 		dto.Time = DateTime.UtcNow;
 
-		using var scope = scopeFactory.CreateScope();
+		await using var scope = _scopeFactory.CreateAsyncScope();
 		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 		await db.TabStatsPings.AddAsync(dto);
 		await db.SaveChangesAsync();
@@ -79,7 +80,7 @@ public class TabBackingData
 
 	public async Task UpdateAggregates()
 	{
-		using var scope = scopeFactory.CreateScope();
+		using var scope = _scopeFactory.CreateScope();
 		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		Downloads = (uint)await db.NightlyBuilds.AsNoTracking()
@@ -99,35 +100,40 @@ public class TabBackingData
 			.SumAsync();
 
 		PlaybackTime = (await db.Set<PlaytimeDto>().FromSqlRaw(
-@"SELECT SUM(""Playtime"") as ""Playtime""
-FROM tabstats_factory").FirstOrDefaultAsync())?.Playtime ?? TimeSpan.Zero;
+			"""
+			SELECT SUM("Playtime") as "Playtime"
+			FROM tabstats_factory
+			""").FirstOrDefaultAsync())?.Playtime ?? TimeSpan.Zero;
 
-		CachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
-@"SELECT DATE_TRUNC('day', ""Time"") AS Date, SUM(""RunningBots"") AS RunningBots, COUNT(*) as RunningInstances, COALESCE(SUM(f.""PlaybackTime""), INTERVAL '0') as PlaybackTime
-FROM tabstats_entry
-LEFT OUTER JOIN
-(
-	SELECT SUM(""Playtime"") AS ""PlaybackTime"", tf.""TabStatsId""
-	FROM tabstats_factory tf
-	GROUP BY tf.""TabStatsId""
-) f
-ON f.""TabStatsId"" = tabstats_entry.""Id""
-GROUP BY Date
-ORDER BY Date").ToArrayAsync();
+		var cachedDayStats = await db.Set<CachedDayStats>().FromSqlRaw(
+			"""
+			SELECT DATE_TRUNC('day', "Time") AS Date, SUM("RunningBots") AS RunningBots, COUNT(*) as RunningInstances, COALESCE(SUM(f."PlaybackTime"), INTERVAL '0') as PlaybackTime
+			FROM tabstats_entry
+			LEFT OUTER JOIN
+			(
+				SELECT SUM("Playtime") AS "PlaybackTime", tf."TabStatsId"
+				FROM tabstats_factory tf
+				GROUP BY tf."TabStatsId"
+			) f
+			ON f."TabStatsId" = tabstats_entry."Id"
+			GROUP BY Date
+			ORDER BY Date
+			""").ToArrayAsync();
+		CachedDayStats = [.. cachedDayStats];
 	}
 }
 
 [Keyless]
 public class CachedDayStats
 {
-	public DateTime Date { get; set; }
-	public uint RunningInstances { get; set; }
-	public uint RunningBots { get; set; }
-	public TimeSpan PlaybackTime { get; set; }
+	public DateTime Date { get; init; }
+	public uint RunningInstances { get; init; }
+	public uint RunningBots { get; init; }
+	public TimeSpan PlaybackTime { get; init; }
 }
 
 [Keyless]
 public class PlaytimeDto
 {
-	public TimeSpan? Playtime { get; set; }
+	public TimeSpan? Playtime { get; init; }
 }

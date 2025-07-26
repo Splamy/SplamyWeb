@@ -8,44 +8,44 @@ namespace SplamyWeb.Components;
 
 public class LogNotifierService
 {
-	private readonly Lock listLock = new();
-	private readonly List<ServerLogEntry> logHistory = [];
-	private readonly IHubContext<LogNotifier> hub;
+	private readonly Lock _listLock = new();
+	private readonly List<ServerLogEntry> _logHistory = [];
+	private readonly IHubContext<LogNotifier> _hub;
 
 	public LogNotifierService(IHubContext<LogNotifier> hub)
 	{
-		this.hub = hub;
+		_hub = hub;
 		ServerLog.OnLog += NotifyLog;
 	}
 
 	private async void NotifyLog(LogEventInfo ev)
 	{
 		var entry = ServerLogMapper.ToEntry(ev);
-		lock (listLock)
+		lock (_listLock)
 		{
-			logHistory.Add(entry);
-			if (logHistory.Count >= 1100)
-				logHistory.RemoveRange(0, 100);
+			_logHistory.Add(entry);
+			if (_logHistory.Count >= 1100)
+				_logHistory.RemoveRange(0, 100);
 		}
 
-		await hub.Clients.All.SendAsync("Log", entry);
+		await _hub.Clients.All.SendAsync("Log", entry);
 	}
 
 	public ServerLogEntry[] GetTop()
 	{
-		lock (listLock)
+		lock (_listLock)
 		{
-			return logHistory.TakeLast(50).ToArray();
+			return _logHistory.TakeLast(50).ToArray();
 		}
 	}
 
 	public ServerLogEntry[] GetLog(int fromId, int length)
 	{
-		lock (listLock)
+		lock (_listLock)
 		{
-			var pos = logHistory.BinarySearch(ServerLogEntry.Comparer(fromId));
+			var pos = _logHistory.BinarySearch(ServerLogEntry.Comparer(fromId));
 			var select = pos >= 0 ? pos : ~pos - 1;
-			return logHistory.Skip(select).Take(length).ToArray();
+			return _logHistory.Skip(select).Take(length).ToArray();
 		}
 	}
 }

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="nuget.config" />
+  </Folder>
+  <Project Path="SplamyWeb.Tests/SplamyWeb.Tests.csproj" />
+  <Project Path="SplamyWeb/SplamyWeb.csproj" />
+</Solution>

@@ -16,13 +16,15 @@ public class AccountController(UserManager<LoginData> userManager, SignInManager
 	: ControllerBase
 {
 	private record LoginStatus(bool LoggedIn, LoginStatusUser? User);
+
 	private record LoginStatusUser(string? Name, int Id, UserType Rank);
 
 	private static JsonResult GetLoggedInUser(LoginData? loginData)
 	{
 		if (loginData is null)
 			return new JsonResult(new LoginStatus(false, null), Util.JsonWebHideNull);
-		return new JsonResult(new LoginStatus(true, new LoginStatusUser(loginData.Name, loginData.Id, loginData.Rank)), Util.JsonWebHideNull);
+		return new JsonResult(new LoginStatus(true, new LoginStatusUser(loginData.Name, loginData.Id, loginData.Rank)),
+			Util.JsonWebHideNull);
 	}
 
 	[AllowAnonymous]
@@ -32,12 +34,13 @@ public class AccountController(UserManager<LoginData> userManager, SignInManager
 		return GetLoggedInUser(await userManager.GetUserAsync(User));
 	}
 
-	private bool? isApi;
-	private bool IsApi => isApi ??= Request.Headers.Accept.Contains(MediaTypeNames.Application.Json);
+	private bool? _isApi;
+	private bool IsApi => _isApi ??= Request.Headers.Accept.Contains(MediaTypeNames.Application.Json);
 
 	[AllowAnonymous]
 	[HttpPost("login")]
-	public async Task<IActionResult> LoginAsync([FromForm] string name, [FromForm] string pass, [FromForm] bool remember)
+	public async Task<IActionResult> LoginAsync([FromForm] string name, [FromForm] string pass,
+		[FromForm] bool remember)
 	{
 		var result = await signInManager.PasswordSignInAsync(name, pass, remember, false);
 		if (result.Succeeded)
@@ -46,6 +49,7 @@ public class AccountController(UserManager<LoginData> userManager, SignInManager
 			{
 				return GetLoggedInUser(await userManager.FindByNameAsync(name));
 			}
+
 			return Redirect("/");
 		}
 		else
@@ -60,7 +64,7 @@ public class AccountController(UserManager<LoginData> userManager, SignInManager
 		[FromForm] int id,
 		[FromForm] string? name,
 		[FromForm] string? pass,
-		[FromForm] string? pass_old)
+		[FromForm(Name = "pass_old")] string? passOld)
 	{
 		var currentUser = await userManager.GetUserAsync(User);
 		if (currentUser is null)
@@ -93,10 +97,12 @@ public class AccountController(UserManager<LoginData> userManager, SignInManager
 
 		if (!string.IsNullOrWhiteSpace(pass))
 		{
-			var result = await userManager.ChangePasswordAsync(editedUser, pass_old ?? "", pass);
+			var result = await userManager.ChangePasswordAsync(editedUser, passOld ?? "", pass);
 			var errors = result.Errors.Select(e => e.Code);
 			if (!result.Succeeded)
-				return IsApi ? BadRequest(errors) : RedirectToPage("/user/profile", new { changepw = string.Join(",", errors) });
+				return IsApi
+					? BadRequest(errors)
+					: RedirectToPage("/user/profile", new { changepw = string.Join(",", errors) });
 		}
 
 		return IsApi ? Ok() : Redirect("/");
@@ -118,9 +124,11 @@ public class AccountController(UserManager<LoginData> userManager, SignInManager
 			{
 			case "PasswordMismatch": yield return "Incorrect password."; break;
 			case "PasswordTooShort": yield return "Passwords must be at least 6 characters."; break;
-			case "PasswordRequiresNonAlphanumeric": yield return "Passwords must have at least one non alphanumeric character."; break;
+			case "PasswordRequiresNonAlphanumeric":
+				yield return "Passwords must have at least one non alphanumeric character."; break;
 			case "PasswordRequiresLower": yield return "Passwords must have at least one lowercase ('a'-'z')."; break;
-			case "PasswordRequiresUniqueChars": yield return "Passwords must use at least 3 different characters."; break;
+			case "PasswordRequiresUniqueChars":
+				yield return "Passwords must use at least 3 different characters."; break;
 			default: break;
 			}
 		}

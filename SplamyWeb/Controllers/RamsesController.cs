@@ -60,9 +60,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 			return BadRequest("Invalid key");
 
 		var entry = await ramses.Get(key);
-		if (entry is null)
-			return NotFound();
-		return entry;
+		return entry ?? NotFound();
 	}
 
 	[HttpPost("q/json")]
@@ -201,7 +199,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 	[Authorize(AuthenticationSchemes = AuthScheme)]
 	public string GetPatternSentence([FromBody] string[] matrix, CancellationToken cancellationToken)
 	{
-		var frames = matrix.Select(RamsesNoteFrame.ParseRadableFrame).ToArray();
+		var frames = matrix.Select(RamsesNoteFrame.ParseReadableFrame).ToArray();
 		var searchString = string.Join(" ", frames.Select(f => f.ToWord()));
 		return searchString;
 	}
@@ -214,7 +212,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 		string searchString;
 		try
 		{
-			var frames = matrix.Select(RamsesNoteFrame.ParseRadableFrame);
+			var frames = matrix.Select(RamsesNoteFrame.ParseReadableFrame);
 			searchString = string.Join("<->", frames.Select(f => f.ToWord()));
 		}
 		catch (Exception ex)

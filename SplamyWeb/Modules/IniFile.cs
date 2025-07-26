@@ -19,8 +19,7 @@ public class IniFile
 	{
 		var file = new IniFile();
 		IniSection? section = null;
-		string? line;
-		while ((line = reader.ReadLine()) != null)
+		while (reader.ReadLine() is { } line)
 		{
 			if (string.IsNullOrWhiteSpace(line))
 			{
@@ -52,7 +51,7 @@ public class IniFile
 				continue;
 			}
 
-			section?.Entries.Add(new IniUnparsable(line));
+			section.Entries.Add(new IniUnparsable(line));
 		}
 
 		return file;
