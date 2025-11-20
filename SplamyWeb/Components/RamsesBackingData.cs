@@ -82,7 +82,7 @@ public partial class RamsesBackingData : BackgroundService
 			}
 			catch (Exception ex)
 			{
-				Log.Warn(ex, "Failed to process song '{0}': {1}", req.MapId.ToString("X"), ex.Message);
+				Log.Warn(ex, "Failed to process song '{0:X}': {1}", req.MapId, ex.Message);
 
 				req.Task.SetResult(ToError(ex.Message));
 			}

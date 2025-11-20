@@ -122,7 +122,7 @@ partial class RamsesBackingData
 					continue;
 				}
 
-				await db.SaveChangesAsync(default);
+				await db.SaveChangesAsync(CancellationToken.None);
 			}
 			catch (Exception ex)
 			{

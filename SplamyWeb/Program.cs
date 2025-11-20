@@ -1,65 +1,22 @@
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
-using SplamyWeb.Db;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using SplamyWeb;
 
-namespace SplamyWeb;
+var app = WebApplication.CreateBuilder(args);
 
-public static class Program
-{
-	public static async Task Main(string[] args)
-	{
-		ServerLog.ConfigueNLog();
+app.Logging.ClearProviders();
+app.Logging.SetMinimumLevel(LogLevel.Trace);
+app.Logging.AddNLogWeb();
 
-		IWebHost webHost = BuildWebHost(args);
+ServerLog.ConfigueNLog();
 
-		// Create a new scope
-		using (var scope = webHost.Services.CreateScope())
-		{
-			using var context = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+Startup.ConfigureServices(app.Configuration, app.Services);
 
-			var logger = NLog.LogManager.GetLogger("SplamyWeb.Startup");
+var webHost = app.Build();
 
-			//await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions
-			//	.GetInfrastructure(context)
-			//	.GetRequiredService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>()
-			//	.MigrateAsync("20250607231335_AddGinIndex");
+await Startup.Configure(webHost);
 
-			var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToArray();
+// Create a new scope
 
-			if (pendingMigrations.Length > 0)
-			{
-				logger.Info($"Applying {pendingMigrations.Length} migrations.");
-				await context.Database.MigrateAsync();
-			}
-
-			var lastAppliedMigration = (await context.Database.GetAppliedMigrationsAsync()).Last();
-
-			logger.Info($"Database on schema version: {lastAppliedMigration}");
-
-			await Components.UserStore.InitializeAccountWhenEmpty(context, logger);
-		}
-
-		// Run the WebHost, and start accepting requests
-		// There's an async overload, so we may as well use it
-		await webHost.RunAsync();
-	}
-
-	public static IWebHost BuildWebHost(string[] args) =>
-		WebHost
-		.CreateDefaultBuilder(args)
-		.ConfigureLogging(logging =>
-		{
-			logging.ClearProviders();
-			logging.SetMinimumLevel(LogLevel.Trace);
-		})
-		.UseNLog()
-		.UseStartup<Startup>()
-		.Build();
-}
+await webHost.RunAsync();

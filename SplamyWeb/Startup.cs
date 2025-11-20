@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
@@ -15,14 +16,16 @@ using SplamyWeb.Db;
 using SplamyWeb.Mock;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace SplamyWeb;
 
-public class Startup(IConfiguration configuration)
+public static class Startup
 {
 	public const string CorsAny = "corsAllowAny";
 
-	public void ConfigureServices(IServiceCollection services)
+	public static void ConfigureServices(IConfiguration configuration, IServiceCollection services)
 	{
 		if (configuration.GetValue<bool>("Mock:Web"))
 		{
@@ -162,11 +165,16 @@ public class Startup(IConfiguration configuration)
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-	public void Configure(IApplicationBuilder app, IServiceProvider provider, IWebHostEnvironment env)
+	public static async Task Configure(WebApplication app)
 	{
-		provider.GetService<LogNotifierService>();
-		provider.GetService<TeamspeakService>();
-		provider.GetService<TabBackingData>();
+		var services = app.Services;
+		var env = app.Environment;
+
+		await MigrateDatabaseAsync(services);
+
+		services.GetService<LogNotifierService>();
+		services.GetService<TeamspeakService>();
+		services.GetService<TabBackingData>();
 
 		if (env.IsDevelopment())
 		{
@@ -177,7 +185,7 @@ public class Startup(IConfiguration configuration)
 			app.UseExceptionHandler("/InternalError");
 		}
 
-		if (configuration.GetValue<bool>("Dev:UseCors"))
+		if (app.Configuration.GetValue<bool>("Dev:UseCors"))
 		{
 			app.UseCors();
 		}
@@ -233,4 +241,32 @@ public class Startup(IConfiguration configuration)
 			}));
 
 	}
+
+	private static async Task MigrateDatabaseAsync(IServiceProvider services)
+	{
+		await using var scope = services.CreateAsyncScope();
+		await using var context = scope.ServiceProvider.GetRequiredService<SplamyContext>();
+
+		var logger = NLog.LogManager.GetLogger("SplamyWeb.Startup");
+
+		//await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions
+		//	.GetInfrastructure(context)
+		//	.GetRequiredService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>()
+		//	.MigrateAsync("20250607231335_AddGinIndex");
+
+		var pendingMigrations = (await context.Database.GetPendingMigrationsAsync()).ToArray();
+
+		if (pendingMigrations.Length > 0)
+		{
+			logger.Info($"Applying {pendingMigrations.Length} migrations.");
+			await context.Database.MigrateAsync();
+		}
+
+		var lastAppliedMigration = (await context.Database.GetAppliedMigrationsAsync()).Last();
+
+		logger.Info($"Database on schema version: {lastAppliedMigration}");
+
+		await UserStore.InitializeAccountWhenEmpty(context, logger);
+	}
 }
+

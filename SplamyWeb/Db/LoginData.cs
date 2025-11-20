@@ -56,14 +56,17 @@ public static class Rank
 	public const string Admin = nameof(UserType.Admin);
 	public const string User = nameof(UserType.User);
 
-	public static bool AtLeast(this UserType self, UserType rankOrHigher)
+	extension(UserType self)
 	{
-		return self <= rankOrHigher;
-	}
+		public bool AtLeast(UserType rankOrHigher)
+		{
+			return self <= rankOrHigher;
+		}
 
-	public static UserType? CanSetRankUpTo(this UserType self) => self switch
-	{
-		UserType.Admin => UserType.Admin,
-		_ => null,
-	};
+		public UserType? CanSetRankUpTo() => self switch
+		{
+			UserType.Admin => UserType.Admin,
+			_ => null,
+		};
+	}
 }

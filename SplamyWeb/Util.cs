@@ -57,24 +57,28 @@ public static partial class Util
 		return clean;
 	}
 
-	public static bool MatchPrefix(this string str, string prefix, [MaybeNullWhen(false)] out string rest)
-		=> str.MatchPrefix(prefix, StringComparison.Ordinal, out rest);
-	public static bool MatchPrefix(this string str, string prefix, StringComparison comparisonType, [MaybeNullWhen(false)] out string rest)
+	extension(string str)
 	{
-		if (str.StartsWith(prefix, comparisonType))
+		public bool MatchPrefix(string prefix, [MaybeNullWhen(false)] out string rest)
+			=> str.MatchPrefix(prefix, StringComparison.Ordinal, out rest);
+
+		public bool MatchPrefix(string prefix, StringComparison comparisonType, [MaybeNullWhen(false)] out string rest)
 		{
-			rest = str[prefix.Length..];
-			return true;
-		}
-		else
-		{
-			rest = default!;
-			return false;
+			if (str.StartsWith(prefix, comparisonType))
+			{
+				rest = str[prefix.Length..];
+				return true;
+			}
+			else
+			{
+				rest = null;
+				return false;
+			}
 		}
 	}
 
 	[UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_encoder")]
-	public extern static ref BrotliEncoder GetEncoder(this BrotliStream @this);
+	public static extern ref BrotliEncoder GetEncoder(this BrotliStream @this);
 }
 
 internal partial class TimeSpanConverter(TimeSpanFormatting format) : JsonConverter<TimeSpan>
@@ -118,7 +122,7 @@ internal partial class TimeSpanConverter(TimeSpanFormatting format) : JsonConver
 		}
 	}
 
-	public static TimeSpan? ParseTime(string value)
+	public static TimeSpan? ParseTime(string? value)
 	{
 		if (value is null) return null;
 		return ParseTimeAsSimple(value)
