@@ -32,3 +32,6 @@ Authorization: {{Auth}}
 
 {"==" : [ { "var" : "_songName" }, "Halloween Spooky Mash Up" ]}
 
+### RSS Proxy Rhythm Quest
+
+GET {{HostAddress}}/api/rssproxy/rhythm_quest

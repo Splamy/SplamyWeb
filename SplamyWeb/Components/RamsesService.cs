@@ -109,7 +109,7 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 			break;
 
 		default:
-			logger.LogInformation("BS wss event {@Type}", message.type);
+			// logger.LogInformation("BS wss event {@Type}", message.type);
 			break;
 		}
 	}
@@ -119,7 +119,7 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 	[JsonDerivedType(typeof(BsMessageMapDelete), typeDiscriminator: "MAP_DELETE")]
 	public class BsMessageBase
 	{
-		public string? type { get; init; }
+		// public string? type { get; init; }
 	}
 
 	public class BsMessageMapDelete : BsMessageBase

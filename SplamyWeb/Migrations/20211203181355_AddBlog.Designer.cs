@@ -38,7 +38,7 @@ namespace SplamyWeb.Migrations
                     b.Property<long>("RunningInstances")
                         .HasColumnType("bigint");
 
-                    b.ToTable((string)null, t => t.ExcludeFromMigrations());
+                    // b.ToTable("cache_day_stat", t => t.ExcludeFromMigrations());
                 });
 
             modelBuilder.Entity("SplamyWeb.Components.PlaytimeDto", b =>
@@ -46,7 +46,7 @@ namespace SplamyWeb.Migrations
                     b.Property<TimeSpan?>("Playtime")
                         .HasColumnType("interval");
 
-                    b.ToTable((string)null, t => t.ExcludeFromMigrations());
+                    // b.ToTable("cache_playtime", t => t.ExcludeFromMigrations());
                 });
 
             modelBuilder.Entity("SplamyWeb.Db.BlogPost", b =>
