@@ -14,7 +14,7 @@ namespace SplamyWeb.Components;
 
 public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData ramses) : BackgroundService
 {
-	private static readonly Uri BSUri = new("wss://ws.beatsaver.com/maps");
+	private static readonly Uri BsUri = new("wss://ws.beatsaver.com/maps");
 	public static readonly JsonSerializerOptions JsonSerializerOptions = new()
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -34,7 +34,7 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 					ListenWebsocket(pipe.Writer, cts.Token),
 					ReadPipe(pipe.Reader, cts.Token));
 
-				cts.Cancel();
+				await cts.CancelAsync();
 
 				await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
 			}
@@ -48,7 +48,7 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 	private async Task ListenWebsocket(PipeWriter writer, CancellationToken cancellationToken)
 	{
 		using var ws = new ClientWebSocket();
-		await ws.ConnectAsync(BSUri, cancellationToken);
+		await ws.ConnectAsync(BsUri, cancellationToken);
 		logger.LogInformation("Ramses websocket connected");
 
 		writer.Write("["u8);
@@ -97,7 +97,7 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 		switch (message)
 		{
 		case BsMessageMapUpdate mapUpdate:
-			logger.LogInformation("New Map Update {@MapId}", mapUpdate.Msg.Id);
+			logger.LogInformation("New Map Update {MapId}", mapUpdate.Msg.Id);
 			if (mapUpdate.Msg.Versions.Any(x => x.State == "Published"))
 			{
 				await ramses.Get(mapUpdate.Msg.Id);
@@ -105,7 +105,7 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 			break;
 
 		case BsMessageMapDelete mapDelete:
-			logger.LogInformation("Map Deleted {@MapId}", mapDelete.Map);
+			logger.LogInformation("Map Deleted {MapId}", mapDelete.Map);
 			break;
 
 		default:
@@ -135,12 +135,12 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 
 	public readonly struct MsgUpdate
 	{
-		public required readonly string Id { get; init; }
-		public required readonly BsMessageMsgVersions[] Versions { get; init; }
+		public required string Id { get; init; }
+		public required BsMessageMsgVersions[] Versions { get; init; }
 	}
 
 	public readonly struct BsMessageMsgVersions
 	{
-		public required readonly string State { get; init; }
+		public required string State { get; init; }
 	}
 }

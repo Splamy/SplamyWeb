@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SplamyWeb.Components;
 using System.Text;
 using System.Text.Json;
@@ -7,7 +6,6 @@ using static SplamyWeb.Components.RamsesService;
 
 namespace SplamyWeb.Tests;
 
-[TestClass]
 public class RamsesDeserTest
 {
 	const string TestJson1 = """
@@ -105,32 +103,34 @@ public class RamsesDeserTest
 		}
 		""";
 
-	[TestMethod]
+	[Fact]
 	public void TestJsonDeser1()
 	{
 		JsonSerializer.Deserialize<BsMessageBase>(TestJson1, RamsesService.JsonSerializerOptions);
 	}
 
-	[TestMethod]
+	[Fact]
 	public void TestJsonDeser2()
 	{
 		JsonSerializer.Deserialize<BsMessageBase>(TestJson2, RamsesService.JsonSerializerOptions);
 	}
 
-	[TestMethod]
+	[Fact]
 	public async Task TestJsonDeser1_2()
 	{
-		using var memStream = new System.IO.MemoryStream(Encoding.UTF8.GetBytes("[" + TestJson1 + "," + TestJson2 + "]"));
+		using var memStream =
+			new System.IO.MemoryStream(Encoding.UTF8.GetBytes("[" + TestJson1 + "," + TestJson2 + "]"));
 
-		var enu = JsonSerializer.DeserializeAsyncEnumerable<BsMessageBase>(memStream, RamsesService.JsonSerializerOptions);
+		var enu = JsonSerializer.DeserializeAsyncEnumerable<BsMessageBase>(memStream,
+			RamsesService.JsonSerializerOptions, TestContext.Current.CancellationToken);
 
 		int count = 0;
 		await foreach (var msg in enu)
 		{
-			Assert.IsNotNull(msg);
+			Assert.NotNull(msg);
 			count++;
 		}
 
-		Assert.AreEqual(2, count);
+		Assert.Equal(2, count);
 	}
 }

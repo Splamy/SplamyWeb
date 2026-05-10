@@ -22,15 +22,16 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace SplamyWeb.Components;
 
 public partial class RamsesBackingData : BackgroundService
 {
-	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 	private readonly Channel<ProcessEntry> _bufferBlockChannel;
 	private readonly IServiceScopeFactory _scopeFactory;
 	private readonly IHttpClientFactory _clientFactory;
+	private readonly ILogger<RamsesBackingData> _logger;
 	private readonly string RamsesVersion;
 	private readonly string JbmVersion;
 
@@ -40,15 +41,18 @@ public partial class RamsesBackingData : BackgroundService
 		UseJbm = false,
 		Compress = false,
 	};
+
 	private static readonly JBMOptions jbmResultOptions = new()
 	{
 		UseAos = false,
 		UseJbm = false,
 		Compress = true,
 	};
+
 	public const int RamsesQueryVersion = 2;
 
-	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory)
+	public RamsesBackingData(IServiceScopeFactory scopeFactory, IHttpClientFactory clientFactory,
+		ILogger<RamsesBackingData> logger)
 	{
 		var verRam = typeof(RateMapSeveritySaber.Analyzer).Assembly.GetName().Version!;
 		var verJbm = typeof(JBMConverter).Assembly.GetName().Version!;
@@ -56,6 +60,7 @@ public partial class RamsesBackingData : BackgroundService
 		JbmVersion = $"{verJbm.Major}.{verJbm.Minor}.a";
 		_scopeFactory = scopeFactory;
 		_clientFactory = clientFactory;
+		_logger = logger;
 
 		_bufferBlockChannel = Channel.CreateBounded<ProcessEntry>(new BoundedChannelOptions(1024)
 		{
@@ -82,7 +87,7 @@ public partial class RamsesBackingData : BackgroundService
 			}
 			catch (Exception ex)
 			{
-				Log.Warn(ex, "Failed to process song '{0:X}': {1}", req.MapId, ex.Message);
+				_logger.LogWarning(ex, "Failed to process song '{MapId:X}': {Reason}", req.MapId, ex.Message);
 
 				req.Task.SetResult(ToError(ex.Message));
 			}
@@ -109,11 +114,11 @@ public partial class RamsesBackingData : BackgroundService
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		await foreach (var entry in db.RamsesSongs
-			.Where(x => x.RawMap != null)
-			.Where(x => ids.Contains(x.Id))
-			.Select(x => new { x.Id, x.RawMap })
-			.AsAsyncEnumerable()
-			.WithCancellation(cancellationToken))
+			               .Where(x => x.RawMap != null)
+			               .Where(x => ids.Contains(x.Id))
+			               .Select(x => new { x.Id, x.RawMap })
+			               .AsAsyncEnumerable()
+			               .WithCancellation(cancellationToken))
 		{
 			var fileProvider = UnpackMap(entry.RawMap!);
 			yield return (entry.Id, fileProvider);
@@ -146,6 +151,7 @@ public partial class RamsesBackingData : BackgroundService
 		await using var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		var query = db.RamsesSongs
+			.AsSplitQuery()
 			.Where(entries => entries.Id == request.MapId)
 			.Include(entries => entries.Maps);
 
@@ -176,6 +182,7 @@ public partial class RamsesBackingData : BackgroundService
 				var errorBody = await response.Content.ReadAsStringAsync();
 				throw new BeatsaverException(errorBody, response.StatusCode);
 			}
+
 			var data = await response.Content.ReadAsByteArrayAsync();
 			timeDownload = swDownload.Elapsed;
 
@@ -193,7 +200,7 @@ public partial class RamsesBackingData : BackgroundService
 				JbmVersion,
 				info,
 				DateTimeOffset.UtcNow,
-				PackMap(fileProvider));
+				PackMap(fileProvider,_logger));
 			await db.RamsesSongs.AddAsync(entry);
 
 			timePackOrUnpack = swPackOrUnpack.Elapsed;
@@ -222,7 +229,7 @@ public partial class RamsesBackingData : BackgroundService
 		entry.Maps = [];
 
 		foreach (var map in maps
-			.Where(map => map.Characteristic == MapCharacteristic.Standard))
+			         .Where(map => map.Characteristic == MapCharacteristic.Standard))
 		{
 			SongScore score;
 			try
@@ -231,13 +238,13 @@ public partial class RamsesBackingData : BackgroundService
 			}
 			catch (Exception ex)
 			{
-				Log.Warn(ex, "Failed to analyze map '{0}'", request.Key);
+				_logger.LogWarning(ex, "Failed to analyze map '{Key}'", request.Key);
 				score = new SongScore(-1, -1, []);
 			}
 
 			var ramsesMap = ResultToJsonObject(score, map);
 			var packedScore = PackScoreObject(ramsesMap);
-			var searchVector = await ToRamsesVector(db, map);
+			var searchVector = await ToRamsesVector(db, map, _logger);
 
 			entry.Maps.Add(new RamsesDifficulty(
 				map.Characteristic,
@@ -251,7 +258,9 @@ public partial class RamsesBackingData : BackgroundService
 
 		timeProcess = swProcess.Elapsed;
 
-		Log.Info("RaMSeS Key:{0} Download:{1} (Un)Pack:{2} Process:{3} Cachesize:{4}", request.Key, timeDownload, timePackOrUnpack, timeProcess, entry.RawMap?.Length);
+		_logger.LogInformation(
+			"RaMSeS Key:{Key} Download:{DownloadTime} (Un)Pack:{UnpackTime} Process:{ProcessingTime} Cachesize:{ByteSize}",
+			request.Key, timeDownload, timePackOrUnpack, timeProcess, entry.RawMap?.Length);
 
 		await db.SaveChangesAsync();
 
@@ -271,7 +280,7 @@ public partial class RamsesBackingData : BackgroundService
 		public TaskCompletionSource<IActionResult> Task { get; } = new();
 	}
 
-	public static byte[]? PackMap(BsMapProvider sourceFiles)
+	public static byte[]? PackMap(BsMapProvider sourceFiles, ILogger logger)
 	{
 		var jsonInfo = BSMapIO.ReadInfo(sourceFiles) ?? throw new Exception("No Info file found");
 
@@ -291,9 +300,10 @@ public partial class RamsesBackingData : BackgroundService
 			AddToCompressionDict("info.dat");
 
 			foreach (var set in jsonInfo.DifficultyBeatmapSets)
-				foreach (var maps in set.DifficultyBeatmaps)
-					AddToCompressionDict(maps.BeatmapFilename);
+			foreach (var maps in set.DifficultyBeatmaps)
+				AddToCompressionDict(maps.BeatmapFilename);
 		}
+
 		mem.Position = 0;
 
 		using var output = new MemoryStream();
@@ -305,7 +315,7 @@ public partial class RamsesBackingData : BackgroundService
 
 		if (output.Length > 1_000_000)
 		{
-			Log.Warn("Compressed Map is >1MB (={0}B)", output.Length);
+			logger.LogWarning("Compressed Map is >1MB (={ByteSize}B)", output.Length);
 			return null;
 		}
 
@@ -320,6 +330,7 @@ public partial class RamsesBackingData : BackgroundService
 		{
 			decompressor.CopyTo(output);
 		}
+
 		output.Position = 0;
 		var intermediateZip = new ZipArchive(output, ZipArchiveMode.Read);
 		return new JbmZipProvider(intermediateZip, jbmMapOptions);
@@ -360,7 +371,7 @@ public partial class RamsesBackingData : BackgroundService
 		};
 	}
 
-	public static string? ToRamsesVectorString(BSMap map)
+	public static string? ToRamsesVectorString(BSMap map, ILogger logger)
 	{
 		if (map.Data?.Notes is null)
 		{
@@ -370,30 +381,33 @@ public partial class RamsesBackingData : BackgroundService
 		try
 		{
 			var frames = map.Data.Notes
-				.GroupBy(x => Math.Round(x.Time, 3))
-				.OrderBy(x => x.Key)
-				.Select(x => new RamsesNoteFrame([.. x.Select(RamsesNote.TryFrom).Where(i => i.HasValue).Select(i => i!.Value).OrderBy(i => i.Pos)]))
-				.Where(x => x.Blocks.Length is > 0 and <= 12)
-				.Select(x => x.ToWord())
-				.ToList()
+					.GroupBy(x => Math.Round(x.Time, 3))
+					.OrderBy(x => x.Key)
+					.Select(x => new RamsesNoteFrame([
+						.. x.Select(RamsesNote.TryFrom).Where(i => i.HasValue).Select(i => i!.Value).OrderBy(i => i.Pos)
+					]))
+					.Where(x => x.Blocks.Length is > 0 and <= 12)
+					.Select(x => x.ToWord())
+					.ToList()
 				;
 
 			return string.Join(" ", frames);
 		}
 		catch (Exception ex)
 		{
-			Log.Error(ex, "Failed to convert map to Ramses vector string");
+			logger.LogError(ex, "Failed to convert map to Ramses vector string");
 			return null;
 		}
 	}
 
-	public static async Task<NpgsqlTsVector?> ToRamsesVector(SplamyContext db, BSMap map)
+	public static async Task<NpgsqlTsVector?> ToRamsesVector(SplamyContext db, BSMap map, ILogger logger)
 	{
-		var vectorString = ToRamsesVectorString(map);
+		var vectorString = ToRamsesVectorString(map, logger);
 		if (vectorString is null)
 		{
 			return null;
 		}
+
 		var vector = await db.Database
 			.SqlQuery<NpgsqlTsVector>($"SELECT to_tsvector('simple', {vectorString}) as \"Value\"")
 			.FirstAsync();
@@ -403,35 +417,35 @@ public partial class RamsesBackingData : BackgroundService
 
 public class RamsesSongDto(string ramsesVersion, List<RamsesDifficultyDto> maps)
 {
-	[JsonPropertyName("ramsesVersion")]
-	public string RamsesVersion { get; set; } = ramsesVersion;
+	[JsonPropertyName("ramsesVersion")] public string RamsesVersion { get; set; } = ramsesVersion;
 
-	[JsonPropertyName("maps")]
-	public List<RamsesDifficultyDto> Maps { get; set; } = maps;
+	[JsonPropertyName("maps")] public List<RamsesDifficultyDto> Maps { get; set; } = maps;
 }
 
 [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-public class RamsesDifficultyDto(string difficulty, string characteristic, float maxDifficulty, float avgDifficulty, float[] graph)
+public class RamsesDifficultyDto(
+	string difficulty,
+	string characteristic,
+	float maxDifficulty,
+	float avgDifficulty,
+	float[] graph)
 {
-	[JsonPropertyName("difficulty")]
-	public string Difficulty { get; set; } = difficulty;
+	[JsonPropertyName("difficulty")] public string Difficulty { get; set; } = difficulty;
+
 	/// <summary>Internal mode name (Standard, 90°, 360°,...)</summary>
 	[JsonPropertyName("characteristic")]
 	public string Characteristic { get; set; } = characteristic;
-	[JsonPropertyName("maxDifficulty")]
-	public float MaxDifficulty { get; set; } = maxDifficulty;
-	[JsonPropertyName("avgDifficulty")]
-	public float AvgDifficulty { get; set; } = avgDifficulty;
-	[JsonPropertyName("graph")]
-	public float[] Graph { get; set; } = graph;
+
+	[JsonPropertyName("maxDifficulty")] public float MaxDifficulty { get; set; } = maxDifficulty;
+	[JsonPropertyName("avgDifficulty")] public float AvgDifficulty { get; set; } = avgDifficulty;
+	[JsonPropertyName("graph")] public float[] Graph { get; set; } = graph;
 
 	private string GetDebuggerDisplay() => $"{Characteristic}|{Difficulty}: Max:{MaxDifficulty} Avg:{AvgDifficulty}";
 }
 
 public class RamsesError(string error)
 {
-	[JsonPropertyName("error")]
-	public string Error { get; set; } = error;
+	[JsonPropertyName("error")] public string Error { get; set; } = error;
 }
 
 [Mapper]
@@ -443,30 +457,36 @@ public static partial class RamsesMapper
 	[MapperIgnoreSource(nameof(RamsesSong.JbmVersion))]
 	[MapperIgnoreSource(nameof(RamsesSong.DownloadDate))]
 	public static partial RamsesSongDto ToDto(this RamsesSong song);
+
 	[MapperIgnoreSource(nameof(RamsesSong.JbmVersion))]
 	public static partial RamsesSongDto ToDto(this RamsesSongLightDto song);
 
 	public static partial IQueryable<RamsesSongLightDto> MapToLight(this IQueryable<RamsesSong> song);
+
 	[MapperIgnoreSource(nameof(RamsesSong.Id))]
 	[MapperIgnoreSource(nameof(RamsesSong.RawMap))]
 	[MapperIgnoreSource(nameof(RamsesSong.Info))]
 	[MapperIgnoreSource(nameof(RamsesSong.DownloadDate))]
 	private static partial RamsesSongLightDto MapToLight(this RamsesSong song);
-	public static RamsesDifficultyDto ToDto(this RamsesDifficulty map) => RamsesBackingData.UnpackScoreObject(map.RatingDetail);
+
+	public static RamsesDifficultyDto ToDto(this RamsesDifficulty map) =>
+		RamsesBackingData.UnpackScoreObject(map.RatingDetail);
 }
 
 public class JbmZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProvider
 {
 	public override IEnumerable<string> Files => zip.Entries.Select(e => NormalizeName(e.FullName));
+
 	public override Stream? Get(string file)
 	{
 		using var mem = new MemoryStream();
 		using (var stream = zip.Entries
-			.FirstOrDefault((e) => MatchName(e.Name, file))?.Open())
+			       .FirstOrDefault((e) => MatchName(e.Name, file))?.Open())
 		{
 			if (stream is null) return null;
 			stream.CopyTo(mem);
 		}
+
 		var arr = mem.GetBuffer().AsMemory(0, (int)mem.Length);
 		return JBMConverter.DecodeToStream(arr, options);
 	}

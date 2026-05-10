@@ -19,64 +19,50 @@ using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
-public partial class TeamspeakService
+public partial class TeamspeakService : IHostedService
 {
 	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
 
-	[GeneratedRegex("^diff --git (.*)$", RegexOptions.Compiled | RegexOptions.ECMAScript)]
-	private static partial Regex diffMatch();
-
 	[GeneratedRegex("[^a-zA-Z0-9\\+=/]")]
-	private static partial Regex versionClean();
+	private static partial Regex VersionClean { get; }
 
-	public static readonly byte[] Ts3VerionSignPublicKey = Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
+	public static readonly byte[] Ts3VersionSignPublicKey =
+		Convert.FromBase64String("UrN1jX0dBE1vulTNLCoYwrVpfITyo+NBuq/twbf9hLw=");
 
 	private const string ProjectUrlBase = "https://api.github.com/repos/ReSpeak/tsdeclarations";
 	private const string CsvHeader = "version,platform,hash\n";
 	private static readonly char[] NicknamesSplit = [',', ';', ' '];
 
-	private readonly Lock cacheLock = new();
-	private HashSet<VersionSign> cachedVersions = [];
-	private string? cachedFileSha;
-	private long LastBadgeUpdate = -1;
-	private readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
-	private readonly IServiceScopeFactory scopeFactory;
+	private readonly Lock _cacheLock = new();
+	private HashSet<VersionSign> _cachedVersions = [];
+	private string? _cachedFileSha;
+	private long _lastBadgeUpdate = -1;
+	private static readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
+
+	private readonly IServiceScopeFactory _scopeFactory;
+	private readonly ITimerService _timer;
+	private readonly IWebHostEnvironment _env;
 
 	public TeamspeakService(IServiceScopeFactory scopeFactory, ITimerService timer, IWebHostEnvironment env)
 	{
-		if (!env.IsDevelopment())
-		{
-			timer.Register(UpdateVersionsAsync);
-			timer.Register(UpdateBadgesAsync);
-			timer.Register(KeepNicknamesValidAsync);
-		}
-		this.scopeFactory = scopeFactory;
+		_scopeFactory = scopeFactory;
+		_timer = timer;
+		_env = env;
 	}
 
-	public static async Task<(bool safe, bool affectsVersion)> CheckSafeToAccept(string url)
+	public Task StartAsync(CancellationToken cancellationToken)
 	{
-		try
+		if (!_env.IsDevelopment())
 		{
-			bool safe = true;
-			bool affectsVersion = false;
-
-			using var response = await Util.httpClient.GetAsync(url);
-			var diff = await response.Content.ReadAsStringAsync();
-			foreach (var item in (IEnumerable<Match>)diffMatch().Matches(diff))
-			{
-				if (item.Value == "diff --git a/Version.csv b/Version.csv")
-				{
-					affectsVersion = true;
-				}
-				else
-				{
-					safe = false;
-				}
-			}
-			return (safe, affectsVersion);
+			_timer.Register(UpdateVersionsAsync);
+			_timer.Register(UpdateBadgesAsync);
+			_timer.Register(KeepNicknamesValidAsync);
 		}
-		catch { return (false, false); }
+
+		return Task.CompletedTask;
 	}
+
+	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
 	public async Task TryAddNewVersionSignChecked(params IEnumerable<VersionSign> vsign)
 	{
@@ -103,7 +89,7 @@ public partial class TeamspeakService
 		if (vsign.Count == 0)
 			return new OkObjectResult("No signs requested");
 
-		if (vsign.All(x => cachedVersions.Contains(x)))
+		if (vsign.All(x => _cachedVersions.Contains(x)))
 			return new OkObjectResult("All signs ok. No new entries.");
 
 		var file = await DownloadJson<Json_File>("/contents/Versions.csv");
@@ -112,11 +98,11 @@ public partial class TeamspeakService
 		HashSet<VersionSign> versions;
 		bool recalculate;
 
-		lock (cacheLock)
+		lock (_cacheLock)
 		{
-			if (file.sha == cachedFileSha)
+			if (file.sha == _cachedFileSha)
 			{
-				versions = cachedVersions;
+				versions = _cachedVersions;
 				recalculate = false;
 			}
 			else
@@ -135,10 +121,10 @@ public partial class TeamspeakService
 			if (errors.Count > 0)
 				return new UnprocessableEntityObjectResult(errors);
 
-			lock (cacheLock)
+			lock (_cacheLock)
 			{
-				cachedVersions = versions;
-				cachedFileSha = file.sha;
+				_cachedVersions = versions;
+				_cachedFileSha = file.sha;
 			}
 		}
 
@@ -149,13 +135,14 @@ public partial class TeamspeakService
 
 		var newContent = CsvHeader + string.Join("\n",
 			versions
-			.Concat(newEntries)
-			.OrderBy(x => x.BuildNumber)
-			.ThenBy(x => x.Platform));
+				.Concat(newEntries)
+				.OrderBy(x => x.BuildNumber)
+				.ThenBy(x => x.Platform));
 		var base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes(newContent));
 
 		var strb = new StringBuilder();
-		strb.AppendFormat(CultureInfo.InvariantCulture, "Added new version: {0},{1}", newEntries[0].Build, newEntries[0].Platform);
+		strb.AppendFormat(CultureInfo.InvariantCulture, "Added new version: {0},{1}", newEntries[0].Build,
+			newEntries[0].Platform);
 		if (newEntries.Length > 1)
 		{
 			strb.AppendFormat(CultureInfo.InvariantCulture, " (and {0} more)", newEntries.Length - 1);
@@ -218,6 +205,7 @@ public partial class TeamspeakService
 					errors.Add(new VersionError(lineNumber, "Duplicate Entry", vsign));
 					continue;
 				}
+
 				duplicates.Add(vsign);
 
 				var checkResult = CheckVersion(vsign);
@@ -244,17 +232,19 @@ public partial class TeamspeakService
 			else
 				return null;
 		}
+
 		return sign;
 	}
 
 	public static VersionError? CheckVersion(VersionSign sign)
 	{
-		var tryFixSignStr = versionClean().Replace(sign.Sign, "");
+		var tryFixSignStr = VersionClean.Replace(sign.Sign, "");
 		if (tryFixSignStr != sign.Sign)
 		{
 			var tryFixSign = new VersionSign(sign.Build, sign.Platform, tryFixSignStr);
 			var result = EdCheck(tryFixSign);
-			return result ?? new VersionError(-1, "The sign is correct but some junk characters were removed", sign) { FixedVersion = tryFixSign };
+			return result ?? new VersionError(-1, "The sign is correct but some junk characters were removed", sign)
+				{ FixedVersion = tryFixSign };
 		}
 		else
 		{
@@ -267,11 +257,14 @@ public partial class TeamspeakService
 		try
 		{
 			var ver = Encoding.ASCII.GetBytes(sign.Platform + sign.Build);
-			if (!Chaos.NaCl.Ed25519.Verify(Convert.FromBase64String(sign.Sign), ver, Ts3VerionSignPublicKey))
+			if (!Chaos.NaCl.Ed25519.Verify(Convert.FromBase64String(sign.Sign), ver, Ts3VersionSignPublicKey))
 				return new VersionError(-1, "Sign invalid", sign);
 			return null;
 		}
-		catch (Exception ex) { return new VersionError(-1, $"Invalid data ({ex.Message})", sign); }
+		catch (Exception ex)
+		{
+			return new VersionError(-1, $"Invalid data ({ex.Message})", sign);
+		}
 	}
 
 	public async Task<IActionResult?> AddNewBadge(Badges badges)
@@ -279,7 +272,7 @@ public partial class TeamspeakService
 		if (badges.BadgeList.Length == 0)
 			return new OkObjectResult("No badges requested");
 
-		if (LastBadgeUpdate == badges.LastUpdate)
+		if (_lastBadgeUpdate == badges.LastUpdate)
 			return new OkObjectResult("Badge file hasn't changed");
 
 		var file = await DownloadJson<Json_File>("/contents/Badges.csv");
@@ -301,9 +294,23 @@ public partial class TeamspeakService
 
 			if (dictBadges.TryGetValue(badge.Guid, out var compareBadge))
 			{
-				if (compareBadge.name != badge.Name) { compareBadge.name = badge.Name; changed = true; }
-				if (compareBadge.description != badge.Description) { compareBadge.description = badge.Description; changed = true; }
-				if (compareBadge.filename != filename) { compareBadge.filename = filename; changed = true; }
+				if (compareBadge.name != badge.Name)
+				{
+					compareBadge.name = badge.Name;
+					changed = true;
+				}
+
+				if (compareBadge.description != badge.Description)
+				{
+					compareBadge.description = badge.Description;
+					changed = true;
+				}
+
+				if (compareBadge.filename != filename)
+				{
+					compareBadge.filename = filename;
+					changed = true;
+				}
 			}
 			else
 			{
@@ -352,7 +359,7 @@ public partial class TeamspeakService
 		foreach (var badge in newEntries)
 			Log.Info("Added new badge: {0},{1}", badge.uid, badge.name);
 
-		LastBadgeUpdate = badges.LastUpdate;
+		_lastBadgeUpdate = badges.LastUpdate;
 
 		return new OkObjectResult("All signs ok. Added new ones to db.");
 	}
@@ -374,7 +381,7 @@ public partial class TeamspeakService
 
 	private async Task<bool> PutJson<T>(string action, T data) where T : class
 	{
-		using var scope = scopeFactory.CreateScope();
+		using var scope = _scopeFactory.CreateScope();
 		var store = scope.ServiceProvider.GetRequiredService<StoreService>();
 
 		try
@@ -407,7 +414,8 @@ public partial class TeamspeakService
 	{
 		try
 		{
-			using var response = await Util.httpClient.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
+			using var response =
+				await Util.httpClient.GetAsync("https://ts3index.com/api/clientversions.php?id=LsnlCausp");
 			JsonData? data = await response.Content.ReadFromJsonAsync<JsonData?>(Util.JsonDefault);
 
 			if (data?.data is null || !data.success)
@@ -416,7 +424,10 @@ public partial class TeamspeakService
 			var vsign = data.data.Select(x => new VersionSign(x.version, x.platform, x.sign)).ToArray();
 			await TryAddNewVersionSignChecked(vsign);
 		}
-		catch (Exception ex) { Log.Warn(ex, "Failed to check verions: {0}", ex.Message); }
+		catch (Exception ex)
+		{
+			Log.Warn(ex, "Failed to check verions: {0}", ex.Message);
+		}
 	}
 
 	private async Task UpdateBadgesAsync()
@@ -426,10 +437,13 @@ public partial class TeamspeakService
 			var uri = new Uri("https://badges-content.teamspeak.com/list");
 			using var request = new HttpRequestMessage(HttpMethod.Get, uri);
 			request.Headers.UserAgent.Clear();
-			request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0");
+			request.Headers.UserAgent.ParseAdd(
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0");
 			var cc = new CookieContainer();
 			cc.Add(uri, new Cookie("__cfduid", "d10e713663dd1405a7d4055a1cb37436c1560562132"));
-			cc.Add(uri, new Cookie("bb_lastvisit", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)));
+			cc.Add(uri,
+				new Cookie("bb_lastvisit",
+					DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)));
 			cc.Add(uri, new Cookie("bb_lastactivity", "0"));
 			request.Headers.Add("Cookie", cc.GetCookieHeader(uri));
 			using var response = await Util.httpClient.SendAsync(request);
@@ -442,12 +456,15 @@ public partial class TeamspeakService
 
 			await AddNewBadge(badges);
 		}
-		catch (Exception ex) { Log.Warn(ex, "Failed to update badges: {0}", ex.Message); }
+		catch (Exception ex)
+		{
+			Log.Warn(ex, "Failed to update badges: {0}", ex.Message);
+		}
 	}
 
 	private async Task KeepNicknamesValidAsync()
 	{
-		using var scope = scopeFactory.CreateScope();
+		using var scope = _scopeFactory.CreateScope();
 		var store = scope.ServiceProvider.GetRequiredService<StoreService>();
 
 		var nickList = await store.Get("check_nicknames");
@@ -460,7 +477,10 @@ public partial class TeamspeakService
 			{
 				using var _ = await Util.httpClient.GetAsync("https://named.myteamspeak.com/lookup?name=" + name);
 			}
-			catch (Exception ex) { Log.Warn(ex, "Failed to check nickname: {0}", name); }
+			catch (Exception ex)
+			{
+				Log.Warn(ex, "Failed to check nickname: {0}", name);
+			}
 		}
 	}
 
@@ -515,9 +535,9 @@ public sealed partial class VersionSign : IEquatable<VersionSign>
 
 	public bool Equals(VersionSign? other)
 		=> other != null
-		&& Sign == other.Sign
-		&& Build == other.Build
-		&& Platform == other.Platform;
+		   && Sign == other.Sign
+		   && Build == other.Build
+		   && Platform == other.Platform;
 
 	public override int GetHashCode() => HashCode.Combine(Sign, Build, Platform);
 
@@ -530,8 +550,10 @@ public class Badges
 {
 	[ProtoMember(1)]
 	public long _1 { get; set; }
+
 	[ProtoMember(2)]
 	public long LastUpdate { get; set; }
+
 	[ProtoMember(3)]
 	public Badge[] BadgeList { get; set; }
 }
@@ -541,14 +563,19 @@ public class Badge
 {
 	[ProtoMember(1)]
 	public string Guid { get; set; }
+
 	[ProtoMember(2)]
 	public string Name { get; set; }
+
 	[ProtoMember(3)]
 	public string Url { get; set; }
+
 	[ProtoMember(4)]
 	public string Description { get; set; }
+
 	[ProtoMember(5)]
 	public long Timestamp { get; set; }
+
 	[ProtoMember(6)]
 	public long _1 { get; set; }
 }

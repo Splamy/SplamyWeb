@@ -151,13 +151,14 @@ public static class Startup
 		services.AddHostedService(p => (TimerService)p.GetRequiredService<ITimerService>()); // Is there a better way to do this?
 
 		services.AddScoped<StoreService>();
-		services.AddSingleton<TabBackingData>();
 		services.AddSingleton<SpamBackingData>();
 		services.AddSingleton<RamsesBackingData>();
-		services.AddSingleton<TeamspeakService>();
-		services.AddSingleton<LogNotifierService>();
 		services.AddSingleton<MinigameServer>();
 
+		services.AddSingleton<TabBackingData>();
+		services.AddHostedService(x => x.GetRequiredService<TabBackingData>());
+		services.AddSingleton<TeamspeakService>();
+		services.AddHostedService(x => x.GetRequiredService<TeamspeakService>());
 		services.AddHostedService<RamsesService>();
 		services.AddHostedService(x => x.GetRequiredService<RamsesBackingData>());
 
@@ -171,10 +172,6 @@ public static class Startup
 		var env = app.Environment;
 
 		await MigrateDatabaseAsync(services);
-
-		services.GetService<LogNotifierService>();
-		services.GetService<TeamspeakService>();
-		services.GetService<TabBackingData>();
 
 		if (env.IsDevelopment())
 		{
@@ -219,7 +216,6 @@ public static class Startup
 		app.UseEndpoints(endpoints =>
 		{
 			endpoints.MapControllers();
-			endpoints.MapHub<LogNotifier>("/api/livelog");
 			endpoints.MapHub<MarkdownService>("/api/markdown");
 			endpoints.MapHub<Minigame>("api/minigame");
 		});
@@ -239,7 +235,6 @@ public static class Startup
 					spa.UseProxyToSpaDevelopmentServer($"http://localhost:{port}");
 				}
 			}));
-
 	}
 
 	private static async Task MigrateDatabaseAsync(IServiceProvider services)

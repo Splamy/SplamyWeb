@@ -1,6 +1,6 @@
 # From IL to MMIX
 
-Writing a C# to MMIX AOT Compiler, because... why not.
+Writing a C# to MMIX AOT ~~Compiler~~ Transpiler, because... why not.
 
 ## No, really, why ???
 

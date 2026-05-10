@@ -1,12 +1,14 @@
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SplamyWeb.Components;
 
 public class SpamBackingData
 {
+	private readonly Lock _spamLock = new();
 	private readonly Dictionary<IPAddress, SpamCacheEntry> _spamCache = [];
 
 	private const int MaxIpRequests = 1_000;
@@ -22,7 +24,7 @@ public class SpamBackingData
 	public bool Check(IPAddress reqIp)
 	{
 		var now = _timeProvider.GetUtcNow().DateTime;
-		lock (_spamCache)
+		lock (_spamLock)
 		{
 			ref var spamCacheEntry = ref CollectionsMarshal.GetValueRefOrAddDefault(_spamCache, reqIp, out var exists);
 
@@ -45,7 +47,7 @@ public class SpamBackingData
 	private async Task CleanIpTables()
 	{
 		await Task.Yield();
-		lock (_spamCache)
+		lock (_spamLock)
 		{
 			var nowTimeout = DateTime.UtcNow - ResetIpRequestsAfter;
 			var kvpList = _spamCache.ToArray();

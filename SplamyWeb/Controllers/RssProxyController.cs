@@ -119,7 +119,6 @@ public class RssProxyController(
         return Content(xml.OuterXml, "application/rss+xml", Encoding.UTF8);
     }
 
-
     [HttpGet("rhythm_quest")]
     public async Task<IActionResult> GetRhythmQuest(CancellationToken cancellationToken)
     {

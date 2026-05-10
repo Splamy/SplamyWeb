@@ -1,17 +1,15 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SplamyWeb.Db;
 
 namespace SplamyWeb.Tests;
 
-[TestClass]
 public class RankTests
 {
-	[TestMethod]
+	[Fact]
 	public void TestRanksAreCorrectlyOrdered()
 	{
-		Assert.IsTrue(UserType.Admin.AtLeast(UserType.Admin));
-		Assert.IsTrue(UserType.Admin.AtLeast(UserType.User));
-		Assert.IsTrue(UserType.User.AtLeast(UserType.User));
-		Assert.IsFalse(UserType.User.AtLeast(UserType.Admin));
+		Assert.True(UserType.Admin.AtLeast(UserType.Admin));
+		Assert.True(UserType.Admin.AtLeast(UserType.User));
+		Assert.True(UserType.User.AtLeast(UserType.User));
+		Assert.False(UserType.User.AtLeast(UserType.Admin));
 	}
 }

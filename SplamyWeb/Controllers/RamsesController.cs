@@ -263,7 +263,7 @@ public class RamsesController(RamsesBackingData ramses, SplamyContext db) : Cont
 							continue;
 
 
-						var vector = await RamsesBackingData.ToRamsesVector(db, dataDiff);
+						var vector = await RamsesBackingData.ToRamsesVector(db, dataDiff, logger);
 						diff.SearchVector = vector;
 						diff.SearchIndexVersion = RamsesBackingData.RamsesQueryVersion;
 					}

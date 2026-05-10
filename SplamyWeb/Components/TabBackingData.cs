@@ -3,49 +3,53 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SplamyWeb.Db;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace SplamyWeb.Components;
 
-public class TabBackingData
+public class TabBackingData(IServiceScopeFactory scopeFactory, ITimerService timer, ILogger<TabBackingData> logger)
+	: IHostedService
 {
-	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-	private readonly IServiceScopeFactory _scopeFactory;
 	private const int MaxRunningBots = 10_000;
 	private const int MaxDaysCalculation = 2; // Aim to send stats once per day. So 10 days should be the maximum for values calculation
 	private static readonly TimeSpan MaxTotalUptime = TimeSpan.FromDays(MaxDaysCalculation);
 	private const int MaxSongsPerFactory = 60 * 60 * 24 * MaxDaysCalculation;
 
-	// Precaclulated stuff
+	// Precalculated stuff
 	public uint Downloads { get; private set; }
 	public uint RunningInstances { get; private set; }
 	public uint RunningBots { get; private set; }
 	public TimeSpan PlaybackTime { get; private set; }
 	public ImmutableArray<CachedDayStats> CachedDayStats { get; private set; } = [];
 
-	public TabBackingData(IServiceScopeFactory scopeFactory, ITimerService timer)
+	public Task StartAsync(CancellationToken cancellationToken)
 	{
-		_scopeFactory = scopeFactory;
 		timer.Register(UpdateAggregates);
+		return Task.CompletedTask;
 	}
+
+	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
 	public async Task Add(TabStatsData obj)
 	{
-		if (!VaidateTabStats(obj))
+		if (!ValidateTabStats(obj))
 			return;
 
-		Log.Info("Stats: {@stats}", obj);
+		logger.LogInformation("Stats: {@stats}", obj);
 
 		var dto = TabStatsMapper.ToDto(obj);
 		dto.Time = DateTime.UtcNow;
 
-		await using var scope = _scopeFactory.CreateAsyncScope();
+		await using var scope = scopeFactory.CreateAsyncScope();
 		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 		await db.TabStatsPings.AddAsync(dto);
 		await db.SaveChangesAsync();
 	}
 
-	private static bool VaidateTabStats(TabStatsData obj)
+	private static bool ValidateTabStats(TabStatsData obj)
 	{
 		if (
 			obj.Platform is null &&
@@ -53,7 +57,7 @@ public class TabBackingData
 			obj.BotVersion is null)
 			return false;
 
-		// This version messed up the stats caclulation
+		// This version messed up the stats calculation
 		if (obj.BotVersion == "0.11.0-alpha.50/develop/96162298" || obj.TotalUptime < TimeSpan.FromMinutes(3))
 			return false;
 
@@ -80,7 +84,7 @@ public class TabBackingData
 
 	public async Task UpdateAggregates()
 	{
-		using var scope = _scopeFactory.CreateScope();
+		using var scope = scopeFactory.CreateScope();
 		var db = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
 		Downloads = (uint)await db.NightlyBuilds.AsNoTracking()

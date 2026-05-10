@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace SplamyWeb.Components;
 
@@ -28,14 +29,14 @@ partial class RamsesBackingData
 		if (upradeMaps.Count == 0)
 			return;
 
-		Log.Info($"Upgrading {upradeMaps.Count} maps to {JbmVersion}");
+		_logger.LogInformation($"Upgrading {upradeMaps.Count} maps to {JbmVersion}");
 
 		foreach (var id in upradeMaps)
 		{
 			if (cancellationToken.IsCancellationRequested)
 				break;
 
-			Log.Info($"Upgrading map {id:X}");
+			_logger.LogInformation($"Upgrading map {id:X}");
 
 			var map = await db.RamsesSongs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 			if (map?.RawMap == null) continue;
@@ -49,14 +50,14 @@ partial class RamsesBackingData
 					var original = map.JbmVersion is "" ? UnpackMapOld(map.RawMap) : UnpackMap(map.RawMap);
 					if (original is null)
 					{
-						Log.Error($"Failed to decode map {id:X}");
+						_logger.LogError($"Failed to decode map {id:X}");
 						continue;
 					}
-					var encoded = PackMap(original);
+					var encoded = PackMap(original, _logger);
 
 					if (encoded is null)
 					{
-						Log.Error($"Failed to encode map {id:X}");
+						_logger.LogError($"Failed to encode map {id:X}");
 						continue;
 					}
 
@@ -76,14 +77,14 @@ partial class RamsesBackingData
 					{
 						if (!StreamsEqual(original.Get(file), unpacked.Get(file)))
 						{
-							Log.Error($"Failed to validate encoded map equal {id:X} -> {file}");
+							_logger.LogError($"Failed to validate encoded map equal {id:X} -> {file}");
 							hasErrors = true;
 						}
 					}
 
 					if (hasErrors)
 					{
-						Log.Error($"Failed to validate encoded map {id:X}");
+						_logger.LogError($"Failed to validate encoded map {id:X}");
 						continue;
 					}
 
@@ -99,7 +100,7 @@ partial class RamsesBackingData
 					using var info = unpacked.Get("info.dat");
 					if (info is null)
 					{
-						Log.Error($"Failed to decode map {id:X}");
+						_logger.LogError($"Failed to decode map {id:X}");
 						continue;
 					}
 
@@ -107,7 +108,7 @@ partial class RamsesBackingData
 
 					if (json is null)
 					{
-						Log.Error($"Failed to decode map {id:X}");
+						_logger.LogError($"Failed to decode map {id:X}");
 						continue;
 					}
 
@@ -118,7 +119,7 @@ partial class RamsesBackingData
 
 				if (map.JbmVersion != JbmVersion)
 				{
-					Log.Error($"Failed to upgrade map {id:X}");
+					_logger.LogError($"Failed to upgrade map {id:X}");
 					continue;
 				}
 
@@ -126,7 +127,7 @@ partial class RamsesBackingData
 			}
 			catch (Exception ex)
 			{
-				Log.Error(ex, $"Failed to validate encoded map {id:X}");
+				_logger.LogError(ex, $"Failed to validate encoded map {id:X}");
 				continue;
 			}
 		}
