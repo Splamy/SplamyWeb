@@ -1,28 +1,28 @@
-{pkgs ? import <nixpkgs> {}}: let
-in
+{pkgs ? import <nixpkgs> {}}:
   pkgs.buildNpmPackage (finalAttrs: {
-    pname = "myousync-ui";
+    pname = "splamyweb-js";
     version = "1.0.0";
 
-    src = ./../../ui/.;
-    npmDeps = pkgs.importNpmLock {
-      npmRoot = ./../../ui/.;
-    };
-    npmConfigHook = pkgs.importNpmLock.npmConfigHook;
+    src = ./../../splamyweb_js/.;
+    npmDeps = pkgs.runCommand "bun-lock-conversion" {} ''
+      mkdir -p $out
+      ${pkgs.bun}/bin/bun install --frozen-lockfile --bun false
+      cp -r node_modules $out/node_modules
+      echo '{}' > $out/package-lock.json
+    '';
 
-    # The prepack script runs the build script, which we'd rather do in the build phase.
-    npmPackFlags = ["--ignore-scripts" "--legacy-peer-deps"];
-
+    # Use bun for build since the project uses bun.lock
     installPhase = ''
       runHook preInstall
 
       mkdir -p $out
-      cp -R ./dist/* $out
+      ${pkgs.bun}/bin/bun run build
+      cp -R build/* $out
 
       runHook postInstall
     '';
 
     meta = {
-      description = "myousync-ui static pages";
+      description = "splamyweb-js static pages";
     };
   })

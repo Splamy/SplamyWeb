@@ -3,12 +3,18 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+	nuget-packageslock2nix = {
+	  url = "github:mdarocha/nuget-packageslock2nix";
+	  inputs.nixpkgs.follows = "nixpkgs";
+	};
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
+    nuget-packageslock2nix,
+    ...
   }:
     flake-utils.lib.eachDefaultSystem (
       system: let
@@ -16,7 +22,7 @@
           inherit system;
         };
         splamyweb-ui = pkgs.callPackage ./nix/frontend/. {};
-        splamyweb-backend = pkgs.callPackage ./nix/backend/. {};
+        splamyweb-backend = pkgs.callPackage ./nix/backend/. { };
       in rec {
         defaultPackage = packages.myousync;
 

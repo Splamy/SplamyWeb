@@ -6,20 +6,20 @@ self: {
 }:
 with lib; let
   system = "x86_64-linux";
-  bin-default = self.packages.${system}.splamyweb-backed;
+  bin-default = self.packages.${system}.splamyweb-backend;
   ui-default = self.packages.${system}.splamyweb-ui;
-  cfg = config.services.myousync;
+  cfg = config.services.splamyweb;
   settingsFormat = pkgs.formats.json {};
   configFile = settingsFormat.generate "appsettings.json" configOptions;
 in {
-  options.services.myousync = {
-    enable = mkEnableOption "myousync";
+  options.services.splamyweb = {
+    enable = mkEnableOption "splamyweb";
 
     package = mkOption {
       type = types.package;
       default = bin-default;
-      defaultText = literalExpression "pkgs.myousync";
-      description = "myousync package to use.";
+      defaultText = literalExpression "pkgs.splamyweb-backend";
+      description = "splamyweb package to use.";
     };
 
     user = mkOption {
@@ -56,7 +56,7 @@ in {
   config = mkIf cfg.enable {
     environment.systemPackages = [cfg.package];
 
-    systemd.services.myousync = {
+    systemd.services.splamyweb = {
       description = "Splamy's web page";
       after = ["network-online.target"];
       wants = ["network-online.target"];
@@ -71,7 +71,7 @@ in {
         Group = cfg.group;
         WorkingDirectory = cfg.dataDir;
         # ExecStart = "${getExe cfg.package}";
-        ExecStart = "${getExe cfg.package} ${configFile}";
+        ExecStart = "${getExe cfg.package}";
         Restart = "on-failure";
         TimeoutSec = 15;
         EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
