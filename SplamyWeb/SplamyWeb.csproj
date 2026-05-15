@@ -8,7 +8,7 @@
 		<AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
 		<Nullable>enable</Nullable>
 
-		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 	</PropertyGroup>
 
 	<ItemGroup>

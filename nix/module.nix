@@ -51,6 +51,11 @@ in {
       default = {};
       description = "appsettings json";
     };
+
+    database = lib.mkOption {
+      type = types.nullOr types.str;
+      default = "splamy_web";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -89,6 +94,16 @@ in {
 
     users.groups = mkIf (cfg.group == "splamyweb") {
       splamyweb = {};
+    };
+
+    services.postgresql = mkIf (cfg.database != null) {
+      ensureDatabases = [cfg.database];
+      ensureUsers = [
+        {
+          name = cfg.database;
+          ensureDBOwnership = true;
+        }
+      ];
     };
   };
 }
