@@ -15,18 +15,18 @@
         pkgs = (import nixpkgs) {
           inherit system;
         };
-        myousync-ui = pkgs.callPackage ./nix/frontend/. {};
-        myousync = pkgs.callPackage ./nix/backend/. {};
+        splamyweb-ui = pkgs.callPackage ./nix/frontend/. {};
+        splamyweb-backend = pkgs.callPackage ./nix/backend/. {};
       in rec {
         defaultPackage = packages.myousync;
 
-        packages.myousync = myousync;
-        packages.myousync-ui = myousync-ui;
+        packages.splamyweb = splamyweb-backend;
+        packages.splamyweb-ui = splamyweb-ui;
 
         devShells.default = pkgs.callPackage ./nix/shell.nix {};
       }
     )
     // {
-      nixosModules.myousync = import ./nix/myousync.nix self;
+      nixosModules.splamyweb = import ./nix/module.nix self;
     };
 }

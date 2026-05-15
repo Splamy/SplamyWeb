@@ -6,12 +6,11 @@ self: {
 }:
 with lib; let
   system = "x86_64-linux";
-  bin-default = self.packages.${system}.myousync;
-  ui-default = self.packages.${system}.myousync-ui;
+  bin-default = self.packages.${system}.splamyweb-backed;
+  ui-default = self.packages.${system}.splamyweb-ui;
   cfg = config.services.myousync;
-  settingsFormat = pkgs.formats.toml {};
-  configOptions =    lib.recursiveUpdate    (    )    cfg.settings;
-  configFile = settingsFormat.generate "myousync.toml" configOptions;
+  settingsFormat = pkgs.formats.json {};
+  configFile = settingsFormat.generate "appsettings.json" configOptions;
 in {
   options.services.myousync = {
     enable = mkEnableOption "myousync";
@@ -25,42 +24,32 @@ in {
 
     user = mkOption {
       type = types.str;
-      default = "myousync";
+      default = "splamyweb";
       description = "User to run the service as.";
     };
 
     group = mkOption {
       type = types.str;
-      default = "myousync";
+      default = "splamyweb";
       description = "Group to run the service as.";
     };
 
     dataDir = mkOption {
       type = types.path;
-      default = "/var/lib/myousync";
-      description = ''
-        Base data directory,
-      '';
+      default = "/var/lib/splamyweb";
+      description = "Base data directory";
     };
 
     environmentFile = lib.mkOption {
       type = types.nullOr types.path;
       default = null;
-      example = "/run/secrets/myousync";
-      description = ''
-        To set the youtube auth data, point `environmentFile` at a file containing:
-        ```
-        EXAMPLE=VALUE
-        ```
-      '';
+      example = "/run/secrets/splamyweb";
     };
 
     settings = lib.mkOption {
       type = types.attrs;
       default = {};
-      description = ''
-        The root myousync.toml configuration. Nix specific config will overwrite values in this.
-      '';
+      description = "appsettings json";
     };
   };
 
@@ -68,15 +57,13 @@ in {
     environment.systemPackages = [cfg.package];
 
     systemd.services.myousync = {
-      description = "myousync music syncronization service";
+      description = "Splamy's web page";
       after = ["network-online.target"];
       wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
       restartTriggers = [configFile];
 
-      environment = {
-        RUST_BACKTRACE = "1"; # TODO remove
-      };
+      environment = {};
 
       serviceConfig = {
         Type = "simple";
@@ -91,8 +78,8 @@ in {
       };
     };
 
-    users.users = mkIf (cfg.user == "myousync") {
-      myousync = {
+    users.users = mkIf (cfg.user == "splamyweb") {
+      splamyweb = {
         inherit (cfg) group;
         isSystemUser = true;
         home = cfg.dataDir;
@@ -100,14 +87,8 @@ in {
       };
     };
 
-    users.groups = mkIf (cfg.group == "myousync") {
-      myousync = {};
-    };
-
-    networking.firewall = mkIf cfg.openFirewall {
-      allowedTCPPorts = [
-        cfg.port
-      ];
+    users.groups = mkIf (cfg.group == "splamyweb") {
+      splamyweb = {};
     };
   };
 }
