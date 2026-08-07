@@ -35,14 +35,14 @@ public partial class RamsesBackingData : BackgroundService
 	private readonly string RamsesVersion;
 	private readonly string JbmVersion;
 
-	private static readonly JBMOptions jbmMapOptions = new()
+	private static readonly JbmOptions jbmMapOptions = new()
 	{
 		UseAos = true,
 		UseJbm = false,
 		Compress = false,
 	};
 
-	private static readonly JBMOptions jbmResultOptions = new()
+	private static readonly JbmOptions jbmResultOptions = new()
 	{
 		UseAos = false,
 		UseJbm = false,
@@ -55,7 +55,7 @@ public partial class RamsesBackingData : BackgroundService
 		ILogger<RamsesBackingData> logger)
 	{
 		var verRam = typeof(RateMapSeveritySaber.Analyzer).Assembly.GetName().Version!;
-		var verJbm = typeof(JBMConverter).Assembly.GetName().Version!;
+		var verJbm = typeof(JbmConverter).Assembly.GetName().Version!;
 		RamsesVersion = $"{verRam.Major}.{verRam.Minor}";
 		JbmVersion = $"{verJbm.Major}.{verJbm.Minor}.a";
 		_scopeFactory = scopeFactory;
@@ -293,7 +293,7 @@ public partial class RamsesBackingData : BackgroundService
 				if (fs is null) return;
 				var entry = zip.CreateEntry(file, CompressionLevel.NoCompression);
 				using var writer = entry.Open();
-				var data = JBMConverter.Encode(JsonSerializer.Deserialize<JsonElement>(fs), jbmMapOptions);
+				var data = JbmConverter.Encode(JsonSerializer.Deserialize<JsonElement>(fs), jbmMapOptions);
 				writer.Write(data);
 			}
 
@@ -350,12 +350,12 @@ public partial class RamsesBackingData : BackgroundService
 
 	public static byte[] PackScoreObject(RamsesDifficultyDto map)
 	{
-		return JBMConverter.EncodeObject(map, jbmResultOptions);
+		return JbmConverter.EncodeObject(map, jbmResultOptions);
 	}
 
 	public static RamsesDifficultyDto UnpackScoreObject(byte[] data)
 	{
-		return JBMConverter.DecodeObject<RamsesDifficultyDto>(data, jbmResultOptions)!;
+		return JbmConverter.DecodeObject<RamsesDifficultyDto>(data, jbmResultOptions)!;
 	}
 
 	private static OkObjectResult ToResult(object content)
@@ -473,7 +473,7 @@ public static partial class RamsesMapper
 		RamsesBackingData.UnpackScoreObject(map.RatingDetail);
 }
 
-public class JbmZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapProvider
+public class JbmZipProvider(ZipArchive zip, JbmOptions? options = null) : BsMapProvider
 {
 	public override IEnumerable<string> Files => zip.Entries.Select(e => NormalizeName(e.FullName));
 
@@ -488,7 +488,7 @@ public class JbmZipProvider(ZipArchive zip, JBMOptions? options = null) : BsMapP
 		}
 
 		var arr = mem.GetBuffer().AsMemory(0, (int)mem.Length);
-		return JBMConverter.DecodeToStream(arr, options);
+		return JbmConverter.DecodeToStream(arr, options);
 	}
 }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import 'chartjs-adapter-moment';
-	import Chart from 'chart.js/auto/auto';
+	import Chart from 'chart.js/auto';
 	import moment from 'moment';
 	import { onMount } from 'svelte';
 	import { BASE_URL } from '$lib/util';

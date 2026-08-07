@@ -21,7 +21,7 @@
           inherit pkgs;
         };
       in rec {
-        defaultPackage = packages.myousync;
+        packages.default = packages.splamyweb;
 
         packages.splamyweb = splamyweb-backend.bin;
         packages.splamyweb-ui = splamyweb-ui;

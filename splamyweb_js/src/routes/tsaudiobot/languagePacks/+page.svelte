@@ -33,25 +33,28 @@
 	</p>
 
 	<table class="table" style="width:100%;">
-		<tr>
-			<th>Language</th>
-			<th>Built</th>
-			<th>Link</th>
-		</tr>
-
-		{#each data.langs as lang}
+		<thead>
 			<tr>
-				<td>{lang.displayName}</td>
-				<td><ShortDate date={lang.uploadTime} /></td>
-				<td
-					><a
-						rel="external"
-						href="{BASE_URL}/api/language/project/ts3ab/language/{lang.language}/dll"
-						download="TS3AudioBot.resources.dll">Download</a
-					></td
-				>
+				<th>Language</th>
+				<th>Built</th>
+				<th>Link</th>
 			</tr>
-		{/each}
+		</thead>
+		<tbody>
+			{#each data.langs as lang}
+				<tr>
+					<td>{lang.displayName}</td>
+					<td><ShortDate date={lang.uploadTime} /></td>
+					<td
+						><a
+							rel="external"
+							href="{BASE_URL}/api/language/project/ts3ab/language/{lang.language}/dll"
+							download="TS3AudioBot.resources.dll">Download</a
+						></td
+					>
+				</tr>
+			{/each}
+		</tbody>
 	</table>
 </article>
 

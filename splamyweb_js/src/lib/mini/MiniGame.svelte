@@ -8,7 +8,8 @@
 	import Collectable from './Collectable.svelte';
 	import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 	import { onMount } from 'svelte';
-	import { CollectableData, Coord, Particle, Rocket } from './minigame';
+	import { CollectableData, Particle, Rocket } from './minigame';
+	import type { Coord } from './minigame';
 	import { BASE_URL, debounced } from '$lib/util';
 	import { mdiStar } from '@mdi/js';
 	import Icon from '$lib/Icon.svelte';

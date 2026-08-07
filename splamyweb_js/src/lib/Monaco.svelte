@@ -1,16 +1,15 @@
 <script lang="ts">
 	import type * as monaco from 'monaco-editor';
 	import { onMount, onDestroy } from 'svelte';
-	import type { Writable } from "svelte/store";
 
 	//import * as Monaco from 'monaco-editor';
-	import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-	import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
+	import editorWorker from 'monaco-editor/editor/editor.worker?worker';
+	import jsonWorker from 'monaco-editor/language/json/json.worker?worker';
 	//import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
 	//import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
 	//import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
-	export let content : string;
+	export let content: string;
 	export let language: string = 'json';
 	export let readOnly: boolean = false;
 
@@ -28,7 +27,9 @@
 		});
 	}
 
-	$: if(editor && content !== _text) { editor.setValue(content); };
+	$: if (editor && content !== _text) {
+		editor.setValue(content);
+	}
 
 	onMount(async () => {
 		self.MonacoEnvironment = {
@@ -55,7 +56,7 @@
 			language: language,
 			theme: 'vs-dark',
 			readOnly: readOnly,
-			minimap: { enabled: false },
+			minimap: { enabled: false }
 		});
 		editor.onDidChangeModelContent(() => {
 			if (readOnly) return;
@@ -94,9 +95,7 @@
 	<div bind:this={divEl} class="h-full w-full" />
 </div>
 
-<svelte:window
-	on:resize={relayout}
-/>
+<svelte:window on:resize={relayout} />
 
 <style>
 	.flex-grow {

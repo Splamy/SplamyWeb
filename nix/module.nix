@@ -53,7 +53,7 @@ in {
     };
 
     database = lib.mkOption {
-      type = types.nullOr types.str;
+      type = types.str;
       default = "splamy_web";
     };
   };
@@ -68,18 +68,25 @@ in {
       wantedBy = ["multi-user.target"];
       restartTriggers = [configFile];
 
-      environment = {};
+      environment = {
+        WEBROOT = "${ui-default}";
+        DOTNET_ENVIRONMENT = "Production";
+
+        ConnectionStrings__DefaultConnection = "Host=/run/postgresql;Database=${cfg.database}";
+      };
 
       serviceConfig = {
         Type = "simple";
         User = cfg.user;
         Group = cfg.group;
         WorkingDirectory = cfg.dataDir;
-        # ExecStart = "${getExe cfg.package}";
         ExecStart = "${getExe cfg.package}";
         Restart = "on-failure";
         TimeoutSec = 15;
         EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
+        AmbientCapabilities = "CAP_NET_BIND_SERVICE";
+        StateDirectory = "splamyweb";
+        StateDirectoryMode = "0750";
       };
     };
 

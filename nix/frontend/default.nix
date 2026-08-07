@@ -1,28 +1,23 @@
 {pkgs ? import <nixpkgs> {}}:
-  pkgs.buildNpmPackage (finalAttrs: {
-    pname = "splamyweb-js";
-    version = "1.0.0";
+pkgs.buildNpmPackage (finalAttrs: {
+  pname = "splamyweb-js";
+  version = "1.0.0";
 
-    src = ./../../splamyweb_js/.;
-    npmDeps = pkgs.runCommand "bun-lock-conversion" {} ''
-      mkdir -p $out
-      ${pkgs.bun}/bin/bun install --frozen-lockfile --bun false
-      cp -r node_modules $out/node_modules
-      echo '{}' > $out/package-lock.json
-    '';
+  src = ./../../splamyweb_js/.;
 
-    # Use bun for build since the project uses bun.lock
-    installPhase = ''
-      runHook preInstall
+  npmDepsHash = "sha256-tA+o+fT6+vYpxN7MQWj9q9G3NzktfD4xihrU9c6eLnI=";
+  npmPackFlags = ["--ignore-scripts"];
 
-      mkdir -p $out
-      ${pkgs.bun}/bin/bun run build
-      cp -R build/* $out
+  installPhase = ''
+    runHook preInstall
 
-      runHook postInstall
-    '';
+    mkdir -p "$out"
+    cp -R build/. "$out/"
 
-    meta = {
-      description = "splamyweb-js static pages";
-    };
-  })
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "splamyweb-js static pages";
+  };
+})
