@@ -5,8 +5,8 @@ self: {
   ...
 }:
 with lib; let
-  system = "x86_64-linux";
-  bin-default = self.packages.${system}.splamyweb-backend;
+  system = pkgs.system;
+  bin-default = self.packages.${system}.splamyweb;
   ui-default = self.packages.${system}.splamyweb-ui;
   cfg = config.services.splamyweb;
   settingsFormat = pkgs.formats.json {};
