@@ -5,12 +5,12 @@ self: {
   ...
 }:
 with lib; let
-  system = pkgs.system;
+  system = pkgs.stdenv.hostPlatform.system;
   bin-default = self.packages.${system}.splamyweb;
   ui-default = self.packages.${system}.splamyweb-ui;
   cfg = config.services.splamyweb;
   settingsFormat = pkgs.formats.json {};
-  configFile = settingsFormat.generate "appsettings.json" configOptions;
+  configFile = settingsFormat.generate "appsettings.json" cfg.settings;
 in {
   options.services.splamyweb = {
     enable = mkEnableOption "splamyweb";
