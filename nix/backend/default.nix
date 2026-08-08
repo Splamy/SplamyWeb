@@ -1,6 +1,7 @@
 {pkgs ? import <nixpkgs> {}}: let
   dotnet = pkgs.dotnetCorePackages.sdk_10_0;
   aspnetcore = pkgs.dotnetCorePackages.aspnetcore_10_0;
+  runtimeId = pkgs.dotnetCorePackages.systemToDotnetRid pkgs.stdenv.hostPlatform.system;
 in
   with pkgs; {
     bin = dotnetCorePackages.buildDotnetModule {
@@ -11,7 +12,7 @@ in
       projectFile = "SplamyWeb/SplamyWeb.csproj";
       nugetDeps = ./deps.json;
 
-      # dotnetRestoreFlags = ["--use-lock-file" "--locked-mode"];
+      dotnetRestoreFlags = ["--force-evaluate"];
 
       dotnet-sdk = dotnet;
       dotnet-aspnetcore = aspnetcore;
@@ -27,10 +28,25 @@ in
 
     updater = pkgs.writeShellApplication {
       name = "update-deps";
+      runtimeInputs = [
+        dotnet
+        pkgs.coreutils
+        pkgs.nuget-to-json
+      ];
       text = ''
-        ${pkgs.lib.getExe dotnet} restore --packages SplamyWeb/bin/out
-        ${pkgs.lib.getExe pkgs.nuget-to-json} SplamyWeb/bin/out > nix/backend/deps.json
-        echo "Updated nix/backend/deps.json"
+        packages=$(mktemp -d)
+        deps=$(mktemp)
+        trap 'rm -rf "$packages" "$deps"' EXIT
+
+        dotnet restore SplamyWeb/SplamyWeb.csproj \
+          -p:ContinuousIntegrationBuild=true \
+          -p:Deterministic=true \
+          -p:NuGetAudit=false \
+          --runtime ${runtimeId} \
+          --force-evaluate \
+          --packages "$packages"
+        nuget-to-json "$packages" > "$deps"
+        mv "$deps" nix/backend/deps.json
       '';
     };
   }
