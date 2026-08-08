@@ -16,6 +16,7 @@ in
 
       dotnet-sdk = dotnet;
       dotnet-aspnetcore = aspnetcore;
+      dotnet-runtime = aspnetcore;
 
       buildInputs = [
         openssl
