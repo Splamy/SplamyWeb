@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using Microsoft.Extensions.Options;
 
 namespace SplamyWeb.Controllers;
 
@@ -20,10 +21,11 @@ namespace SplamyWeb.Controllers;
 public class RssProxyController(
     ILogger<RssProxyController> logger,
     IMemoryCache memoryCache,
-    HttpClient httpClient
+    HttpClient httpClient,
+    IOptions<SplamyEnv> env
 ) : ControllerBase
 {
-    private static readonly string CachePath = Path.Combine(Util.DataPath, "rss_cache");
+    private readonly string _cachePath = Path.Combine(env.Value.DataDir, "rss_cache");
 
     [HttpGet("cassandra")]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
@@ -157,7 +159,7 @@ public class RssProxyController(
         {
             var itemLink = new Uri(baseUri, entry.Attributes["href"].Value);
             var linkHash = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(itemLink.ToString())));
-            var cacheFile = Path.Combine(CachePath, $"{linkHash}.html");
+            var cacheFile = Path.Combine(_cachePath, $"{linkHash}.html");
 
             string entryHtmlString;
 

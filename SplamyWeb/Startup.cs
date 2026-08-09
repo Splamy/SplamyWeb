@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -11,13 +12,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SplamyWeb.Components;
-using SplamyWeb.Controllers;
 using SplamyWeb.Db;
 using SplamyWeb.Mock;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace SplamyWeb;
 
@@ -62,7 +63,11 @@ public static class Startup
 
 		services.AddMemoryCache();
 
-		services.Configure<WireguardConfig>(configuration.GetSection("Wireguard"));
+		services.Configure<SplamyEnv>(paths =>
+		{
+			paths.DataDir = Directory.GetCurrentDirectory();
+		});
+		services.Configure<SplamyEnv>(configuration.GetSection("Paths"));
 
 		services.AddSignalR().AddJsonProtocol(options =>
 		{
@@ -242,7 +247,7 @@ public static class Startup
 		await using var scope = services.CreateAsyncScope();
 		await using var context = scope.ServiceProvider.GetRequiredService<SplamyContext>();
 
-		var logger = NLog.LogManager.GetLogger("SplamyWeb.Startup");
+		var logger = services.GetRequiredService<ILogger<SplamyContext>>();
 
 		//await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions
 		//	.GetInfrastructure(context)
@@ -253,15 +258,16 @@ public static class Startup
 
 		if (pendingMigrations.Length > 0)
 		{
-			logger.Info($"Applying {pendingMigrations.Length} migrations.");
+			logger.LogInformation("Applying {Count} migrations.", pendingMigrations.Length);
 			await context.Database.MigrateAsync();
 		}
 
 		var lastAppliedMigration = (await context.Database.GetAppliedMigrationsAsync()).Last();
 
-		logger.Info($"Database on schema version: {lastAppliedMigration}");
+		logger.LogInformation("Database on schema version: {Migration}", lastAppliedMigration);
 
-		await UserStore.InitializeAccountWhenEmpty(context, logger);
+		var env = services.GetRequiredService<IOptions<SplamyEnv>>();
+		await UserStore.InitializeAccountWhenEmpty(context, logger, env.Value);
 	}
 }
 

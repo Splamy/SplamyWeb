@@ -16,13 +16,17 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace SplamyWeb.Components;
 
-public partial class TeamspeakService : IHostedService
+public partial class TeamspeakService(
+	IServiceScopeFactory scopeFactory,
+	ITimerService timer,
+	IWebHostEnvironment env,
+	ILogger<TeamspeakService> log)
+	: IHostedService
 {
-	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-
 	[GeneratedRegex("[^a-zA-Z0-9\\+=/]")]
 	private static partial Regex VersionClean { get; }
 
@@ -39,24 +43,13 @@ public partial class TeamspeakService : IHostedService
 	private long _lastBadgeUpdate = -1;
 	private static readonly CsvConfiguration CsvConfig = new(CultureInfo.InvariantCulture);
 
-	private readonly IServiceScopeFactory _scopeFactory;
-	private readonly ITimerService _timer;
-	private readonly IWebHostEnvironment _env;
-
-	public TeamspeakService(IServiceScopeFactory scopeFactory, ITimerService timer, IWebHostEnvironment env)
-	{
-		_scopeFactory = scopeFactory;
-		_timer = timer;
-		_env = env;
-	}
-
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
-		if (!_env.IsDevelopment())
+		if (!env.IsDevelopment())
 		{
-			_timer.Register(UpdateVersionsAsync);
-			_timer.Register(UpdateBadgesAsync);
-			_timer.Register(KeepNicknamesValidAsync);
+			timer.Register(UpdateVersionsAsync);
+			timer.Register(UpdateBadgesAsync);
+			timer.Register(KeepNicknamesValidAsync);
 		}
 
 		return Task.CompletedTask;
@@ -80,7 +73,7 @@ public partial class TeamspeakService : IHostedService
 			await Task.Delay(1000);
 		}
 
-		Log.Warn("Failed to push to github after multiple retries");
+		log.LogWarning("Failed to push to github after multiple retries");
 		return new ObjectResult("Github request could not be completed") { StatusCode = 503 };
 	}
 
@@ -164,7 +157,7 @@ public partial class TeamspeakService : IHostedService
 			return null; /* Retry */
 
 		foreach (var newSign in newEntries)
-			Log.Info("Added new version: {0},{1}", newSign.Build, newSign.Platform);
+			log.LogInformation("Added new version: {Build},{Platform}", newSign.Build, newSign.Platform);
 
 		return new OkObjectResult("All signs ok. Added new ones to db.");
 	}
@@ -357,14 +350,14 @@ public partial class TeamspeakService : IHostedService
 		}
 
 		foreach (var badge in newEntries)
-			Log.Info("Added new badge: {0},{1}", badge.uid, badge.name);
+			log.LogInformation("Added new badge: {Uid},{Name}", badge.uid, badge.name);
 
 		_lastBadgeUpdate = badges.LastUpdate;
 
 		return new OkObjectResult("All signs ok. Added new ones to db.");
 	}
 
-	private static async Task<T?> DownloadJson<T>(string action) where T : class
+	private async Task<T?> DownloadJson<T>(string action) where T : class
 	{
 		try
 		{
@@ -374,14 +367,14 @@ public partial class TeamspeakService : IHostedService
 		}
 		catch (Exception ex)
 		{
-			Log.Error(ex);
+			log.LogError(ex, "Failed to download {Action}", action);
 			return null;
 		}
 	}
 
 	private async Task<bool> PutJson<T>(string action, T data) where T : class
 	{
-		using var scope = _scopeFactory.CreateScope();
+		using var scope = scopeFactory.CreateScope();
 		var store = scope.ServiceProvider.GetRequiredService<StoreService>();
 
 		try
@@ -398,12 +391,12 @@ public partial class TeamspeakService : IHostedService
 		}
 		catch (HttpRequestException ex)
 		{
-			Log.Warn(ex, "Error uploading to github: " + ex.Message);
+			log.LogWarning(ex, "Error uploading to github");
 			return false;
 		}
 		catch (Exception ex)
 		{
-			Log.Error(ex, "Error accessing github");
+			log.LogError(ex, "Error accessing github");
 			return false;
 		}
 	}
@@ -426,7 +419,7 @@ public partial class TeamspeakService : IHostedService
 		}
 		catch (Exception ex)
 		{
-			Log.Warn(ex, "Failed to check verions: {0}", ex.Message);
+			log.LogWarning(ex, "Failed to check verions: {0}", ex.Message);
 		}
 	}
 
@@ -458,13 +451,13 @@ public partial class TeamspeakService : IHostedService
 		}
 		catch (Exception ex)
 		{
-			Log.Warn(ex, "Failed to update badges: {0}", ex.Message);
+			log.LogWarning(ex, "Failed to update badges");
 		}
 	}
 
 	private async Task KeepNicknamesValidAsync()
 	{
-		using var scope = _scopeFactory.CreateScope();
+		using var scope = scopeFactory.CreateScope();
 		var store = scope.ServiceProvider.GetRequiredService<StoreService>();
 
 		var nickList = await store.Get("check_nicknames");
@@ -479,7 +472,7 @@ public partial class TeamspeakService : IHostedService
 			}
 			catch (Exception ex)
 			{
-				Log.Warn(ex, "Failed to check nickname: {0}", name);
+				log.LogWarning(ex, "Failed to check nickname: {Name}", name);
 			}
 		}
 	}
@@ -515,7 +508,7 @@ public sealed partial class VersionSign : IEquatable<VersionSign>
 	public long BuildNumber { get; }
 	public string Platform { get; }
 
-	[GeneratedRegex("\\[Build: (\\d+)\\]")]
+	[GeneratedRegex(@"\[Build: (\d+)\]")]
 	private static partial Regex BuildMatch();
 
 	public VersionSign(string build, string platform, string sign)

@@ -17,6 +17,9 @@ using System.Net.Http.Json;
 using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Options;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers;
@@ -24,11 +27,15 @@ namespace SplamyWeb.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = AuthScheme)]
 [Route("api/[controller]")]
-public class LanguageController(SplamyContext db, StoreService store, UserManager<LoginData> userManager)
+public class LanguageController(
+	SplamyContext db,
+	StoreService store,
+	UserManager<LoginData> userManager,
+	IOptions<SplamyEnv> env,
+	ILogger<LanguageController> logger)
 	: ControllerBase
 {
-	private static readonly NLog.Logger Log = NLog.LogManager.GetCurrentClassLogger();
-	private static readonly string languageBasePath = Path.Combine(DataPath, "language");
+	private readonly string _languageBasePath = Path.Combine(env.Value.DataDir, "language");
 
 	[AllowAnonymous]
 	[HttpGet("project/{project}/languages")]
@@ -62,12 +69,18 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 
 		project = project.ToLowerInvariant();
 		CultureInfo culture;
-		try { culture = CultureInfo.GetCultureInfo(language); }
-		catch { return NotFound("Culture not found"); }
+		try
+		{
+			culture = CultureInfo.GetCultureInfo(language);
+		}
+		catch
+		{
+			return NotFound("Culture not found");
+		}
 
 		var langEntry = await GetLanguageEntry(project, culture);
 		// TODO change when other projects are added
-		var fullPath = new FileInfo(Path.Combine(languageBasePath, project, culture.Name, "TS3AudioBot.resources.dll"));
+		var fullPath = new FileInfo(Path.Combine(_languageBasePath, project, culture.Name, "TS3AudioBot.resources.dll"));
 		if (langEntry == null || !langEntry.Active || !fullPath.Exists)
 			return NotFound("The language was not found");
 
@@ -78,7 +91,8 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 	}
 
 	[HttpPost("project/{project}/update")]
-	public Task<IActionResult> UpdateLanguageFilesAsync(string project) => RebuildInternal(project, downloadFiles: true);
+	public Task<IActionResult> UpdateLanguageFilesAsync(string project) =>
+		RebuildInternal(project, downloadFiles: true);
 
 	[HttpPost("project/{project}/rebuild")]
 	public Task<IActionResult> RebuildLanguageFiles(string project) => RebuildInternal(project, downloadFiles: false);
@@ -99,13 +113,14 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 		if (projectData is null)
 			return BadRequest("Project not found");
 
-		var projectPath = Path.Combine(languageBasePath, project);
+		var projectPath = Path.Combine(_languageBasePath, project);
 		Directory.CreateDirectory(projectPath);
 
 		if (downloadFiles)
 		{
-			Log.Info("Requested language update");
-			using var requestM = await TransifexRequest(HttpMethod.Get, "https://rest.api.transifex.com/projects/o:respeak:p:ts3audiobot/languages");
+			logger.LogInformation("Requested language update");
+			using var requestM = await TransifexRequest(HttpMethod.Get,
+				"https://rest.api.transifex.com/projects/o:respeak:p:ts3audiobot/languages");
 			using var resultM = await httpClient.SendAsync(requestM);
 			if (!resultM.IsSuccessStatusCode)
 				return UnprocessableEntity("Error from transifex");
@@ -122,25 +137,31 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 			var oldLangs = await db.LanguageEntries.ToListAsync();
 			oldLangs.ForEach(lang => lang.Active = false);
 
-			Log.Info("Fetching all localization files from transifex");
+			logger.LogInformation("Fetching all localization files from transifex");
 
 			var langs = await Task.WhenAll(languages.Select(async language_code =>
 			{
 				string language;
 				try
 				{
-					language = CultureInfo.GetCultureInfo(language_code.Replace("_", "-", StringComparison.Ordinal)).Name;
+					language = CultureInfo.GetCultureInfo(language_code.Replace("_", "-", StringComparison.Ordinal))
+						.Name;
 					if (string.Equals(language, "BS-BA", StringComparison.OrdinalIgnoreCase))
 						language = "bs";
 				}
-				catch { return null; }
+				catch
+				{
+					return null;
+				}
 
-				using var request = await TransifexRequest(HttpMethod.Get, $"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language_code}/?file");
+				using var request = await TransifexRequest(HttpMethod.Get,
+					$"https://www.transifex.com/api/2/project/ts3audiobot/resource/stringsresx/translation/{language_code}/?file");
 				using var result = await httpClient.SendAsync(request);
 				if (!result.IsSuccessStatusCode)
 					return null;
 
-				using var demoDataStream = System.IO.File.Open(Path.Combine(projectPath, $"strings.{language}.resx"), FileMode.Create, FileAccess.Write);
+				using var demoDataStream = System.IO.File.Open(Path.Combine(projectPath, $"strings.{language}.resx"),
+					FileMode.Create, FileAccess.Write);
 				using var stream = await result.Content.ReadAsStreamAsync();
 				await stream.CopyToAsync(demoDataStream);
 
@@ -155,7 +176,8 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 
 			foreach (var newLang in langs.Where(lang => lang != null))
 			{
-				var oldLang = oldLangs.FirstOrDefault(lang => lang.Project == newLang!.Project && lang.Language == newLang.Language);
+				var oldLang = oldLangs.FirstOrDefault(lang =>
+					lang.Project == newLang!.Project && lang.Language == newLang.Language);
 				if (oldLang != null)
 				{
 					oldLang.UploadTime = newLang!.UploadTime;
@@ -170,7 +192,7 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 			await db.SaveChangesAsync();
 		}
 
-		Log.Info("Requested language rebuild");
+		logger.LogInformation("Requested language rebuild");
 
 		var buildCsproj = await store.Get($"lang_build_{project}");
 		if (buildCsproj is null)
@@ -193,12 +215,14 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 
 			if (buildRes.ExitCode != 0)
 			{
-				return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to build: " + buildRes.StandardOutput);
+				return StatusCode((int)HttpStatusCode.InternalServerError,
+					"Failed to build: " + buildRes.StandardOutput);
 			}
 		}
 		catch (Exception ex)
 		{
-			return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to build (process error): " + ex.Message);
+			return StatusCode((int)HttpStatusCode.InternalServerError,
+				"Failed to build (process error): " + ex.Message);
 		}
 
 		var languageEntries = await db.LanguageEntries.ToArrayAsync();
@@ -206,7 +230,7 @@ public class LanguageController(SplamyContext db, StoreService store, UserManage
 		{
 			if (!Directory.Exists(Path.Combine(projectPath, dir.Language)))
 			{
-				Log.Warn("Unknown language: {0}", dir.Language);
+				logger.LogWarning("Unknown language: {Language}", dir.Language);
 				db.LanguageEntries.Remove(dir);
 			}
 		}

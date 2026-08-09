@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace SplamyWeb.Components;
 
@@ -26,16 +27,16 @@ public sealed class UserStore(SplamyContext context)
 			.FirstOrDefaultAsync();
 	}
 
-	public static async Task InitializeAccountWhenEmpty(SplamyContext db, NLog.Logger logger)
+	public static async Task InitializeAccountWhenEmpty(SplamyContext db, ILogger logger, SplamyEnv env)
 	{
 		if (!await db.User.AsNoTracking().AnyAsync())
 		{
-			logger.Info("Creating admin 'Splamy' acount");
+			logger.LogInformation("Creating admin 'Splamy' account");
 			var rndPw = RandomToken(16);
 			var rndToken = RandomToken();
 			var (pw, salt) = HashPw(rndPw);
 			await db.User.AddAsync(new LoginData("Splamy", pw, salt, rndToken, UserType.Admin));
-			await File.WriteAllTextAsync(Path.Combine(Util.DataPath, "token.tmp"), $"PW:{rndPw}\nToken:{rndToken}");
+			await File.WriteAllTextAsync(Path.Combine(env.DataDir, "token.tmp"), $"PW:{rndPw}\nToken:{rndToken}");
 			await db.SaveChangesAsync();
 		}
 	}

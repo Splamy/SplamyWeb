@@ -46,10 +46,6 @@
 		<DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.0" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="data\" />
-	</ItemGroup>
-
 	<!--<ItemGroup>
 	  <Reference Include="RateMapSeveritySaber">
 	    <HintPath>..\..\RateMapSeveritySaber\RateMapSeveritySaber\bin\Release\netstandard2.1\RateMapSeveritySaber.dll</HintPath>

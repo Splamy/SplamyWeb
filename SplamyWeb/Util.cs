@@ -21,7 +21,6 @@ public static partial class Util
 	public const string AuthScheme = "BasicAuthentication,Identity.Application";
 
 	public static readonly HttpClient httpClient = new();
-	public static string DataPath { get; } = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "data"));
 	public static readonly Encoding Utf8Encoding = new UTF8Encoding(false, false);
 
 	static Util()
@@ -132,7 +131,7 @@ internal partial class TimeSpanConverter(TimeSpanFormatting format) : JsonConver
 	}
 
 
-	[GeneratedRegex("^(?:(\\d+)d)?(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?(?:(\\d+)ms)?$", RegexOptions.IgnoreCase)]
+	[GeneratedRegex(@"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?(?:(\d+)ms)?$", RegexOptions.IgnoreCase)]
 	private static partial Regex TimeReg();
 
 	private static TimeSpan? ParseTimeAsSimple(string value)
@@ -222,7 +221,7 @@ internal class RssSerializerOutputFormatter : XmlSerializerOutputFormatter
 	}
 }
 
-enum TimeSpanFormatting
+internal enum TimeSpanFormatting
 {
 	Simple,
 	Seconds,

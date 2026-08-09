@@ -11,6 +11,7 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Net.Mime;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using static SplamyWeb.Util;
 
 namespace SplamyWeb.Controllers;
@@ -18,9 +19,13 @@ namespace SplamyWeb.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = AuthScheme)] // , Roles = "Admin"
 [Route("api/[controller]")]
-public class NightlyController(UserManager<LoginData> userManager, SplamyContext db) : ControllerBase
+public class NightlyController(
+	UserManager<LoginData> userManager,
+	SplamyContext db,
+	IOptions<SplamyEnv> env
+	) : ControllerBase
 {
-	const int PageBuildCount = 20;
+	private const int PageBuildCount = 20;
 
 	private static readonly FrozenSet<string> AcceptedContentTypes = FrozenSet.ToFrozenSet([
 		MediaTypeNames.Application.Octet, // Binary
@@ -28,7 +33,7 @@ public class NightlyController(UserManager<LoginData> userManager, SplamyContext
 		"application/gzip"
 	]);
 
-	private readonly string nightlyPath = Path.Combine(DataPath, "nightly");
+	private readonly string _nightlyPath = Path.Combine(env.Value.DataDir, "nightly");
 
 	[AllowAnonymous]
 	[Produces(MediaTypeNames.Application.Octet, MediaTypeNames.Application.Zip)]
@@ -53,7 +58,7 @@ public class NightlyController(UserManager<LoginData> userManager, SplamyContext
 			return BadRequest("Not supported");
 		}
 
-		var path = Path.Combine(nightlyPath, project, branch, entry.FileName);
+		var path = Path.Combine(_nightlyPath, project, branch, entry.FileName);
 		return PhysicalFile(path, MediaTypeNames.Application.Octet, entry.FileName);
 	}
 
@@ -155,7 +160,7 @@ public class NightlyController(UserManager<LoginData> userManager, SplamyContext
 		nBuild.FileName = fileName ?? defaultName;
 		nBuild.Version = version;
 
-		var fullPath = new FileInfo(Path.Combine(nightlyPath, project, branch, nBuild.FileName));
+		var fullPath = new FileInfo(Path.Combine(_nightlyPath, project, branch, nBuild.FileName));
 		var dir = fullPath.Directory;
 		if (dir is null)
 			return Problem("Could not create directory");
