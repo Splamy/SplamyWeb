@@ -54,7 +54,7 @@ in {
 
     database = lib.mkOption {
       type = types.str;
-      default = "splamy_web";
+      default = "splamyweb";
     };
   };
 
