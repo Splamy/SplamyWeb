@@ -9,7 +9,7 @@ app.Logging.ClearProviders();
 app.Logging.SetMinimumLevel(LogLevel.Trace);
 app.Logging.AddNLogWeb();
 
-Startup.ConfigureServices(app.Configuration, app.Services);
+Startup.ConfigureServices(app.Configuration, app.Services, app.Environment);
 
 var webHost = app.Build();
 

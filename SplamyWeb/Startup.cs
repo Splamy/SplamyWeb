@@ -27,7 +27,8 @@ public static class Startup
 {
 	public const string CorsAny = "corsAllowAny";
 
-	public static void ConfigureServices(IConfiguration configuration, IServiceCollection services)
+	public static void ConfigureServices(IConfiguration configuration, IServiceCollection services,
+		IWebHostEnvironment webHost)
 	{
 		if (configuration.GetValue<bool>("Mock:Web"))
 		{
@@ -47,28 +48,21 @@ public static class Startup
 			services.AddCors(options =>
 			{
 				options.AddPolicy(CorsAny,
-					builder =>
-					{
-						builder.AllowAnyOrigin();
-					});
-				options.AddDefaultPolicy(
-					builder =>
-					{
-						builder.WithOrigins("http://localhost:3000", "http://localhost:44422");
-						builder.AllowCredentials();
-						builder.AllowAnyHeader();
-						builder.AllowAnyMethod();
-					});
+					builder => { builder.AllowAnyOrigin(); });
+				options.AddDefaultPolicy(builder =>
+				{
+					builder.WithOrigins("http://localhost:3000", "http://localhost:44422");
+					builder.AllowCredentials();
+					builder.AllowAnyHeader();
+					builder.AllowAnyMethod();
+				});
 			});
 		}
 
 		services.AddMemoryCache();
 
 		services.Configure<RamsesOptions>(configuration.GetSection("Ramses"));
-		services.Configure<SplamyEnv>(paths =>
-		{
-			paths.DataDir = Directory.GetCurrentDirectory();
-		});
+		services.Configure<SplamyEnv>(paths => { paths.DataDir = Directory.GetCurrentDirectory(); });
 		services.Configure<SplamyEnv>(configuration.GetSection("Paths"));
 
 		services.AddSignalR().AddJsonProtocol(options =>
@@ -109,10 +103,7 @@ public static class Startup
 		//		};
 		//	});
 
-		services.AddControllers(o =>
-		{
-			o.OutputFormatters.Add(new RssSerializerOutputFormatter());
-		});
+		services.AddControllers(o => { o.OutputFormatters.Add(new RssSerializerOutputFormatter()); });
 
 		services.AddResponseCompression(options =>
 		{
@@ -155,7 +146,8 @@ public static class Startup
 		});
 
 		services.AddSingleton<ITimerService, TimerService>();
-		services.AddHostedService(p => (TimerService)p.GetRequiredService<ITimerService>()); // Is there a better way to do this?
+		services.AddHostedService(p =>
+			(TimerService)p.GetRequiredService<ITimerService>()); // Is there a better way to do this?
 
 		services.AddScoped<StoreService>();
 		services.AddSingleton<SpamBackingData>();
@@ -169,7 +161,7 @@ public static class Startup
 		services.AddHostedService<RamsesService>();
 		services.AddHostedService(x => x.GetRequiredService<RamsesBackingData>());
 
-		services.AddSpaStaticFiles(options => options.RootPath = "wwwroot");
+		services.AddSpaStaticFiles(options => { options.RootPath = webHost.WebRootPath; });
 	}
 
 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -215,17 +207,15 @@ public static class Startup
 			});
 			app.UseSpaStaticFiles();
 		}
+
 		app.UseRouting();
 
 		app.UseAuthentication();
 		app.UseAuthorization();
 
-		app.UseEndpoints(endpoints =>
-		{
-			endpoints.MapControllers();
-			endpoints.MapHub<MarkdownService>("/api/markdown");
-			endpoints.MapHub<Minigame>("api/minigame");
-		});
+		app.MapControllers();
+		app.MapHub<MarkdownService>("/api/markdown");
+		app.MapHub<Minigame>("api/minigame");
 
 		app.UseWhen(
 			context => !context.Request.Path.StartsWithSegments("/api"),
@@ -272,4 +262,3 @@ public static class Startup
 		await UserStore.InitializeAccountWhenEmpty(context, logger, env.Value);
 	}
 }
-
