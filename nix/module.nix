@@ -10,7 +10,7 @@ with lib; let
   ui-default = self.packages.${system}.splamyweb-ui;
   cfg = config.services.splamyweb;
   settingsFormat = pkgs.formats.json {};
-  mergedSettings = lib.mkMerge [
+  mergedSettings = lib.foldl' lib.recursiveUpdate {} [
     {
       ConnectionStrings = {
         DefaultConnection = "Host=/run/postgresql;Database=${cfg.database}";
