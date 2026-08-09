@@ -1,20 +1,24 @@
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
-namespace SplamyWeb.Components;
+namespace SplamyWeb.Components.Ramses;
 
-public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData ramses) : BackgroundService
+public class RamsesService(
+	ILogger<RamsesService> logger,
+	IOptions<RamsesOptions> options,
+	RamsesBackingData ramses) : BackgroundService
 {
 	private static readonly Uri BsUri = new("wss://ws.beatsaver.com/maps");
+
 	public static readonly JsonSerializerOptions JsonSerializerOptions = new()
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -23,6 +27,11 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		if (!options.Value.Scraper)
+		{
+			return;
+		}
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			try
@@ -81,7 +90,8 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 	{
 		try
 		{
-			await foreach (var message in JsonSerializer.DeserializeAsyncEnumerable<BsMessageBase>(reader.AsStream(), JsonSerializerOptions, cancellationToken))
+			await foreach (var message in JsonSerializer.DeserializeAsyncEnumerable<BsMessageBase>(reader.AsStream(),
+				               JsonSerializerOptions, cancellationToken))
 			{
 				await TriggerEvent(message);
 			}
@@ -102,6 +112,7 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 			{
 				await ramses.Get(mapUpdate.Msg.Id);
 			}
+
 			break;
 
 		case BsMessageMapDelete mapDelete:
@@ -114,7 +125,8 @@ public class RamsesService(ILogger<RamsesService> logger, RamsesBackingData rams
 		}
 	}
 
-	[JsonPolymorphic(TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
+	[JsonPolymorphic(TypeDiscriminatorPropertyName = "type",
+		UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
 	[JsonDerivedType(typeof(BsMessageMapUpdate), typeDiscriminator: "MAP_UPDATE")]
 	[JsonDerivedType(typeof(BsMessageMapDelete), typeDiscriminator: "MAP_DELETE")]
 	public class BsMessageBase

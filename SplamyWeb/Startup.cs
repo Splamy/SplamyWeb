@@ -19,6 +19,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SplamyWeb.Components.Ramses;
 
 namespace SplamyWeb;
 
@@ -63,6 +64,7 @@ public static class Startup
 
 		services.AddMemoryCache();
 
+		services.Configure<RamsesOptions>(configuration.GetSection("Ramses"));
 		services.Configure<SplamyEnv>(paths =>
 		{
 			paths.DataDir = Directory.GetCurrentDirectory();

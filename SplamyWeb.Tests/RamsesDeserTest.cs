@@ -1,8 +1,8 @@
-using SplamyWeb.Components;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using static SplamyWeb.Components.RamsesService;
+using SplamyWeb.Components.Ramses;
+using static SplamyWeb.Components.Ramses.RamsesService;
 
 namespace SplamyWeb.Tests;
 

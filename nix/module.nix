@@ -10,7 +10,16 @@ with lib; let
   ui-default = self.packages.${system}.splamyweb-ui;
   cfg = config.services.splamyweb;
   settingsFormat = pkgs.formats.json {};
-  configFile = settingsFormat.generate "appsettings.json" cfg.settings;
+  mergedSettings = lib.mkMerge [
+    {
+      ConnectionStrings = {
+        DefaultConnection = "Host=/run/postgresql;Database=${cfg.database}";
+      };
+    }
+    cfg.settings
+  ];
+  configFile = settingsFormat.generate "appsettings.json" mergedSettings;
+  configFileFolder = lib.getParent configFile;
 in {
   options.services.splamyweb = {
     enable = mkEnableOption "splamyweb";
@@ -69,10 +78,9 @@ in {
       restartTriggers = [configFile];
 
       environment = {
-        WEBROOT = "${ui-default}";
-        DOTNET_ENVIRONMENT = "Production";
-
-        ConnectionStrings__DefaultConnection = "Host=/run/postgresql;Database=${cfg.database}";
+        ASPNETCORE_WEBROOT = "${ui-default}";
+        ASPNETCORE_ENVIRONMENT = "Production";
+        ASPNETCORE_CONTENTROOT = "${configFileFolder}";
       };
 
       serviceConfig = {

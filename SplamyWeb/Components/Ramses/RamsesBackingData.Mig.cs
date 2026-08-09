@@ -1,17 +1,17 @@
-using JsonBinMin;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using RateMapSeveritySaber;
-using SplamyWeb.Db;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using JsonBinMin;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using RateMapSeveritySaber;
+using SplamyWeb.Db;
 
-namespace SplamyWeb.Components;
+namespace SplamyWeb.Components.Ramses;
 
 partial class RamsesBackingData
 {
