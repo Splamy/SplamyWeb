@@ -19,7 +19,9 @@ with lib; let
     cfg.settings
   ];
   configFile = settingsFormat.generate "appsettings.json" mergedSettings;
-  configFileFolder = lib.getParent configFile;
+  configFileFolder = pkgs.linkFarm "content_root" {
+    "appsettings.json" = configFile;
+  };
 in {
   options.services.splamyweb = {
     enable = mkEnableOption "splamyweb";
